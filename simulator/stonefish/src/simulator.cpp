@@ -6,10 +6,10 @@
 #include <stdexcept>
 #include <utility>
 
-#include <Stonefish/core/ScenarioParser.h>
-#include <Stonefish/core/Robot.h>
-
 #include <Stonefish/actuators/Thruster.h>
+#include <Stonefish/core/Robot.h>
+#include <Stonefish/core/ScenarioParser.h>
+#include <Stonefish/sensors/Sample.h>
 #include <Stonefish/sensors/scalar/DVL.h>
 #include <Stonefish/sensors/scalar/IMU.h>
 #include <Stonefish/sensors/scalar/Pressure.h>
@@ -28,7 +28,18 @@ VortexSimulationManager::VortexSimulationManager(sf::Scalar steps_per_second,
 
 void VortexSimulationManager::BuildScenario() {
     sf::ScenarioParser parser(this);
-    parser.Parse(scenario_path_);
+
+    const bool parsed = parser.Parse(scenario_path_);
+
+    if (!parsed) {
+        std::cerr
+            << "[Stonefish] Failed to parse scenario: "
+            << scenario_path_ << '\n';
+
+        return;
+    }
+
+    std::cout << "[Stonefish] Scenario parsed successfully\n";
 
     cache_thrusters();
     dump_sensors();
@@ -43,11 +54,9 @@ void VortexSimulationManager::dump_sensors() {
     while ((sensor = getSensor(sensor_id++)) != nullptr) {
         std::cerr << "  sensor[" << sensor_id - 1 << "] "
                   << "name=" << sensor->getName()
-                  << " type=" << static_cast<int>(sensor->getType())
-                  << '\n';
+                  << " type=" << static_cast<int>(sensor->getType()) << '\n';
     }
 }
-
 
 void VortexSimulationManager::cache_thrusters() {
     thrusters_.fill(nullptr);
@@ -65,8 +74,7 @@ void VortexSimulationManager::cache_thrusters() {
 
     while ((actuator = robot->getActuator(actuator_id++)) != nullptr) {
         std::cerr << "[Stonefish] actuator[" << actuator_id - 1
-                  << "] name=" << actuator->getName()
-                  << '\n';
+                  << "] name=" << actuator->getName() << '\n';
 
         if (actuator->getType() != sf::ActuatorType::THRUSTER) {
             continue;
@@ -75,8 +83,9 @@ void VortexSimulationManager::cache_thrusters() {
         auto* thruster = dynamic_cast<sf::Thruster*>(actuator);
 
         if (!thruster) {
-            std::cerr << "[Stonefish] actuator reports THRUSTER but cast failed: "
-                      << actuator->getName() << '\n';
+            std::cerr
+                << "[Stonefish] actuator reports THRUSTER but cast failed: "
+                << actuator->getName() << '\n';
             continue;
         }
 
@@ -88,18 +97,13 @@ void VortexSimulationManager::cache_thrusters() {
 
         thrusters_[thruster_id] = thruster;
 
-        std::cerr << "[Stonefish] cached thruster "
-                  << thruster_id + 1
-                  << ": "
-                  << actuator->getName()
-                  << '\n';
+        std::cerr << "[Stonefish] cached thruster " << thruster_id + 1 << ": "
+                  << actuator->getName() << '\n';
 
         ++thruster_id;
     }
 
-    std::cerr << "[Stonefish] cached "
-              << thruster_id
-              << " thrusters\n";
+    std::cerr << "[Stonefish] cached " << thruster_id << " thrusters\n";
 }
 
 void VortexSimulationManager::SimulationStepCompleted(sf::Scalar dt) {
@@ -112,7 +116,6 @@ double VortexSimulationManager::time_s() const {
     return static_cast<double>(getSimulationTime());
 }
 
-
 void VortexSimulationManager::set_thrusters(const ThrusterCommand& command) {
     for (std::size_t i = 0; i < thrusters_.size(); ++i) {
         auto* thruster = thrusters_[i];
@@ -122,7 +125,8 @@ void VortexSimulationManager::set_thrusters(const ThrusterCommand& command) {
         }
 
         const double normalized = std::clamp(command.command[i], -1.0, 1.0);
-        const double setpoint = normalized * static_cast<double>(thruster->getSetpointLimit());
+        const double setpoint =
+            normalized * static_cast<double>(thruster->getSetpointLimit());
 
         thruster->setSetpoint(static_cast<sf::Scalar>(setpoint));
     }
@@ -130,26 +134,55 @@ void VortexSimulationManager::set_thrusters(const ThrusterCommand& command) {
 
 ImuReading VortexSimulationManager::read_imu(const std::string& name) {
     ImuReading out{};
-    out.timestamp_s = time_s();
 
     auto* sensor = getSensor(name);
     auto* imu = dynamic_cast<sf::IMU*>(sensor);
 
-    if (!imu) {
+    if (imu == nullptr) {
         return out;
     }
 
-    sf::Vector3 linear_velocity;
-    sf::Vector3 angular_velocity;
-    imu->getSensorVelocity(linear_velocity, angular_velocity);
+    const sf::Sample sample = imu->getLastSample();
 
-    out.angular_velocity_rad_s =
-        std::array<double, 3>{static_cast<double>(angular_velocity.x()),
-                              static_cast<double>(angular_velocity.y()),
-                              static_cast<double>(angular_velocity.z())};
+    if (sample.getNumOfDimensions() != 9U) {
+        return out;
+    }
 
-    out.linear_acceleration_m_s2 = std::array<double, 3>{0.0, 0.0, 0.0};
-    out.orientation_xyzw = std::array<double, 4>{0.0, 0.0, 0.0, 1.0};
+    out.timestamp_s = static_cast<double>(sample.getTimestamp());
+
+    out.angular_velocity_rad_s = {
+        static_cast<double>(sample.getValue(3)),
+        static_cast<double>(sample.getValue(4)),
+        static_cast<double>(sample.getValue(5)),
+    };
+
+    out.linear_acceleration_m_s2 = {
+        static_cast<double>(sample.getValue(6)),
+        static_cast<double>(sample.getValue(7)),
+        static_cast<double>(sample.getValue(8)),
+    };
+
+    /*
+     * Stonefish returns roll, pitch and yaw, not a quaternion.
+     * Convert these properly rather than returning identity.
+     */
+    const double roll = static_cast<double>(sample.getValue(0));
+    const double pitch = static_cast<double>(sample.getValue(1));
+    const double yaw = static_cast<double>(sample.getValue(2));
+
+    const double cr = std::cos(roll * 0.5);
+    const double sr = std::sin(roll * 0.5);
+    const double cp = std::cos(pitch * 0.5);
+    const double sp = std::sin(pitch * 0.5);
+    const double cy = std::cos(yaw * 0.5);
+    const double sy = std::sin(yaw * 0.5);
+
+    out.orientation_xyzw = {
+        sr * cp * cy - cr * sp * sy,
+        cr * sp * cy + sr * cp * sy,
+        cr * cp * sy - sr * sp * cy,
+        cr * cp * cy + sr * sp * sy,
+    };
 
     out.valid = true;
     return out;
@@ -163,38 +196,72 @@ PressureReading VortexSimulationManager::read_pressure(
     auto* sensor = getSensor(name);
     auto* pressure = dynamic_cast<sf::Pressure*>(sensor);
 
-    if (!pressure) {
+    if (pressure == nullptr) {
         return out;
     }
 
-    // TODO: Implement using actual Pressure.h API.
-    out.valid = false;
+    constexpr unsigned int pressure_channel = 0U;
+
+    out.pressure_pa =
+        static_cast<double>(pressure->getLastValue(pressure_channel));
+
+    out.valid = true;
     return out;
 }
 
-DvlReading VortexSimulationManager::read_dvl(const std::string& name) {
+DvlReading VortexSimulationManager::read_dvl(
+    const std::string& name) {
     DvlReading out{};
-    out.timestamp_s = time_s();
 
     auto* sensor = getSensor(name);
     auto* dvl = dynamic_cast<sf::DVL*>(sensor);
 
-    if (!dvl) {
+    if (dvl == nullptr) {
         return out;
     }
 
-    sf::Vector3 linear_velocity;
-    sf::Vector3 angular_velocity;
-    dvl->getSensorVelocity(linear_velocity, angular_velocity);
+    const sf::Sample sample = dvl->getLastSample();
 
-    out.velocity_body_m_s =
-        std::array<double, 3>{static_cast<double>(linear_velocity.x()),
-                              static_cast<double>(linear_velocity.y()),
-                              static_cast<double>(linear_velocity.z())};
+    constexpr std::size_t expected_dimensions = 8U;
 
-    out.beam_valid = std::array<bool, 4>{false, false, false, false};
+    if (sample.getNumOfDimensions() != expected_dimensions) {
+        return out;
+    }
 
+    out.timestamp_s =
+        static_cast<double>(sample.getTimestamp());
+
+    out.velocity_body_m_s = {
+        static_cast<double>(sample.getValue(0)),
+        static_cast<double>(sample.getValue(1)),
+        static_cast<double>(sample.getValue(2)),
+    };
+
+    out.altitude_m =
+        static_cast<double>(sample.getValue(3));
+
+    const auto status =
+        static_cast<unsigned int>(sample.getValue(7));
+
+    const bool bottom_ping_valid =
+        status == 0U || status == 2U;
+
+    out.beam_valid = {
+        bottom_ping_valid,
+        bottom_ping_valid,
+        bottom_ping_valid,
+        bottom_ping_valid,
+    };
+
+    out.velocity_valid = bottom_ping_valid;
+    out.altitude_valid = bottom_ping_valid;
+
+    /*
+     * The sensor exists and returned a correctly shaped sample.
+     * Per-measurement validity is represented separately above.
+     */
     out.valid = true;
+
     return out;
 }
 
@@ -205,16 +272,22 @@ CameraFrame VortexSimulationManager::read_camera(const std::string& name) {
     auto* sensor = getSensor(name);
     auto* camera = dynamic_cast<sf::Camera*>(sensor);
 
-    if (!camera) {
+    if (camera == nullptr) {
         return out;
     }
 
     camera->getResolution(out.width, out.height);
-    out.channels = 3;
+
+    if (out.width == 0U || out.height == 0U) {
+        return out;
+    }
+
+    constexpr std::uint32_t rgb_channels = 3U;
+    out.channels = rgb_channels;
 
     const void* raw_image_data = camera->getImageDataPointer();
 
-    if (!raw_image_data) {
+    if (raw_image_data == nullptr) {
         return out;
     }
 
@@ -230,43 +303,48 @@ CameraFrame VortexSimulationManager::read_camera(const std::string& name) {
     return out;
 }
 
-SonarFrame VortexSimulationManager::read_sonar(const std::string& name) {
+SonarFrame VortexSimulationManager::read_sonar(
+    const std::string& name) {
     SonarFrame out{};
     out.timestamp_s = time_s();
 
     auto* sensor = getSensor(name);
     auto* fls = dynamic_cast<sf::FLS*>(sensor);
 
-    if (!fls) {
+    if (fls == nullptr) {
         return out;
     }
 
-    unsigned int width = 0;
-    unsigned int height = 0;
-    fls->getDisplayResolution(width, height);
+    unsigned int beams = 0U;
+    unsigned int bins = 0U;
 
-    if (width == 0 || height == 0) {
+    fls->getResolution(beams, bins);
+
+    if (beams == 0U || bins == 0U) {
         return out;
     }
 
-    void* raw_data = fls->getImageDataPointer();
+    const void* raw_data = fls->getImageDataPointer();
 
-    if (!raw_data) {
+    if (raw_data == nullptr) {
         return out;
     }
 
-    const auto* data = static_cast<const GLubyte*>(raw_data);
+    const auto* samples =
+        static_cast<const std::uint8_t*>(raw_data);
 
-    const std::size_t count =
-        static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
+    const std::size_t sample_count =
+        static_cast<std::size_t>(beams) *
+        static_cast<std::size_t>(bins);
 
-    out.beams = static_cast<std::uint32_t>(width);
-    out.bins = static_cast<std::uint32_t>(height);
+    out.beams = static_cast<std::uint32_t>(beams);
+    out.bins = static_cast<std::uint32_t>(bins);
 
-    out.intensities.resize(count);
+    out.intensities.resize(sample_count);
 
-    for (std::size_t i = 0; i < count; ++i) {
-        out.intensities[i] = static_cast<float>(data[i]) / 255.0f;
+    for (std::size_t i = 0; i < sample_count; ++i) {
+        out.intensities[i] =
+            static_cast<float>(samples[i]) / 255.0F;
     }
 
     out.valid = true;

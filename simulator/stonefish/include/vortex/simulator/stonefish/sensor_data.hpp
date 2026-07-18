@@ -32,6 +32,10 @@ struct DvlReading {
     std::array<double, 3> velocity_body_m_s{};
     std::array<bool, 4> beam_valid{};
 
+    double altitude_m{0.0};
+
+    bool velocity_valid{false};
+    bool altitude_valid{false};
     bool valid{false};
 };
 

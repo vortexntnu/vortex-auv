@@ -1,3 +1,6 @@
+find_package(Threads REQUIRED)
+find_package(vortex_telemetry CONFIG REQUIRED)
+
 add_library(vehicle_control_core
   control/vehicle_control.cpp
   config/nautilus_config.cpp
@@ -22,12 +25,11 @@ add_executable(vehicle_control_simulator
   simulator/keyboard_controller.cpp
 )
 
-find_package(Threads REQUIRED)
-
 target_link_libraries(vehicle_control_simulator
   PRIVATE
     vehicle_control_core
     vortex::stonefish
+    vortex::telemetry
     Threads::Threads
 )
 
@@ -42,6 +44,7 @@ target_link_libraries(vehicle_control_simulator
 #     vortex::can_interface
 #     vortex::nucleus_interface
 #     thruster_interface
+#     vortex::telemetry
 # )
 
 if(VORTEX_ENABLE_TRACY)

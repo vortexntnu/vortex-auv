@@ -194,7 +194,7 @@ void VehicleControl::update_estimator(
     if (eskf_initialized_ && sensors.dvl) {
         const SensorDVL dvl_measurement{
             .measurement =
-                sensors.dvl->velocity_body_m_s,
+                sensors.dvl->velocity_m_s,
             .measurement_noise =
                 dvl_measurement_noise_,
         };

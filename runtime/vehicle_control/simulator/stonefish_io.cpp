@@ -59,8 +59,7 @@ StonefishIo::StonefishIo(StonefishIoConfig config)
 }
 
 SensorFrame StonefishIo::read_sensors(
-    vortex::simulation::stonefish::VortexSimulationManager& manager)
-    const
+    vortex::simulation::stonefish::VortexSimulationManager& manager) const
 {
     ZoneScopedN("Read Stonefish sensors");
 
@@ -75,18 +74,22 @@ SensorFrame StonefishIo::read_sensors(
 
         if (imu.valid) {
             frame.imu = ImuSample{
-                .linear_acceleration_m_s2 =
-                    Eigen::Vector3d{
-                        imu.linear_acceleration_m_s2[0],
-                        imu.linear_acceleration_m_s2[1],
-                        imu.linear_acceleration_m_s2[2],
-                    },
-
+                /*
+                 * Designated initializers must follow the field declaration
+                 * order in ImuSample.
+                 */
                 .angular_velocity_rad_s =
                     Eigen::Vector3d{
                         imu.angular_velocity_rad_s[0],
                         imu.angular_velocity_rad_s[1],
                         imu.angular_velocity_rad_s[2],
+                    },
+
+                .linear_acceleration_m_s2 =
+                    Eigen::Vector3d{
+                        imu.linear_acceleration_m_s2[0],
+                        imu.linear_acceleration_m_s2[1],
+                        imu.linear_acceleration_m_s2[2],
                     },
 
                 .timestamp = timestamp,
@@ -98,11 +101,18 @@ SensorFrame StonefishIo::read_sensors(
         ZoneScopedN("Read Stonefish pressure");
 
         const auto pressure =
-            manager.read_pressure(
-                config_.pressure_sensor_name);
+            manager.read_pressure(config_.pressure_sensor_name);
 
         if (pressure.valid) {
             frame.depth = DepthSample{
+                .pressure_pa = pressure.pressure_pa,
+
+                /*
+                 * Stonefish Pressure does not provide temperature.
+                 */
+                .temperature_c =
+                    std::numeric_limits<double>::quiet_NaN(),
+
                 .depth_m = pressure.depth_m,
                 .timestamp = timestamp,
             };
@@ -117,12 +127,22 @@ SensorFrame StonefishIo::read_sensors(
 
         if (dvl.valid) {
             frame.dvl = DvlSample{
-                .velocity_body_m_s =
+                .velocity_m_s =
                     Eigen::Vector3d{
                         dvl.velocity_body_m_s[0],
                         dvl.velocity_body_m_s[1],
                         dvl.velocity_body_m_s[2],
                     },
+
+                .altitude_m = dvl.altitude_m,
+
+                /*
+                 * Stonefish does not provide a continuous quality value.
+                 */
+                .velocity_quality = dvl.valid ? 1.0 : 0.0,
+
+                .velocity_valid = dvl.valid,
+                .altitude_valid = dvl.altitude_valid,
 
                 .timestamp = timestamp,
             };
