@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
     const auto telemetry_work_guard =
         boost::asio::make_work_guard(telemetry_io_context);
 
-    vortex::telemetry::telemetry_publisher telemetry{telemetry_io_context,
+    vortex::telemetry::TelemetryPublisher telemetry{telemetry_io_context,
                                                      "127.0.0.1", 9870};
 
     std::jthread telemetry_thread{
@@ -105,6 +105,8 @@ int main(int argc, char** argv) {
         .operation_mode = vortex::utils::types::Mode::manual,
     };
 
+    std::uint64_t submitted_reference_revision = 0;
+
     simulator.set_step_callback(
         [&](vortex::simulation::stonefish::VortexSimulationManager& manager,
             double dt_s) {
@@ -119,20 +121,27 @@ int main(int argc, char** argv) {
 
             const SensorFrame sensors = stonefish_io.read_sensors(manager);
 
-            const ManualCommand manual_command = keyboard_controller.command();
+            const SimulatorInput input = keyboard_controller.input();
+            runtime_state.operation_mode = input.operation_mode;
+
+            if (input.reference_revision != submitted_reference_revision &&
+                vehicle_control.submit_reference(input.reference)) {
+                submitted_reference_revision = input.reference_revision;
+                std::cout << "Reference submitted to controller.\n";
+            }
 
             const ControlOutput output = vehicle_control.tick(
-                sensors, runtime_state, manual_command, dt_s);
+                sensors, runtime_state, input.manual_command, dt_s);
 
             stonefish_io.apply_thrusters(manager, output);
 
             const auto timestamp_ns =
-                vortex::telemetry::telemetry_publisher::monotonic_time_ns();
+                vortex::telemetry::TelemetryPublisher::monotonic_time_ns();
 
             if (sensors.imu.has_value()) {
                 const ImuSample& sample = *sensors.imu;
 
-                const vortex::telemetry::imu_data message{
+                const vortex::telemetry::ImuData message{
                     .angular_velocity_rad_s =
                         {
                             .x = sample.angular_velocity_rad_s.x(),
@@ -153,7 +162,7 @@ int main(int argc, char** argv) {
             if (sensors.dvl.has_value()) {
                 const DvlSample& sample = *sensors.dvl;
 
-                const vortex::telemetry::dvl_data message{
+                const vortex::telemetry::DvlData message{
                     .velocity_m_s =
                         {
                             .x = sample.velocity_m_s.x(),
@@ -172,7 +181,7 @@ int main(int argc, char** argv) {
             if (sensors.depth.has_value()) {
                 const DepthSample& sample = *sensors.depth;
 
-                const vortex::telemetry::pressure_data message{
+                const vortex::telemetry::PressureData message{
                     .pressure_pa = sample.pressure_pa,
                     .temperature_c = sample.temperature_c,
                     .depth_m = sample.depth_m,

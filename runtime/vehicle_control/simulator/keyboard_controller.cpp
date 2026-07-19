@@ -2,6 +2,10 @@
 
 #include <algorithm>
 #include <iostream>
+#include <sstream>
+#include <string>
+
+#include <Eigen/Geometry>
 
 #include <poll.h>
 #include <termios.h>
@@ -93,10 +97,10 @@ void KeyboardController::stop()
     }
 }
 
-ManualCommand KeyboardController::command() const
+SimulatorInput KeyboardController::input() const
 {
     std::scoped_lock lock{mutex_};
-    return command_;
+    return input_;
 }
 
 void KeyboardController::run()
@@ -111,6 +115,8 @@ void KeyboardController::run()
         << "  Q/E: yaw left/right\n"
         << "  X: stop all movement\n"
         << "  Space: toggle manual command\n"
+        << "  M: toggle manual/reference mode\n"
+        << "  G: type reference x y z roll pitch yaw (radians)\n"
         << "  Esc: stop keyboard controller\n\n";
 
     while (running_.load()) {
@@ -137,91 +143,107 @@ void KeyboardController::run()
 
 void KeyboardController::process_key(char key)
 {
+    if ((key == 'g' || key == 'G')) {
+        read_reference();
+        return;
+    }
+
     std::scoped_lock lock{mutex_};
+
+    ManualCommand& command = input_.manual_command;
 
     switch (key) {
     case 'w':
     case 'W':
-        command_.wrench[0] =
+        command.wrench[0] =
             clamp_force(
-                command_.wrench[0] +
+                command.wrench[0] +
                 force_step_n);
         break;
 
     case 's':
     case 'S':
-        command_.wrench[0] =
+        command.wrench[0] =
             clamp_force(
-                command_.wrench[0] -
+                command.wrench[0] -
                 force_step_n);
         break;
 
     case 'a':
     case 'A':
-        command_.wrench[1] =
+        command.wrench[1] =
             clamp_force(
-                command_.wrench[1] +
+                command.wrench[1] +
                 force_step_n);
         break;
 
     case 'd':
     case 'D':
-        command_.wrench[1] =
+        command.wrench[1] =
             clamp_force(
-                command_.wrench[1] -
+                command.wrench[1] -
                 force_step_n);
         break;
 
     case 'r':
     case 'R':
-        command_.wrench[2] =
+        command.wrench[2] =
             clamp_force(
-                command_.wrench[2] -
+                command.wrench[2] -
                 force_step_n);
         break;
 
     case 'f':
     case 'F':
-        command_.wrench[2] =
+        command.wrench[2] =
             clamp_force(
-                command_.wrench[2] +
+                command.wrench[2] +
                 force_step_n);
         break;
 
     case 'q':
     case 'Q':
-        command_.wrench[5] =
+        command.wrench[5] =
             clamp_torque(
-                command_.wrench[5] +
+                command.wrench[5] +
                 torque_step_nm);
         break;
 
     case 'e':
     case 'E':
-        command_.wrench[5] =
+        command.wrench[5] =
             clamp_torque(
-                command_.wrench[5] -
+                command.wrench[5] -
                 torque_step_nm);
         break;
 
     case 'x':
     case 'X':
-        command_.wrench.setZero();
+        command.wrench.setZero();
         break;
 
     case ' ':
-        command_.active =
-            !command_.active;
+        command.active = !command.active;
 
-        if (!command_.active) {
-            command_.wrench.setZero();
+        if (!command.active) {
+            command.wrench.setZero();
         }
 
         break;
 
+    case 'm':
+    case 'M':
+        input_.operation_mode =
+            input_.operation_mode == vortex::utils::types::Mode::manual
+                ? vortex::utils::types::Mode::autonomous
+                : vortex::utils::types::Mode::manual;
+        command.active = false;
+        command.wrench.setZero();
+        break;
+
     case 27:
-        command_.active = false;
-        command_.wrench.setZero();
+        command.active = false;
+        command.wrench.setZero();
         running_.store(false);
         break;
 
@@ -230,12 +252,74 @@ void KeyboardController::process_key(char key)
     }
 
     std::cout
-        << "\rManual: "
-        << (command_.active ? "ON " : "OFF")
+        << "\rMode: "
+        << (input_.operation_mode == vortex::utils::types::Mode::manual
+                ? "MANUAL   " : "REFERENCE")
+        << " manual: "
+        << (command.active ? "ON " : "OFF")
         << " wrench = ["
-        << command_.wrench.transpose()
+        << command.wrench.transpose()
         << "]          "
         << std::flush;
+}
+
+void KeyboardController::read_reference()
+{
+    std::cout << "\nReference x y z roll pitch yaw [rad]: " << std::flush;
+
+    std::string line;
+    while (running_.load()) {
+        pollfd descriptor{
+            .fd = STDIN_FILENO,
+            .events = POLLIN,
+            .revents = 0,
+        };
+        if (poll(&descriptor, 1, 50) <= 0) {
+            continue;
+        }
+
+        char character = '\0';
+        if (read(STDIN_FILENO, &character, 1) != 1) {
+            continue;
+        }
+        if (character == '\n' || character == '\r') {
+            break;
+        }
+        if ((character == 127 || character == '\b') && !line.empty()) {
+            line.pop_back();
+            std::cout << "\b \b" << std::flush;
+        } else if (character >= 32 && character < 127) {
+            line.push_back(character);
+            std::cout << character << std::flush;
+        }
+    }
+
+    double x, y, z, roll, pitch, yaw;
+    std::istringstream values{line};
+    if (!(values >> x >> y >> z >> roll >> pitch >> yaw)) {
+        std::cout << "\nInvalid reference; expected six numbers.\n";
+        return;
+    }
+
+    const Eigen::Quaterniond orientation =
+        Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ()) *
+        Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
+        Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX());
+
+    std::scoped_lock lock{mutex_};
+    input_.reference.x = x;
+    input_.reference.y = y;
+    input_.reference.z = z;
+    input_.reference.qw = orientation.w();
+    input_.reference.qx = orientation.x();
+    input_.reference.qy = orientation.y();
+    input_.reference.qz = orientation.z();
+    ++input_.reference_revision;
+    input_.operation_mode = vortex::utils::types::Mode::autonomous;
+    input_.manual_command.active = false;
+    input_.manual_command.wrench.setZero();
+
+    std::cout << "\nReference accepted; mode set to REFERENCE.\n";
 }
 
 }  // namespace vortex::runtime::vehicle_control

@@ -7,6 +7,17 @@
 
 namespace vortex::simulation::stonefish {
 
+struct OdometryReading {
+    double timestamp_s{0.0};
+
+    std::array<double, 3> position_world_m{};
+    std::array<double, 3> velocity_body_m_s{};
+    std::array<double, 4> orientation_xyzw{};
+    std::array<double, 3> angular_velocity_body_rad_s{};
+
+    bool valid{false};
+};
+
 struct ImuReading {
     double timestamp_s{0.0};
 

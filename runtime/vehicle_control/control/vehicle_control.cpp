@@ -55,6 +55,32 @@ VehicleControl::VehicleControl(
 {
 }
 
+bool VehicleControl::submit_reference(
+    const vortex::utils::types::Pose& reference,
+    double convergence_threshold)
+{
+    if (!eskf_initialized_) {
+        return false;
+    }
+
+    const NominalState& nominal_state = eskf_.get_nominal_state();
+    const Eigen::Vector3d velocity_body =
+        nominal_state.quat.conjugate() * nominal_state.vel;
+    const Eigen::Vector3d angular_velocity_body =
+        latest_gyro_measurement_ - nominal_state.gyro_bias;
+
+    vortex::utils::types::Waypoint waypoint{};
+    waypoint.pose = reference;
+    waypoint.mode = vortex::utils::types::WaypointMode::FULL_POSE;
+
+    return guidance_.submit_waypoint(
+               waypoint,
+               make_pose(nominal_state.pos, nominal_state.quat),
+               make_twist(velocity_body, angular_velocity_body),
+               convergence_threshold) ==
+           vortex::guidance::WaypointStatus::running;
+}
+
 ControlOutput VehicleControl::tick(
     const SensorFrame& sensors,
     const RuntimeState& runtime,

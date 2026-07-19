@@ -4,9 +4,9 @@
 #include <memory>
 #include <string>
 
+#include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/core/GraphicalSimulationApp.h>
 #include <Stonefish/core/SimulationManager.h>
-#include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/sensors/Sensor.h>
 
 #include "vortex/simulator/stonefish/actuator_commands.hpp"
@@ -36,6 +36,8 @@ class VortexSimulationManager final : public sf::SimulationManager {
     DvlReading read_dvl(const std::string& name);
     CameraFrame read_camera(const std::string& name);
     SonarFrame read_sonar(const std::string& name);
+
+    OdometryReading read_odometry(const std::string& name);
 
    private:
     void dump_sensors();

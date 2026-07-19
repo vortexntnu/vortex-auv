@@ -20,6 +20,12 @@ class VehicleControl {
                        const ManualCommand& manual_command,
                        double dt_s);
 
+    /** Submit a full-pose goal using the latest ESKF state as the trajectory
+     * starting point. Returns false until the estimator is initialized. */
+    [[nodiscard]]
+    bool submit_reference(const vortex::utils::types::Pose& reference,
+                          double convergence_threshold = 0.1);
+
    private:
     void update_estimator(const SensorFrame& sensors, double dt_s);
 

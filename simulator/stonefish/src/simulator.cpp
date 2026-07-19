@@ -12,6 +12,7 @@
 #include <Stonefish/sensors/Sample.h>
 #include <Stonefish/sensors/scalar/DVL.h>
 #include <Stonefish/sensors/scalar/IMU.h>
+#include <Stonefish/sensors/scalar/Odometry.h>
 #include <Stonefish/sensors/scalar/Pressure.h>
 #include <Stonefish/sensors/vision/Camera.h>
 #include <Stonefish/sensors/vision/FLS.h>
@@ -346,6 +347,57 @@ SonarFrame VortexSimulationManager::read_sonar(
         out.intensities[i] =
             static_cast<float>(samples[i]) / 255.0F;
     }
+
+    out.valid = true;
+    return out;
+}
+
+OdometryReading VortexSimulationManager::read_odometry(
+    const std::string& name) {
+    OdometryReading out{};
+
+    auto* sensor = getSensor(name);
+    auto* odometry = dynamic_cast<sf::Odometry*>(sensor);
+
+    if (odometry == nullptr) {
+        return out;
+    }
+
+    const sf::Sample sample = odometry->getLastSample();
+
+    constexpr std::size_t expected_dimensions = 13U;
+
+    if (sample.getNumOfDimensions() != expected_dimensions) {
+        return out;
+    }
+
+    out.timestamp_s =
+        static_cast<double>(sample.getTimestamp());
+
+    out.position_world_m = {
+        static_cast<double>(sample.getValue(0)),
+        static_cast<double>(sample.getValue(1)),
+        static_cast<double>(sample.getValue(2)),
+    };
+
+    out.velocity_body_m_s = {
+        static_cast<double>(sample.getValue(3)),
+        static_cast<double>(sample.getValue(4)),
+        static_cast<double>(sample.getValue(5)),
+    };
+
+    out.orientation_xyzw = {
+        static_cast<double>(sample.getValue(6)),
+        static_cast<double>(sample.getValue(7)),
+        static_cast<double>(sample.getValue(8)),
+        static_cast<double>(sample.getValue(9)),
+    };
+
+    out.angular_velocity_body_rad_s = {
+        static_cast<double>(sample.getValue(10)),
+        static_cast<double>(sample.getValue(11)),
+        static_cast<double>(sample.getValue(12)),
+    };
 
     out.valid = true;
     return out;
