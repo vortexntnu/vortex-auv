@@ -77,6 +77,7 @@ LQRController::LQRController(const LQR_params& params, const controller_params& 
     B.block<5, 3>(0, 0) = B_m.block<5, 3>(0, 0);
     reset_controller();
     valid = true;
+    return;
 }
 
 
@@ -124,6 +125,11 @@ Eigen::Vector<double, 8> LQRController::update_error(const State& error_state,
 } //TODO(henrimha): maybe optimize here?
 
 geometry_msgs::msg::WrenchStamped LQRController::calculate_thrust(const State& state, const State& error_state) {
+    if (!valid) {
+        return {geometry_msgs::msg::WrenchStamped {}};
+
+       }
+
     Eigen::Matrix<double, 3, 8> K_l;
     bool INFO = lqr.compute(Q, R, linearize(state), B, K_l, true, false);
     if (INFO == 0) valid=false;

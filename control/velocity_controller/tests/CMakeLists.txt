@@ -66,3 +66,9 @@ ament_target_dependencies(test_vc_node
 install(TARGETS test_vc_node
     DESTINATION lib/${PROJECT_NAME}
 )
+
+# ================= Integrasjonstester (launch_testing) =================
+  # Separat CMakeLists.txt siden disse er trege (sekunder, ikke millisekunder),
+  # krever en fullt oppstartet composition-container, og bruker en annen
+  # testmekanikk (launch_testing) enn de raske GTest-enhetstestene over.
+  add_subdirectory(integration)

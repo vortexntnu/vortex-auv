@@ -48,4 +48,4 @@ controller::controller(const controller_params& params):params_(params){
         thrust_configuration_, min_force_vec, max_force_vec);
 }
 
-//TODO(henrimha): consider using checking not wether the value is equal but very tiny instead abs<1e-6 
+//TODO(henrimha): consider using checking not wether the value is equal but very tiny instead abs<1e-6

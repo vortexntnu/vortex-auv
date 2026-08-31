@@ -6,23 +6,27 @@
 
 namespace {
 
+
 controller_params make_dummy_controller_params() {
     controller_params p;
     p.num_dimensions = 3;
-    p.num_thrusters = 4;
-    p.thruster_position.resize(4, 3);
-    p.thruster_position <<  0.5,  0.5, 0.0,
-                             0.5, -0.5, 0.0,
-                            -0.5,  0.5, 0.0,
-                            -0.5, -0.5, 0.0;
-    p.thruster_force_direction.resize(4, 3);
-    p.thruster_force_direction << 1, 0, 0,
-                                   1, 0, 0,
-                                   1, 0, 0,
-                                   1, 0, 0;
-    p.center_of_mass = Eigen::Vector3d::Zero();
-    p.min_thrust = -100.0;
-    p.max_thrust = 100.0;
+    p.num_thrusters = 8;
+
+    p.thruster_position.resize(3, 8);
+    p.thruster_position <<
+        0.413892,  0.140095, -0.163904, -0.413892, -0.413892, -0.163904,  0.140095,  0.413892,  // x
+        0.313022,  0.313022,  0.313022,  0.313022, -0.313022, -0.313022, -0.313022, -0.313022,  // y
+        0.021736,  0.021736,  0.021736,  0.021736,  0.021736,  0.021736,  0.021736,  0.021736;  // z
+
+    p.thruster_force_direction.resize(3, 8);
+    p.thruster_force_direction <<
+        0.70711,  0.00000,  0.00000, -0.70711, -0.70711,  0.00000,  0.00000,  0.70711,  // X (surge)
+       -0.70711,  0.00000,  0.00000, -0.70711,  0.70711,  0.00000,  0.00000,  0.70711,  // Y (sway)
+        0.00000,  1.00000,  1.00000,  0.00000,  0.00000,  1.00000,  1.00000,  0.00000;  // Z (heave)
+
+    p.center_of_mass = Eigen::Vector3d(0.0, 0.0, 0.01);
+    p.min_thrust = -40.0;
+    p.max_thrust = 40.0;
     return p;
 }
 
@@ -66,7 +70,6 @@ control_manager_params make_manager_params(int control_type, bool anti_overshoot
 }  // namespace
 
 // ---------- Guard mot uinitialisert controller ----------
-
 TEST(ControlManagerGuardTest, GetOutputThrowsIfPIDNotInitialized) {
     control_manager cm(make_manager_params(1, false));
     Guidance_data guidance{};

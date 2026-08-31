@@ -56,7 +56,7 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode {
     // Timer instance
     rclcpp::TimerBase::SharedPtr timer_calculation;
     rclcpp::TimerBase::SharedPtr startup_timer_;
-    // Subscriber instance
+    // Subscriber instancefriend class VelocityNodeTestAccessor;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr
         subscriber_Odometry;
     rclcpp::Subscription<vortex_msgs::msg::LOSGuidance>::SharedPtr
@@ -93,5 +93,7 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode {
     //void reset_controllers(int nr = 0);
     rclcpp::QoS pub_QoS;
     rclcpp::QoS sub_QoS;
+
+    friend class VelocityNodeTestAccessor;
 };
 #endif  // VELOCITY_CONTROLLER__VELOCITY_CONTROLLER_HPP_
