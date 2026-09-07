@@ -7,6 +7,7 @@
 #include <rclcpp/parameter_value.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string_view>
+#include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
@@ -102,8 +103,9 @@ void ThrustAllocator::set_allocator() {
             .as_double_array(),
         num_dimensions_, num_thrusters_);
 
-    thrust_configuration_ = calculate_thrust_configuration_matrix(
-        thruster_force_direction_, thruster_position_, center_of_mass_);
+    thrust_configuration_ =
+        vortex::utils::math::build_thrust_configuration_matrix(
+            thruster_force_direction_, thruster_position_, center_of_mass_);
 
     Eigen::VectorXd input_weights = Eigen::Map<const Eigen::VectorXd>(
         this->get_parameter(
@@ -138,8 +140,8 @@ void ThrustAllocator::set_allocator() {
     Eigen::VectorXd max_force_vec =
         Eigen::VectorXd::Constant(num_thrusters_, max_thrust_);
 
-    tau_max_ =
-        compute_max_wrench(thrust_configuration_, min_force_vec, max_force_vec);
+    tau_max_ = vortex::utils::math::calculate_valid_thrust_region_polyhedron(
+        thrust_configuration_, min_force_vec, max_force_vec);
 
     allocator_ = Factory::make_allocator(
         solver_type, AllocatorConfig{

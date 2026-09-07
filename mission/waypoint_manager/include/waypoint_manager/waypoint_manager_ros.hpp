@@ -6,10 +6,12 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 
 #include <vector>
-#include <vortex_msgs/action/reference_filter_waypoint.hpp>
+#include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/action/waypoint_manager.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
 #include <vortex_msgs/srv/send_waypoints.hpp>
+
+enum class DebugPublishMode { none, timer, on_new_waypoint };
 
 namespace vortex::mission {
 
@@ -17,7 +19,7 @@ using WaypointManager = vortex_msgs::action::WaypointManager;
 using WaypointManagerGoalHandle =
     rclcpp_action::ServerGoalHandle<WaypointManager>;
 
-using ReferenceFilterAction = vortex_msgs::action::ReferenceFilterWaypoint;
+using ReferenceFilterAction = vortex_msgs::action::GuidanceWaypoint;
 using ReferenceFilterGoalHandle =
     rclcpp_action::ClientGoalHandle<ReferenceFilterAction>;
 
@@ -37,6 +39,13 @@ class WaypointManagerNode : public rclcpp::Node {
 
     // @brief Create the service servers for SendWaypoints.
     void set_waypoint_service_server();
+
+    // @brief Create the debug waypoint publisher and optional timer.
+    void setup_debug_publisher();
+
+    // @brief Publish the current waypoint on the debug topic (no-op if no
+    // active waypoint).
+    void publish_current_waypoint();
 
     // @brief Construct the result message for the WaypointManager action
     // @param success Whether the action was successful
@@ -88,14 +97,19 @@ class WaypointManagerNode : public rclcpp::Node {
     // @brief Send a goal to the reference filter
     // @param goal_msg The action goal
     void send_reference_filter_goal(
-        const vortex_msgs::action::ReferenceFilterWaypoint::Goal& goal_msg);
+        const vortex_msgs::action::GuidanceWaypoint::Goal& goal_msg);
 
-    rclcpp_action::Client<vortex_msgs::action::ReferenceFilterWaypoint>::
-        SharedPtr reference_filter_client_;
+    rclcpp_action::Client<vortex_msgs::action::GuidanceWaypoint>::SharedPtr
+        reference_filter_client_;
     rclcpp_action::Server<vortex_msgs::action::WaypointManager>::SharedPtr
         waypoint_action_server_;
     rclcpp::Service<vortex_msgs::srv::SendWaypoints>::SharedPtr
         waypoint_service_server_;
+
+    rclcpp::Publisher<vortex_msgs::msg::Waypoint>::SharedPtr
+        debug_waypoint_pub_;
+    rclcpp::TimerBase::SharedPtr debug_timer_;
+    DebugPublishMode debug_mode_{DebugPublishMode::none};
 
     std::vector<vortex_msgs::msg::Waypoint> waypoints_{};
     std::size_t current_index_{0};

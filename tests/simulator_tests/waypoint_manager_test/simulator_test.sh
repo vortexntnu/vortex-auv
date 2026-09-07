@@ -75,7 +75,7 @@ timeout 10s ros2 topic echo /nautilus/pose --once
 echo "Got pose data"
 
 # Launch controller and reference filter
-setsid ros2 launch auv_setup dp.launch.py &
+setsid ros2 launch auv_setup dp.launch.py config_type:=sim &
 CONTROLLER_PID=$!
 echo "Launched controller and reference filter with PID: $CONTROLLER_PID"
 
