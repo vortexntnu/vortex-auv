@@ -5,7 +5,8 @@ from launch import LaunchDescription
 from launch.actions import (
     OpaqueFunction,
 )
-from launch_ros.actions import Node
+from launch_ros.actions import ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
 
 from auv_setup.launch_arg_common import (
     declare_drone_and_namespace_args,
@@ -15,45 +16,52 @@ from auv_setup.launch_arg_common import (
 
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
-
-    velocity_lqr_config = os.path.join(
-        get_package_share_directory("velocity_controller_lqr"),
-        "config",
-        "param_velocity_controller_lqr.yaml",
-    )
-
-    los_config = os.path.join(
-        get_package_share_directory("los_guidance"),
-        "config",
-        "guidance_params.yaml",
-    )
-
     drone_params = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config",
-        "robots",
-        f"{drone}.yaml",
+        get_package_share_directory('auv_setup'),
+        'config',
+        'robots',
+        f'{drone}.yaml',
     )
-
-    los_node = Node(
-        package="los_guidance",
-        executable="los_guidance_node",
-        name="los_guidance_node",
+    velocity_control_params = os.path.join(
+        get_package_share_directory('velocity_controller'),
+        'config',
+        f'{drone}_params.yaml',
+    )
+    los_config = os.path.join(
+        get_package_share_directory('los_guidance'),
+        'config',
+        'guidance_params.yaml',
+    )
+    container = ComposableNodeContainer(
+        name='autopilot_container',
         namespace=namespace,
-        parameters=[drone_params, los_config],
-        output="screen",
+        package='rclcpp_components',
+        executable='component_container_mt',
+        composable_node_descriptions=[
+            ComposableNode(
+                package='velocity_controller',
+                plugin='velocity_node',
+                name='velocity_controller_node',
+                namespace=namespace,
+                parameters=[velocity_control_params, drone_params],
+                extra_arguments=[{"use_intra_process_comms": True}],
+            ),
+            ComposableNode(
+                package='los_guidance',
+                plugin='vortex::guidance::los::LosGuidanceNode',
+                name='los_guidance_node',
+                namespace=namespace,
+                parameters=[
+                    drone_params,
+                    {"los_config_file": los_config, "time_step": 0.1},
+                ],
+                extra_arguments=[{"use_intra_process_comms": True}],
+            ),
+        ],
+        output='screen',
+        arguments=['--ros-args', '--log-level', 'error'],
     )
-
-    lqr_node = Node(
-        package="velocity_controller_lqr",
-        executable="velocity_controller_lqr_node.py",
-        name="velocity_controller_lqr_node",
-        namespace=namespace,
-        output="screen",
-        parameters=[drone_params, velocity_lqr_config],
-    )
-
-    return [los_node, lqr_node]
+    return [container]
 
 
 def generate_launch_description():
