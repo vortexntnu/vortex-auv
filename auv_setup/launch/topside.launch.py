@@ -3,11 +3,13 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
+    DeclareLaunchArgument,
     IncludeLaunchDescription,
     OpaqueFunction,
     SetEnvironmentVariable,
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from auv_setup.launch_arg_common import (
@@ -19,6 +21,7 @@ from auv_setup.launch_arg_common import (
 def launch_setup(context, *args, **kwargs):
     """Set up the topside nodes with drone-specific namespace."""
     drone, namespace = resolve_drone_and_namespace(context)
+    orientation_mode = LaunchConfiguration("orientation_mode").perform(context)
 
     joy_node = Node(
         package="joy",
@@ -42,6 +45,7 @@ def launch_setup(context, *args, **kwargs):
         ),
         launch_arguments={
             "drone": drone,
+            "orientation_mode": orientation_mode,
             "namespace": namespace,
         }.items(),
     )
@@ -68,5 +72,13 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [set_env_var]
         + declare_drone_and_namespace_args()
-        + [OpaqueFunction(function=launch_setup)]
+        + [
+            DeclareLaunchArgument(
+                "orientation_mode",
+                default_value="euler",
+                description="Reference orientation representation: 'euler' (ReferenceFilter) or 'quat' (ReferenceFilterQuat)",
+                choices=["euler", "quat"],
+            ),
+            OpaqueFunction(function=launch_setup),
+        ]
     )
