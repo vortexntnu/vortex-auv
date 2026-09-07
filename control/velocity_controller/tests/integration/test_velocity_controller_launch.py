@@ -22,7 +22,7 @@ def generate_test_description():
 
     velocity_container = ComposableNodeContainer(
         name='nautilus_velocity_container',
-        namespace='',
+        namespace='nautilus',
         package='rclcpp_components',
         executable='component_container',
         composable_node_descriptions=[
@@ -30,6 +30,7 @@ def generate_test_description():
                 package='velocity_controller',
                 plugin='Velocity_node',
                 name='velocity_controller_node',
+                namespace='nautilus',
                 parameters=[params_file, params_file_2],
             )
         ],

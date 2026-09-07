@@ -58,61 +58,78 @@ protected:
 };
 
 TEST_F(VelocityControllerIntegrationTest, NodeLoadsAndPublishesThrustAfterOdometry) {
-    // NB: krever at velocity_controller_node allerede er startet av launch-filen
-    // og at auto_start=true i params, slik at noden selv går til ACTIVE.
-    // Gi den litt tid til å komme opp og konfigurere seg via lifecycle-timeren.
-    std::this_thread::sleep_for(500ms);
-
     vortex_msgs::msg::LOSGuidance guidance_msg;
     guidance_msg.surge = 0.5;
     guidance_msg.pitch = 0.0;
     guidance_msg.yaw = 0.0;
-    guidance_pub_->publish(guidance_msg);
-
-    nav_msgs::msg::Odometry odom_msg;
-    odom_msg.pose.pose.orientation.w = 1.0;  // identitet
-    odom_pub_->publish(odom_msg);
-
-    ASSERT_TRUE(spin_until_wrench_received(5000ms))
-        << "Mottok ingen WrenchStamped innen tidsfristen - "
-           "noden lastet ikke, kom ikke i ACTIVE, eller publiserte ikke";
-
-    // Grov sanity-sjekk: positiv surge-referanse bør gi et ikke-null pådrag i x
-    EXPECT_NE(received_wrench_->wrench.force.x, 0.0);
-}
-
-TEST_F(VelocityControllerIntegrationTest, StopsPublishingMeaningfulThrustAfterOdometryDropout) {
-    std::this_thread::sleep_for(500ms);
 
     nav_msgs::msg::Odometry odom_msg;
     odom_msg.pose.pose.orientation.w = 1.0;
-    odom_pub_->publish(odom_msg);
-    spin_until_wrench_received(2000ms);
 
-    // Slutt å publisere odometry. Spinn KONTINUERLIG i stedet for én lang
-    // sleep + ett spin_some-kall, slik at vi ser hver melding i rekkefølge
-    // og fanger den faktiske overgangen til nullwrench, i stedet for å
-    // risikere å plukke opp en gammel bufret melding fra før dropout-grensen.
+    // Publiser gjentatte ganger mens vi spinner, i stedet for én gang etter
+    // en fast sleep - discovery-tiden mellom prosesser er ikke deterministisk,
+    // så en engangspublisering kan lett forsvinne før subscriberen på
+    // nodesiden er matchet.
     auto start = std::chrono::steady_clock::now();
-    bool saw_zero_thrust = false;
-    while (std::chrono::steady_clock::now() - start < 12s) {
+    while (std::chrono::steady_clock::now() - start < 5s) {
+        guidance_pub_->publish(guidance_msg);
+        odom_pub_->publish(odom_msg);
         rclcpp::spin_some(test_node_);
-        if (received_wrench_ &&
-            received_wrench_->wrench.force.x == 0.0 &&
-            received_wrench_->wrench.torque.y == 0.0 &&
-            received_wrench_->wrench.torque.z == 0.0) {
-            saw_zero_thrust = true;
-            break;
-        }
-        std::this_thread::sleep_for(10ms);
+        if (received_wrench_) break;
+        std::this_thread::sleep_for(50ms);
     }
 
-    EXPECT_TRUE(saw_zero_thrust)
-        << "Forventet å motta et nullwrench etter odometry-dropout innen 12s, "
-           "men siste mottatte verdi var force.x="
-        << (received_wrench_ ? received_wrench_->wrench.force.x : -999.0);
+    ASSERT_TRUE(received_wrench_ != nullptr)
+        << "Mottok ingen WrenchStamped innen tidsfristen - "
+           "noden lastet ikke, kom ikke i ACTIVE, eller publiserte ikke";
+
+    EXPECT_NE(received_wrench_->wrench.force.x, 0.0);
 }
 
+TEST_F(VelocityControllerIntegrationTest, StopsPublishingAfterOdometryDropout) {
+    nav_msgs::msg::Odometry odom_msg;
+    odom_msg.pose.pose.orientation.w = 1.0;
+
+    // Fase 1: sørg for at noden mottar odometry og publiserer normalt
+    auto start = std::chrono::steady_clock::now();
+    while (std::chrono::steady_clock::now() - start < 5s) {
+        odom_pub_->publish(odom_msg);
+        rclcpp::spin_some(test_node_);
+        if (received_wrench_) break;
+        std::this_thread::sleep_for(50ms);
+    }
+    ASSERT_TRUE(received_wrench_ != nullptr)
+        << "Fikk aldri en innledende wrench-melding - kan ikke teste dropout";
+
+    // Fase 2: slutt å publisere odometry. Spinn KONTINUERLIG gjennom hele
+    // venteperioden - selv om vi ikke bryr oss om meldingene her, må vi
+    // drenere subscriber-køen fortløpende. Ellers hoper gamle meldinger
+    // (publisert FØR dropout trigget) seg opp ubehandlet i QoS-bufferet
+    // og blir feilaktig telt som "nye" meldinger når vi begynner å telle.
+    auto dropout_deadline = std::chrono::steady_clock::now() + 12s;
+    while (std::chrono::steady_clock::now() < dropout_deadline) {
+        received_wrench_.reset();
+        rclcpp::spin_some(test_node_);
+        std::this_thread::sleep_for(20ms);
+    }
+
+    // Fase 3: nå er vi godt forbi dropout-grensen og køen er drenert.
+    // Tell meldinger de neste 3 sekundene - forvent 0, siden publish_thrust()
+    // returnerer tidlig uten å publisere når dropout-guarden er aktiv.
+    int messages_after_dropout = 0;
+    auto count_deadline = std::chrono::steady_clock::now() + 3s;
+    while (std::chrono::steady_clock::now() < count_deadline) {
+        received_wrench_.reset();
+        rclcpp::spin_some(test_node_);
+        if (received_wrench_) messages_after_dropout++;
+        std::this_thread::sleep_for(20ms);
+    }
+
+    EXPECT_EQ(messages_after_dropout, 0)
+        << "Noden publiserte fortsatt meldinger etter forventet dropout-grense - "
+           "forvent 0, siden publish_thrust() returnerer tidlig uten å publisere "
+           "når dropout-guarden trigger";
+}
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     int result = RUN_ALL_TESTS();
