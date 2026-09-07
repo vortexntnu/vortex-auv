@@ -1,0 +1,36 @@
+/**:
+  ros__parameters:
+    joystick_surge_gain: 60.0
+    joystick_sway_gain: 60.0
+    joystick_heave_gain: 60.0
+    joystick_roll_gain: 30.0
+    joystick_pitch_gain: 20.0
+    joystick_yaw_gain: 25.0
+
+    guidance_surge_gain: 0.0002
+    guidance_sway_gain: 0.0002
+    guidance_heave_gain: 0.0002
+    guidance_roll_gain: 0.0002
+    guidance_pitch_gain: 0.0002
+    guidance_yaw_gain: 0.0002
+
+    debounce_duration: 0.25
+
+    # Per-axis deadzones, applied in this node rather than in joy_node.
+    # joy_node exposes a single global deadzone for every analog axis, which
+    # cannot work here: the twist axis rests off-centre and needs a generous
+    # band, while the throttle lever driving the lights needs none at all
+    # (any deadzone puts a flat spot in the middle of the dimmer's travel).
+    # Run joy_node with deadzone: 0.0 and tune these instead.
+    #
+    # The hat is digital and never passes through a deadzone.
+    deadzone_stick_x: 0.15
+    deadzone_stick_y: 0.15
+    # Raised from 0.20: pushing the stick sideways for sway puts enough
+    # torque on the twist axis to bleed into yaw. This is mechanical
+    # crosstalk in the stick, so it has to be filtered here.
+    deadzone_twist: 0.30
+
+    # Minimum change in normalised brightness (0..1) before the stubbed light
+    # channel logs again. Stops the throttle lever spamming the console.
+    light_change_threshold: 0.02

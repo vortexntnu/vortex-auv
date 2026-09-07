@@ -1,0 +1,72 @@
+import os
+
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
+
+
+def launch_setup(context, *args, **kwargs):
+    """Set up the flightstick_interface_auv node with drone-specific config."""
+    drone, namespace = resolve_drone_and_namespace(context)
+    orientation_mode = LaunchConfiguration("orientation_mode").perform(context)
+
+    flightstick_params = os.path.join(
+        get_package_share_directory("flightstick_interface_auv"),
+        "config",
+        "param_flightstick_interface_auv.yaml",
+    )
+
+    drone_params = os.path.join(
+        get_package_share_directory("auv_setup"),
+        "config",
+        "robots",
+        f"{drone}.yaml",
+    )
+
+    return [
+        Node(
+            package="flightstick_interface_auv",
+            executable="flightstick_interface_auv_node.py",
+            name="flightstick_interface_auv",
+            namespace=namespace,
+            output="screen",
+            parameters=[
+                flightstick_params,
+                drone_params,
+                {"drone": drone, "orientation_mode": orientation_mode},
+            ],
+        )
+    ]
+
+
+def generate_launch_description() -> LaunchDescription:
+    """Generates a launch description for the flightstick_interface_auv node.
+
+    This function creates a ROS 2 launch description that includes the
+    flightstick_interface_auv node. The node is configured to use the
+    parameters specified in the 'param_flightstick_interface_auv.yaml' file.
+
+    Returns:
+        LaunchDescription: A ROS 2 launch description containing the
+        flightstick_interface_auv node.
+
+    """
+    return LaunchDescription(
+        declare_drone_and_namespace_args()
+        + [
+            DeclareLaunchArgument(
+                "orientation_mode",
+                default_value="euler",
+                description="Reference orientation representation: 'euler' (ReferenceFilter) or 'quat' (ReferenceFilterQuat)",
+                choices=["euler", "quat"],
+            ),
+            OpaqueFunction(function=launch_setup),
+        ]
+    )
