@@ -18,6 +18,7 @@
 #include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <std_srvs/srv/trigger.hpp>
 #include <string>
 #include <tf2_eigen/tf2_eigen.hpp>
 #include "eskf/eskf.hpp"
@@ -103,19 +104,34 @@ class ESKFNode : public rclcpp::Node {
     std::unique_ptr<ESKF> eskf_;
 
     bool first_imu_msg_received_ = false;
+    bool propagated_ = false;
+    bool dvl_received_ = false;
+    bool depth_received_ = false;
+    bool faulted_ = false;
+    EskfParams filter_params_;
+    double max_imu_dt_ = 0.1;
+    double max_estimate_age_ = 0.25;
+    double max_aiding_skew_ = 0.05;
+    double last_dvl_stamp_ = -1;
+    double last_depth_stamp_ = -1;
+    Eigen::Vector3d previous_gyro_ = Eigen::Vector3d::Zero();
+    Eigen::Matrix3d gyro_covariance_ = Eigen::Matrix3d::Zero();
+    bool accept_aiding_stamp(const rclcpp::Time& stamp, double& previous_stamp);
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr validity_pub_;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_service_;
 
-    Eigen::Matrix3d R_imu_eskf_{};
-    Eigen::Vector3d T_imu_eskf_{};
+    Eigen::Matrix3d R_imu_eskf_ = Eigen::Matrix3d::Identity();
+    Eigen::Vector3d T_imu_eskf_ = Eigen::Vector3d::Zero();
 
-    Eigen::Matrix3d R_dvl_eskf_{};
-    Eigen::Vector3d T_dvl_eskf_{};
+    Eigen::Matrix3d R_dvl_eskf_ = Eigen::Matrix3d::Identity();
+    Eigen::Vector3d T_dvl_eskf_ = Eigen::Vector3d::Zero();
 
-    Eigen::Vector3d T_depth_eskf_{};
+    Eigen::Vector3d T_depth_eskf_ = Eigen::Vector3d::Zero();
 
     rclcpp::Time last_imu_time_{};
 
     // Latest gyro measurement (used for publishing odom output of eskf)
-    Eigen::Vector3d latest_gyro_measurement_{};
+    Eigen::Vector3d latest_gyro_measurement_ = Eigen::Vector3d::Zero();
 
     // TF2 Handling
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
