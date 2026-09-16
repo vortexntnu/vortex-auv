@@ -107,5 +107,5 @@ concept SensorModelConcept =
         sensor.innovation(state);
         sensor.jacobian(state);
         sensor.noise_covariance();
-    };
-#endif
+    };  // NOLINT(readability/braces): C++20 requires-expression terminator.
+#endif  // ESKF__TYPEDEFS_HPP_

@@ -2,9 +2,13 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    OpaqueFunction,
+)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 
@@ -16,13 +20,6 @@ from auv_setup.launch_arg_common import (
 
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
-
-    drone_params = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config",
-        "robots",
-        f"{drone}.yaml",
-    )
 
     drone_description_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -121,25 +118,41 @@ def launch_setup(context, *args, **kwargs):
 
     use_sim = LaunchConfiguration("use_sim").perform(context)
     arguments = {
-        "drone": drone, "namespace": namespace, "use_sim": use_sim,
+        "drone": drone,
+        "namespace": namespace,
+        "use_sim": use_sim,
         "environment": LaunchConfiguration("environment").perform(context),
         "debug_output": LaunchConfiguration("debug_output").perform(context),
+        "estimator_backend": LaunchConfiguration("estimator_backend").perform(context),
     }
     if use_sim.lower() != "true":
-        arguments.update({"imu_topic": f"/{namespace}/imu/data_raw",
-                          "dvl_topic": f"/{namespace}/nucleus/dvl",
-                          "pressure_topic": f"/{namespace}/nucleus/pressure"})
+        arguments.update(
+            {
+                "imu_topic": f"/{namespace}/imu/data_raw",
+                "dvl_topic": f"/{namespace}/nucleus/dvl",
+                "pressure_topic": f"/{namespace}/nucleus/pressure",
+            }
+        )
     estimator = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(get_package_share_directory("eskf"), "launch", "eskf.launch.py")),
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("eskf"), "launch", "eskf.launch.py"
+            )
+        ),
         launch_arguments=arguments.items(),
     )
-    return [drone_description_launch, estimator] + ([] if use_sim.lower() == "true" else [container])
+    return [drone_description_launch, estimator] + (
+        [] if use_sim.lower() == "true" else [container]
+    )
 
 
 def generate_launch_description():
     return LaunchDescription(
         declare_drone_and_namespace_args()
         + [
+            DeclareLaunchArgument(
+                "estimator_backend", default_value="eskf", choices=["eskf", "gtsam"]
+            ),
             DeclareLaunchArgument("use_sim", default_value="false"),
             DeclareLaunchArgument("environment", default_value="trondheim_freshwater"),
             DeclareLaunchArgument("debug_output", default_value="true"),
