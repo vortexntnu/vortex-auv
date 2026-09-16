@@ -1,219 +1,137 @@
 #include "eskf/eskf.hpp"
-#include <functional>
-#include <iterator>
+#include <stdexcept>
 #include <unsupported/Eigen/MatrixFunctions>
-#include <vortex/utils/math.hpp>
-#include "eskf/typedefs.hpp"
+#include "eskf/lie.hpp"
+using eskf_math::skew;
 
-double compute_nis(const Eigen::VectorXd& innovation,
-                   const Eigen::MatrixXd& S) {
-    Eigen::MatrixXd S_inv = S.inverse();
-    return (innovation.transpose() * S_inv * innovation)(0);
-}
-
-ESKF::ESKF(const EskfParams& params) : Q_(params.Q) {
-    // Initialize Covariance
+ESKF::ESKF(const EskfParams& params, const NominalState& initial)
+    : params_(params), current_nom_state_(initial) {
+    const auto covariance_valid = [](const auto& matrix) {
+        return matrix.allFinite() &&
+               matrix.isApprox(matrix.transpose(), 1e-10) &&
+               matrix.ldlt().isPositive();
+    };
+    if (!covariance_valid(params.P) || !covariance_valid(params.Q) ||
+        !params.g_.allFinite() || !initial.as_vector().allFinite() ||
+        initial.quat.norm() < 1e-12 || !std::isfinite(params.max_imu_dt) ||
+        params.max_imu_dt <= 0 || !std::isfinite(params.dvl_nis_threshold) ||
+        params.dvl_nis_threshold <= 0 ||
+        !std::isfinite(params.depth_nis_threshold) ||
+        params.depth_nis_threshold <= 0)
+        throw std::invalid_argument(
+            "Invalid ESKF state, covariance or configuration");
+    current_nom_state_.quat.normalize();
     current_error_state_.covariance = params.P;
-
-    g_ = params.g_;
-
-    // Initialize Nominal Quaternion to Identity
-    current_nom_state_.quat = Eigen::Quaterniond::Identity();
 }
-
-std::pair<Eigen::Matrix15d, Eigen::Matrix15d> ESKF::van_loan_discretization(
-    const Eigen::Matrix15d& A_c,
-    const Eigen::Matrix15x12d& G_c,
-    const double dt) {
-    Eigen::Matrix15d GQG_T = G_c * Q_ * G_c.transpose();
-    Eigen::Matrix30d vanLoanMat = Eigen::Matrix30d::Zero();
-
-    vanLoanMat.topLeftCorner<15, 15>() = -A_c;
-    vanLoanMat.topRightCorner<15, 15>() = GQG_T;
-    vanLoanMat.bottomRightCorner<15, 15>() = A_c.transpose();
-
-    Eigen::Matrix30d vanLoanExp = (vanLoanMat * dt).exp();
-
-    Eigen::Matrix15d V1 = vanLoanExp.bottomRightCorner<15, 15>().transpose();
-    Eigen::Matrix15d V2 = vanLoanExp.topRightCorner<15, 15>();
-
-    Eigen::Matrix15d A_d = V1;
-    Eigen::Matrix15d GQG_d = A_d * V2;
-
-    return {A_d, GQG_d};
+Eigen::Vector3d calculate_h(const NominalState& state) {
+    return state.quat.conjugate() * state.vel;
 }
-
-Eigen::Matrix3x16d calculate_hx(const NominalState& current_nom_state_) {
-    Eigen::Matrix3x16d Hx = Eigen::Matrix3x16d::Zero();
-
-    Eigen::Quaterniond q = current_nom_state_.quat.normalized();
-    Eigen::Matrix3d R_bn = q.toRotationMatrix();
-
-    Eigen::Vector3d v_n = current_nom_state_.vel;
-
-    // Correct derivative w.r.t velocity (nominal state: v_n)
-    Hx.block<3, 3>(0, 3) = R_bn.transpose();
-
-    // Derivative w.r.t quaternion (nominal state: q)
-    // Compute partial derivative w.r.t quaternion directly:
-    double qw = q.w();
-    Eigen::Vector3d q_vec(q.x(), q.y(), q.z());
-    Eigen::Matrix3d I3 = Eigen::Matrix3d::Identity();
-
-    Eigen::Matrix<double, 3, 4> dhdq;
-    dhdq.col(0) = 2 * (qw * v_n + q_vec.cross(v_n));
-    dhdq.block<3, 3>(0, 1) =
-        2 * (q_vec.dot(v_n) * I3 + q_vec * v_n.transpose() -
-             v_n * q_vec.transpose() -
-             qw * vortex::utils::math::get_skew_symmetric_matrix(v_n));
-
-    // Assign quaternion derivative (3x4 block at columns 6:9)
-    Hx.block<3, 4>(0, 6) = dhdq;
-
-    return Hx;
-}
-
-Eigen::Matrix3x15d calculate_h_jacobian(
-    const NominalState& current_nom_state_) {
-    Eigen::Matrix16x15d x_delta = Eigen::Matrix16x15d::Zero();
-    x_delta.block<6, 6>(0, 0) = Eigen::Matrix6d::Identity();
-    x_delta.block<4, 3>(6, 6) =
-        vortex::utils::math::get_transformation_matrix_attitude_quat(
-            current_nom_state_.quat);
-    x_delta.block<6, 6>(10, 9) = Eigen::Matrix6d::Identity();
-
-    Eigen::Matrix3x15d H = calculate_hx(current_nom_state_) * x_delta;
+Eigen::Matrix3x15d calculate_h_jacobian(const NominalState& state) {
+    Eigen::Matrix3x15d H = Eigen::Matrix3x15d::Zero();
+    H.block<3, 3>(0, StateIndex::velocity) =
+        state.quat.toRotationMatrix().transpose();
+    H.block<3, 3>(0, StateIndex::attitude) = skew(calculate_h(state));
     return H;
 }
-
-Eigen::Vector3d calculate_h(const NominalState& current_nom_state_) {
-    Eigen::Vector3d h;
-    Eigen::Matrix3d R_bn =
-        current_nom_state_.quat.normalized().toRotationMatrix().transpose();
-
-    h = R_bn * current_nom_state_.vel;
-    return h;
-}
-
-void ESKF::nominal_state_discrete(const ImuMeasurement& imu_meas,
-                                  const double dt) {
-    Eigen::Vector3d acc =
-        current_nom_state_.quat.normalized().toRotationMatrix() *
-            (imu_meas.accel - current_nom_state_.accel_bias) +
-        this->g_;
-    Eigen::Vector3d gyro = (imu_meas.gyro - current_nom_state_.gyro_bias) * dt;
-
-    current_nom_state_.pos = current_nom_state_.pos +
-                             current_nom_state_.vel * dt + 0.5 * dt * dt * acc;
-    current_nom_state_.vel = current_nom_state_.vel + dt * acc;
-
+void ESKF::nominal_state_discrete(const ImuMeasurement& imu, double dt) {
+    const Eigen::Vector3d acceleration =
+        current_nom_state_.quat * (imu.accel - current_nom_state_.accel_bias) +
+        params_.g_;
+    current_nom_state_.pos +=
+        current_nom_state_.vel * dt + 0.5 * acceleration * dt * dt;
+    current_nom_state_.vel += acceleration * dt;
     current_nom_state_.quat =
         (current_nom_state_.quat *
-         vortex::utils::math::eigen_vector3d_to_quaternion(gyro));
-    current_nom_state_.quat.normalize();
-
-    current_nom_state_.accel_bias =
-        current_nom_state_.accel_bias * std::exp(accm_bias_p_ * dt);
-    current_nom_state_.gyro_bias =
-        current_nom_state_.gyro_bias * std::exp(gyro_bias_p_ * dt);
+         eskf_math::exp((imu.gyro - current_nom_state_.gyro_bias) * dt))
+            .normalized();
+    // Biases follow random walks: no deterministic decay of mean or error.
 }
-
-void ESKF::error_state_prediction(const ImuMeasurement& imu_meas,
-                                  const double dt) {
-    Eigen::Matrix3d R = current_nom_state_.quat.normalized().toRotationMatrix();
-    Eigen::Vector3d acc = (imu_meas.accel - current_nom_state_.accel_bias);
-    Eigen::Vector3d gyro = (imu_meas.gyro - current_nom_state_.gyro_bias);
-
-    Eigen::Matrix15d A_c = Eigen::Matrix15d::Zero();
-    A_c.block<3, 3>(0, 3) = Eigen::Matrix3d::Identity();
-    A_c.block<3, 3>(3, 6) =
-        -R * vortex::utils::math::get_skew_symmetric_matrix(acc);
-    A_c.block<3, 3>(6, 6) =
-        -vortex::utils::math::get_skew_symmetric_matrix(gyro);
-    A_c.block<3, 3>(3, 9) = -R;
-    A_c.block<3, 3>(9, 9) = -Eigen::Matrix3d::Identity();
-    A_c.block<3, 3>(12, 12) = -Eigen::Matrix3d::Identity();
-    A_c.block<3, 3>(6, 12) = -Eigen::Matrix3d::Identity();
-
-    Eigen::Matrix15x12d G_c = Eigen::Matrix15x12d::Zero();
-    G_c.block<3, 3>(3, 0) = -R;
-    G_c.block<3, 3>(6, 3) = -Eigen::Matrix3d::Identity();
-    G_c.block<3, 3>(9, 6) = Eigen::Matrix3d::Identity();
-    G_c.block<3, 3>(12, 9) = Eigen::Matrix3d::Identity();
-
-    Eigen::Matrix15d A_d, GQG_d;
-    std::tie(A_d, GQG_d) = van_loan_discretization(A_c, G_c, dt);
-
-    ErrorState next_error_state;
-    current_error_state_.covariance =
-        A_d * current_error_state_.covariance * A_d.transpose() + GQG_d;
+void ESKF::error_state_prediction(const ImuMeasurement& imu, double dt) {
+    const Eigen::Matrix3d R = current_nom_state_.quat.toRotationMatrix();
+    Eigen::Matrix15d A = Eigen::Matrix15d::Zero();
+    A.block<3, 3>(StateIndex::position, StateIndex::velocity).setIdentity();
+    A.block<3, 3>(StateIndex::velocity, StateIndex::attitude) =
+        -R * skew(imu.accel - current_nom_state_.accel_bias);
+    A.block<3, 3>(StateIndex::attitude, StateIndex::attitude) =
+        -skew(imu.gyro - current_nom_state_.gyro_bias);
+    A.block<3, 3>(StateIndex::velocity, StateIndex::accel_bias) = -R;
+    A.block<3, 3>(StateIndex::attitude, StateIndex::gyro_bias) =
+        -Eigen::Matrix3d::Identity();
+    Eigen::Matrix15x12d G = Eigen::Matrix15x12d::Zero();
+    G.block<3, 3>(StateIndex::velocity, NoiseIndex::acceleration) = -R;
+    G.block<3, 3>(StateIndex::attitude, NoiseIndex::gyro) =
+        -Eigen::Matrix3d::Identity();
+    G.block<3, 3>(StateIndex::gyro_bias, NoiseIndex::gyro_bias).setIdentity();
+    G.block<3, 3>(StateIndex::accel_bias, NoiseIndex::accel_bias).setIdentity();
+    Eigen::Matrix30d van_loan = Eigen::Matrix30d::Zero();
+    van_loan.topLeftCorner<15, 15>() = -A;
+    van_loan.topRightCorner<15, 15>() = G * params_.Q * G.transpose();
+    van_loan.bottomRightCorner<15, 15>() = A.transpose();
+    const Eigen::Matrix30d exponential = (van_loan * dt).exp();
+    const Eigen::Matrix15d transition =
+        exponential.bottomRightCorner<15, 15>().transpose();
+    const Eigen::Matrix15d next =
+        transition * current_error_state_.covariance * transition.transpose() +
+        transition * exponential.topRightCorner<15, 15>();
+    current_error_state_.covariance = 0.5 * (next + next.transpose());
 }
-
 void ESKF::injection_and_reset() {
-    // injection
-    current_nom_state_.pos = current_nom_state_.pos + current_error_state_.pos;
-    current_nom_state_.vel = current_nom_state_.vel + current_error_state_.vel;
-    current_nom_state_.quat = current_nom_state_.quat *
-                              vortex::utils::math::eigen_vector3d_to_quaternion(
-                                  current_error_state_.euler);
-    current_nom_state_.quat.normalize();
-    current_nom_state_.gyro_bias =
-        current_nom_state_.gyro_bias + current_error_state_.gyro_bias;
-    current_nom_state_.accel_bias =
-        current_nom_state_.accel_bias + current_error_state_.accel_bias;
-
-    // reset
+    current_nom_state_.pos += current_error_state_.pos;
+    current_nom_state_.vel += current_error_state_.vel;
+    current_nom_state_.quat = (current_nom_state_.quat *
+                               eskf_math::exp(current_error_state_.rotation))
+                                  .normalized();
+    current_nom_state_.gyro_bias += current_error_state_.gyro_bias;
+    current_nom_state_.accel_bias += current_error_state_.accel_bias;
+    Eigen::Matrix15d reset = Eigen::Matrix15d::Identity();
+    reset.block<3, 3>(StateIndex::attitude, StateIndex::attitude) =
+        eskf_math::right_jacobian(current_error_state_.rotation);
+    const Eigen::Matrix15d transported =
+        reset * current_error_state_.covariance * reset.transpose();
+    current_error_state_.covariance =
+        0.5 * (transported + transported.transpose());
     current_error_state_.set_from_vector(Eigen::Vector15d::Zero());
 }
-
-void ESKF::imu_update(const ImuMeasurement& imu_meas, const double dt) {
-    nominal_state_discrete(imu_meas, dt);
-    error_state_prediction(imu_meas, dt);
+bool ESKF::imu_update(const ImuMeasurement& imu, double dt) {
+    if (!std::isfinite(dt) || dt <= 0 || dt > params_.max_imu_dt ||
+        !imu.accel.allFinite() || !imu.gyro.allFinite())
+        return false;
+    const auto before_nominal = current_nom_state_;
+    const auto before_error = current_error_state_;
+    // Linearize at the beginning of the same interval as the nominal
+    // integrator.
+    error_state_prediction(imu, dt);
+    nominal_state_discrete(imu, dt);
+    if (!current_nom_state_.as_vector().allFinite() ||
+        !current_error_state_.covariance.allFinite()) {
+        current_nom_state_ = before_nominal;
+        current_error_state_ = before_error;
+        return false;
+    }
+    return true;
 }
-
-void ESKF::dvl_update(const SensorDVL& dvl_meas) {
-    nis_dvl_ = measurement_update(dvl_meas);
-    injection_and_reset();
+bool ESKF::dvl_update(const SensorDVL& sensor) {
+    return measurement_update(sensor, params_.dvl_nis_threshold, nis_dvl_);
 }
-
-void ESKF::depth_update(const SensorDepth& depth_meas) {
-    nis_depth_ = measurement_update(depth_meas);
-    injection_and_reset();
+bool ESKF::depth_update(const SensorDepth& sensor) {
+    return measurement_update(sensor, params_.depth_nis_threshold, nis_depth_);
 }
-
-// DVL sensor model implementations
-
-Eigen::VectorXd SensorDVL::innovation(const NominalState& state) const {
-    Eigen::Vector3d innovation = this->measurement - calculate_h(state);
-    return innovation;
+Eigen::Vector3d SensorDVL::innovation(const NominalState& state) const {
+    return measurement - calculate_h(state);
 }
-
-Eigen::MatrixXd SensorDVL::jacobian(const NominalState& state) const {
-    Eigen::Matrix3x15d H = calculate_h_jacobian(state);
+Eigen::Matrix3x15d SensorDVL::jacobian(const NominalState& state) const {
+    return calculate_h_jacobian(state);
+}
+Eigen::Matrix<double, 1, 1> SensorDepth::innovation(
+    const NominalState& state) const {
+    return Eigen::Matrix<double, 1, 1>::Constant(measurement - state.pos.z() -
+                                                 (state.quat * lever_arm).z());
+}
+Eigen::Matrix<double, 1, 15> SensorDepth::jacobian(
+    const NominalState& state) const {
+    Eigen::Matrix<double, 1, 15> H = Eigen::Matrix<double, 1, 15>::Zero();
+    H(0, StateIndex::position + 2) = 1;
+    H.block<1, 3>(0, StateIndex::attitude) =
+        -(state.quat.toRotationMatrix() * skew(lever_arm)).row(2);
     return H;
-}
-
-Eigen::MatrixXd SensorDVL::noise_covariance() const {
-    return this->measurement_noise;
-}
-
-// Depth sensor model implementations
-
-Eigen::VectorXd SensorDepth::innovation(const NominalState& state) const {
-    double predicted_depth = state.pos[2];
-    Eigen::VectorXd innovation(1);
-    innovation(0) = this->measurement - predicted_depth;
-    return innovation;
-}
-
-Eigen::MatrixXd SensorDepth::jacobian(const NominalState& /*state*/) const {
-    Eigen::MatrixXd H = Eigen::MatrixXd::Zero(1, 15);
-    H(0, 2) = 1.0;
-    return H;
-}
-
-Eigen::MatrixXd SensorDepth::noise_covariance() const {
-    Eigen::MatrixXd R(1, 1);
-    R(0, 0) = this->measurement_noise;
-    return R;
 }

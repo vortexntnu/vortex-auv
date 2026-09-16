@@ -1,7 +1,10 @@
 #include "eskf/eskf_ros.hpp"
 #include <spdlog/spdlog.h>
+#include <algorithm>
+#include <cmath>
 #include <rclcpp_components/register_node_macro.hpp>
-#include <vortex/utils/ros/qos_profiles.hpp>
+#include <stdexcept>
+#include "eskf/output.hpp"
 #include "eskf/typedefs.hpp"
 
 auto start_message{R"(
@@ -81,7 +84,7 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
 }
 
 void ESKFNode::set_subscribers_and_publisher() {
-    auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
+    auto qos_sensor_data = rclcpp::SensorDataQoS().keep_last(100);
 
     std::string imu_topic = this->get_parameter("topics.imu").as_string();
     imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
@@ -104,6 +107,21 @@ void ESKFNode::set_subscribers_and_publisher() {
         pressure_topic, qos_sensor_data,
         [this](const sensor_msgs::msg::FluidPressure::ConstSharedPtr msg) {
             pressure_callback(msg);
+        });
+
+    validity_pub_ = create_publisher<std_msgs::msg::Bool>("eskf/valid", 1);
+    reset_service_ = create_service<std_srvs::srv::Trigger>(
+        "eskf/reset",
+        [this](const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+               std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+            eskf_ = std::make_unique<ESKF>(filter_params_);
+            first_imu_msg_received_ = propagated_ = dvl_received_ =
+                depth_received_ = faulted_ = false;
+            last_dvl_stamp_ = last_depth_stamp_ = -1;
+            response->success = true;
+            response->message =
+                "Navigation reset to configured prior; awaiting IMU, DVL and "
+                "depth";
         });
 
     auto eskf_debug_topic = [](std::string& topic_name) {
@@ -172,12 +190,16 @@ void ESKFNode::set_parameters() {
         std::vector<double> R_imu =
             this->declare_parameter<std::vector<double>>(
                 "sensors.imu.transform.r");
+        if (R_imu.size() != 9)
+            throw std::runtime_error("Invalid R_imu transform size");
         R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
             R_imu.data());
 
         std::vector<double> T_imu =
             this->declare_parameter<std::vector<double>>(
                 "sensors.imu.transform.t");
+        if (T_imu.size() != 3)
+            throw std::runtime_error("Invalid T_imu transform size");
         T_imu_eskf_ = Eigen::Map<Eigen::Vector3d>(T_imu.data());
     }
 
@@ -185,12 +207,16 @@ void ESKFNode::set_parameters() {
         std::vector<double> R_dvl =
             this->declare_parameter<std::vector<double>>(
                 "sensors.dvl.transform.r");
+        if (R_dvl.size() != 9)
+            throw std::runtime_error("Invalid R_dvl transform size");
         R_dvl_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
             R_dvl.data());
 
         std::vector<double> T_dvl =
             this->declare_parameter<std::vector<double>>(
                 "sensors.dvl.transform.t");
+        if (T_dvl.size() != 3)
+            throw std::runtime_error("Invalid T_dvl transform size");
         T_dvl_eskf_ = Eigen::Map<Eigen::Vector3d>(T_dvl.data());
     }
 
@@ -198,6 +224,8 @@ void ESKFNode::set_parameters() {
         std::vector<double> T_depth =
             this->declare_parameter<std::vector<double>>(
                 "sensors.pressure.transform.t");
+        if (T_depth.size() != 3)
+            throw std::runtime_error("Invalid T_depth transform size");
         T_depth_eskf_ = Eigen::Map<Eigen::Vector3d>(T_depth.data());
     }
 
@@ -211,7 +239,7 @@ void ESKFNode::set_parameters() {
         dvl_measurement_noise_std_ = Eigen::Vector3d(diag[0], diag[1], diag[2]);
     }
 
-    if (!pressure_use_msg_noise_) {
+    {
         pressure_measurement_noise_ = this->declare_parameter<double>(
             "sensors.pressure.measurement_noise");
     }
@@ -221,7 +249,9 @@ void ESKFNode::set_parameters() {
 
     diag_Q_std = this->get_parameter("diag_Q_std").as_double_array();
 
-    if (diag_Q_std.size() != 12) {
+    if (diag_Q_std.size() != 12 ||
+        !std::all_of(diag_Q_std.begin(), diag_Q_std.end(),
+                     [](double x) { return std::isfinite(x) && x >= 0; })) {
         throw std::runtime_error("diag_Q_std must have length 12");
     }
 
@@ -246,53 +276,118 @@ void ESKFNode::set_parameters() {
         .g_ = g_vec,
     };
 
-    eskf_ = std::make_unique<ESKF>(eskf_params);
+    max_imu_dt_ = declare_parameter<double>("max_imu_dt", 0.1);
+    max_estimate_age_ = declare_parameter<double>("max_estimate_age", 0.25);
+    max_aiding_skew_ = declare_parameter<double>("max_aiding_skew", 0.05);
+    if (!std::isfinite(max_estimate_age_) || max_estimate_age_ <= 0 ||
+        !std::isfinite(max_aiding_skew_) || max_aiding_skew_ < 0 ||
+        !std::isfinite(pressure_measurement_noise_) ||
+        pressure_measurement_noise_ <= 0 ||
+        !dvl_measurement_noise_std_.allFinite() ||
+        (dvl_measurement_noise_std_.array() <= 0).any())
+        throw std::runtime_error(
+            "Invalid timing or sensor noise configuration");
+    for (const auto& R : {R_imu_eskf_, R_dvl_eskf_}) {
+        if (!R.allFinite() ||
+            !(R.transpose() * R).isApprox(Eigen::Matrix3d::Identity(), 1e-6) ||
+            std::abs(R.determinant() - 1) > 1e-6)
+            throw std::runtime_error("Sensor transform must be a rotation");
+    }
+    if (!T_imu_eskf_.allFinite() || !T_dvl_eskf_.allFinite() ||
+        !T_depth_eskf_.allFinite())
+        throw std::runtime_error("Invalid sensor translation");
+    eskf_params.max_imu_dt = max_imu_dt_;
+    eskf_params.dvl_nis_threshold =
+        declare_parameter<double>("dvl_nis_threshold", 16.266);
+    eskf_params.depth_nis_threshold =
+        declare_parameter<double>("depth_nis_threshold", 10.828);
+    filter_params_ = eskf_params;
+    eskf_ = std::make_unique<ESKF>(filter_params_);
 }
 
 void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::ConstSharedPtr msg) {
-    rclcpp::Time current_time = msg->header.stamp;
-
+    if (faulted_)
+        return;
+    const rclcpp::Time stamp(msg->header.stamp, get_clock()->get_clock_type());
+    const double age = (now() - stamp).seconds();
+    if (age < 0 || age > max_estimate_age_)
+        return;
+    const Eigen::Vector3d raw_accel(msg->linear_acceleration.x,
+                                    msg->linear_acceleration.y,
+                                    msg->linear_acceleration.z);
+    const Eigen::Vector3d raw_gyro(msg->angular_velocity.x,
+                                   msg->angular_velocity.y,
+                                   msg->angular_velocity.z);
+    if (!raw_accel.allFinite() || !raw_gyro.allFinite() ||
+        msg->angular_velocity_covariance[0] < 0 ||
+        msg->linear_acceleration_covariance[0] < 0)
+        return;
+    const Eigen::Vector3d gyro = R_imu_eskf_ * raw_gyro;
     if (!first_imu_msg_received_) {
-        last_imu_time_ = current_time;
+        last_imu_time_ = stamp;
+        previous_gyro_ = latest_gyro_measurement_ = gyro;
         first_imu_msg_received_ = true;
         return;
     }
+    const double dt = (stamp - last_imu_time_).seconds();
+    if (dt <= 0)
+        return;
+    if (dt > max_imu_dt_) {
+        faulted_ = true;
+        RCLCPP_ERROR(get_logger(),
+                     "IMU gap exceeds limit; call eskf/reset to establish a "
+                     "new navigation origin");
+        return;
+    }
+    const auto nominal = eskf_->get_nominal_state();
+    const Eigen::Vector3d omega = gyro - nominal.gyro_bias;
+    const Eigen::Vector3d alpha = (gyro - previous_gyro_) / dt;
+    ImuMeasurement measurement;
+    measurement.gyro = gyro;
+    measurement.accel = R_imu_eskf_ * raw_accel -
+                        omega.cross(omega.cross(T_imu_eskf_)) -
+                        alpha.cross(T_imu_eskf_);
+    if (!eskf_->imu_update(measurement, dt)) {
+        faulted_ = true;
+        return;
+    }
+    const Eigen::Map<const Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>
+        gyro_cov(msg->angular_velocity_covariance.data());
+    if (gyro_cov.allFinite() &&
+        gyro_cov.isApprox(gyro_cov.transpose(), 1e-10) &&
+        gyro_cov.diagonal().minCoeff() > 0 &&
+        gyro_cov.llt().info() == Eigen::Success)
+        gyro_covariance_ = R_imu_eskf_ * gyro_cov * R_imu_eskf_.transpose();
+    else
+        gyro_covariance_ =
+            filter_params_.Q.block<3, 3>(NoiseIndex::gyro, NoiseIndex::gyro) /
+            dt;
+    previous_gyro_ = latest_gyro_measurement_ = gyro;
+    last_imu_time_ = stamp;
+    propagated_ = true;
+}
 
-    double dt = (current_time - last_imu_time_).nanoseconds() * 1e-9;
-    last_imu_time_ = current_time;
-
-    ImuMeasurement imu_measurement{};
-
-    Eigen::Vector3d raw_accel(msg->linear_acceleration.x,
-                              msg->linear_acceleration.y,
-                              msg->linear_acceleration.z);
-
-    Eigen::Vector3d raw_gyro(msg->angular_velocity.x, msg->angular_velocity.y,
-                             msg->angular_velocity.z);
-
-    Eigen::Vector3d accel_aligned = R_imu_eskf_ * raw_accel;
-
-    Eigen::Vector3d gyro_aligned = R_imu_eskf_ * raw_gyro;
-    imu_measurement.gyro = gyro_aligned;
-
-    // lever arm correction for accelerometer
-    NominalState nom_state = eskf_->get_nominal_state();
-    Eigen::Vector3d omega = gyro_aligned - nom_state.gyro_bias;
-
-    // a_corrected = a_meas - omega x (omega x T)
-    Eigen::Vector3d centripetal_accel = omega.cross(omega.cross(T_imu_eskf_));
-    accel_aligned -= centripetal_accel;
-
-    imu_measurement.accel = accel_aligned;
-
-    // save latest gyro readings (used for DVL correction and odom output)
-    latest_gyro_measurement_ = imu_measurement.gyro;
-
-    eskf_->imu_update(imu_measurement, dt);
+bool ESKFNode::accept_aiding_stamp(const rclcpp::Time& stamp,
+                                   double& previous_stamp) {
+    if (!propagated_ || faulted_)
+        return false;
+    const double age = (now() - stamp).seconds();
+    const double skew = (stamp - last_imu_time_).seconds();
+    // No rewind in the ESKF: only accept measurements close to its current
+    // epoch.
+    if (age < 0 || age > max_estimate_age_ ||
+        std::abs(skew) > max_aiding_skew_ || stamp.seconds() <= previous_stamp)
+        return false;
+    previous_stamp = stamp.seconds();
+    return true;
 }
 
 void ESKFNode::dvl_callback(
     const geometry_msgs::msg::TwistWithCovarianceStamped::ConstSharedPtr msg) {
+    if (!accept_aiding_stamp(
+            rclcpp::Time(msg->header.stamp, get_clock()->get_clock_type()),
+            last_dvl_stamp_))
+        return;
     SensorDVL dvl_sensor;
 
     dvl_sensor.measurement << msg->twist.twist.linear.x,
@@ -333,7 +428,12 @@ void ESKFNode::dvl_callback(
         dvl_body_pub_->publish(dvl_body_msg);
     }
 
-    eskf_->dvl_update(dvl_sensor);
+    const bool accepted = eskf_->dvl_update(dvl_sensor);
+    dvl_received_ = dvl_received_ || accepted;
+    if (!accepted)
+        RCLCPP_WARN_THROTTLE(
+            get_logger(), *get_clock(), 2000,
+            "DVL correction rejected (invalid covariance/data or innovation)");
 
     if (publish_nis_) {
         std_msgs::msg::Float64 nis_msg;
@@ -344,12 +444,19 @@ void ESKFNode::dvl_callback(
 
 void ESKFNode::pressure_callback(
     const sensor_msgs::msg::FluidPressure::ConstSharedPtr msg) {
+    if (!accept_aiding_stamp(
+            rclcpp::Time(msg->header.stamp, get_clock()->get_clock_type()),
+            last_depth_stamp_))
+        return;
+    if (!std::isfinite(msg->fluid_pressure) || !std::isfinite(msg->variance) ||
+        msg->variance < 0)
+        return;
     SensorDepth depth_sensor;
     const double p_gauge = pressure_is_gauge_
                                ? msg->fluid_pressure
                                : msg->fluid_pressure - atmospheric_pressure_;
-    depth_sensor.measurement =
-        p_gauge / (water_density_ * gravity_) - T_depth_eskf_.z();
+    depth_sensor.measurement = p_gauge / (water_density_ * gravity_);
+    depth_sensor.lever_arm = T_depth_eskf_;
 
     const double pressure_variance =
         pressure_use_msg_noise_ && msg->variance > 0.0
@@ -365,7 +472,12 @@ void ESKFNode::pressure_callback(
         depth_pub_->publish(depth_msg);
     }
 
-    eskf_->depth_update(depth_sensor);
+    const bool accepted = eskf_->depth_update(depth_sensor);
+    depth_received_ = depth_received_ || accepted;
+    if (!accepted)
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                             "Depth correction rejected (invalid "
+                             "covariance/data or innovation)");
 
     if (publish_nis_) {
         std_msgs::msg::Float64 nis_msg;
@@ -375,6 +487,14 @@ void ESKFNode::pressure_callback(
 }
 
 void ESKFNode::publish_odom() {
+    std_msgs::msg::Bool validity;
+    const double age =
+        first_imu_msg_received_ ? (now() - last_imu_time_).seconds() : -1;
+    validity.data = propagated_ && dvl_received_ && depth_received_ &&
+                    !faulted_ && age >= 0 && age <= max_estimate_age_;
+    validity_pub_->publish(validity);
+    if (!validity.data)
+        return;
     nav_msgs::msg::Odometry odom_msg;
     NominalState nom_state = eskf_->get_nominal_state();
     ErrorState error_state_ = eskf_->get_error_state();
@@ -397,7 +517,7 @@ void ESKFNode::publish_odom() {
     odom_msg.twist.twist.linear.y = v_body.y();
     odom_msg.twist.twist.linear.z = v_body.z();
 
-    // Add bias values to the angular velocity field of twist
+    // Publish bias-corrected body angular velocity.
     Eigen::Vector3d body_angular_vel =
         latest_gyro_measurement_ - nom_state.gyro_bias;
     odom_msg.twist.twist.angular.x = body_angular_vel.x();
@@ -406,35 +526,18 @@ void ESKFNode::publish_odom() {
 
     // If you also want to include gyro bias, you could add it to the covariance
     // matrix or publish a separate topic for biases
-    rclcpp::Time current_time = this->now();
+    rclcpp::Time current_time = last_imu_time_;
     odom_msg.header.stamp = current_time;
     odom_msg.header.frame_id = frame("odom");
 
-    // Some cross terms of the covariance are ignored, and the acc/gyro biases
-    // cov are not published. Pos and orientation cov needs to be mapped from
-    // 6*6 matrix to an array (states 0-2)
-
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            odom_msg.pose.covariance[i * 6 + j] = error_state_.covariance(i, j);
-        }
-    }
-
-    // Orientation covariance (states 6–8)
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            odom_msg.pose.covariance[(i + 3) * 6 + (j + 3)] =
-                error_state_.covariance(i + 6, j + 6);
-        }
-    }
-
-    // Linear velocity covariance
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            odom_msg.twist.covariance[i * 6 + j] =
-                error_state_.covariance(i + 3, j + 3);
-        }
-    }
+    odom_msg.child_frame_id = frame("base_link");
+    Eigen::Map<Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(
+        odom_msg.pose.covariance.data()) =
+        eskf_output::pose_covariance(nom_state, error_state_.covariance);
+    Eigen::Map<Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(
+        odom_msg.twist.covariance.data()) =
+        eskf_output::twist_covariance(nom_state, error_state_.covariance,
+                                      gyro_covariance_);
     odom_pub_->publish(odom_msg);
 
     if (publish_pose_) {
@@ -447,6 +550,7 @@ void ESKFNode::publish_odom() {
     if (publish_twist_) {
         geometry_msgs::msg::TwistWithCovarianceStamped twist_msg;
         twist_msg.header = odom_msg.header;
+        twist_msg.header.frame_id = frame("base_link");
         twist_msg.twist = odom_msg.twist;
         twist_pub_->publish(twist_msg);
     }
@@ -511,17 +615,23 @@ void ESKFNode::lookup_static_transforms() {
 
 void ESKFNode::complete_initialization() {
     publish_nis_ = this->declare_parameter<bool>("publish_nis", false);
-    set_subscribers_and_publisher();
     this->gravity_ = this->declare_parameter<double>("gravity.acceleration");
     this->water_density_ = this->declare_parameter<double>("water.density");
     this->atmospheric_pressure_ =
         this->declare_parameter<double>("atmosphere.pressure");
     this->pressure_is_gauge_ =
         this->declare_parameter<bool>("pressure_is_gauge");
+    if (!std::isfinite(gravity_) || gravity_ <= 0 ||
+        !std::isfinite(water_density_) || water_density_ <= 0 ||
+        !std::isfinite(atmospheric_pressure_))
+        throw std::runtime_error("Invalid pressure conversion parameters");
     set_parameters();
+    set_subscribers_and_publisher();
 
     time_step_ = std::chrono::milliseconds(
         this->get_parameter("publish_rate_ms").as_int());
+    if (time_step_.count() <= 0)
+        throw std::runtime_error("publish_rate_ms must be positive");
     odom_pub_timer_ =
         this->create_wall_timer(time_step_, [this]() { publish_odom(); });
 

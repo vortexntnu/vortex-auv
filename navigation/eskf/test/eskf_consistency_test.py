@@ -20,7 +20,7 @@ class EskfValidator(Node):
     def __init__(self):
         super().__init__('eskf_validator')
 
-        self.est_topic = '/nautilus/odom/eskf'
+        self.est_topic = '/nautilus/eskf/odom'
         self.gt_topic = '/nautilus/odom'
 
         # --- Publishers (Foxglove Visualizers) ---
