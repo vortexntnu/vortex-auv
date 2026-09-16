@@ -33,4 +33,4 @@ class ESKF {
 Eigen::Vector3d calculate_h(const NominalState& state);
 Eigen::Matrix3x15d calculate_h_jacobian(const NominalState& state);
 #include "eskf/eskf.tpp"
-#endif
+#endif  // ESKF__ESKF_HPP_

@@ -28,7 +28,9 @@ if(ESKF_BUILD_ROS)
   find_package(spdlog REQUIRED)
   add_library(eskf_component SHARED src/eskf_ros.cpp)
   target_link_libraries(eskf_component PUBLIC eskf_core spdlog::spdlog)
-  ament_target_dependencies(eskf_component PUBLIC rclcpp rclcpp_components sensor_msgs std_msgs std_srvs nav_msgs geometry_msgs tf2_ros tf2_eigen)
+  ament_target_dependencies(eskf_component PUBLIC
+    rclcpp rclcpp_components sensor_msgs std_msgs std_srvs
+    nav_msgs geometry_msgs tf2_ros tf2_eigen)
   rclcpp_components_register_node(eskf_component PLUGIN "ESKFNode" EXECUTABLE eskf_node)
   install(TARGETS eskf_core eskf_component EXPORT export_eskf ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
   install(DIRECTORY include/ DESTINATION include)
