@@ -38,13 +38,21 @@ def launch_setup(context, *args, **kwargs):
         'environments',
         f'{environment}.yaml',
     )
-    overrides = {'frame_prefix': namespace, 'publish_debug': debug_output, 'use_sim_time': use_sim}
+    overrides = {
+        'frame_prefix': namespace,
+        'publish_debug': debug_output,
+        'use_sim_time': use_sim,
+    }
     defaults = {
         'imu_topic': f'/{namespace}/imu/data_raw' if use_sim else '',
         'pressure_topic': f'/{namespace}/pressure_sensor' if use_sim else '',
         'dvl_topic': '',
     }
-    for argument, parameter in [('imu_topic', 'topics.imu'), ('pressure_topic', 'topics.pressure_sensor'), ('dvl_topic', 'topics.dvl_twist')]:
+    for argument, parameter in [
+        ('imu_topic', 'topics.imu'),
+        ('pressure_topic', 'topics.pressure_sensor'),
+        ('dvl_topic', 'topics.dvl_twist'),
+    ]:
         topic = LaunchConfiguration(argument).perform(context) or defaults[argument]
         if topic:
             overrides[parameter] = topic
@@ -92,7 +100,10 @@ def launch_setup(context, *args, **kwargs):
             )
         )
 
-    if debug_output and LaunchConfiguration('include_rpy').perform(context).lower() == 'true':
+    if (
+        debug_output
+        and LaunchConfiguration('include_rpy').perform(context).lower() == 'true'
+    ):
         nodes.append(
             Node(
                 package='vortex_utility_nodes',
