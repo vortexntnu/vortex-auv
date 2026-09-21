@@ -24,11 +24,6 @@ function(add_velocity_controller_test TEST_NAME)
     ament_add_gtest(${TEST_NAME} ${ARGN})
     target_include_directories(${TEST_NAME} PUBLIC ${TEST_INCLUDE_DIRS})
     ament_target_dependencies(${TEST_NAME} ${TEST_ROS_DEPS})
-    # Lenk mot selve komponentbiblioteket - inneholder ALLE .cpp-filer
-    # (utilities, PID_controller, LQR_setup, controller, 3DOF_PID,
-    # control_manager, ct_instantiations, velocity_controller_ros) samt
-    # riktige include-stier for thrust_allocator_auv/vortex_utils_ros
-    # og deres ament_target_dependencies/target_link_libraries transitivt.
     target_link_libraries(${TEST_NAME} ${LIB_NAME} Eigen3::Eigen)
 endfunction()
 
@@ -70,5 +65,5 @@ install(TARGETS test_vc_node
 # ================= Integrasjonstester (launch_testing) =================
   # Separat CMakeLists.txt siden disse er trege (sekunder, ikke millisekunder),
   # krever en fullt oppstartet composition-container, og bruker en annen
-  # testmekanikk (launch_testing) enn de raske GTest-enhetstestene over.
+  # testmekanikk (launch_testing) enn de raske GTest-enhetstestene.
   add_subdirectory(integration)

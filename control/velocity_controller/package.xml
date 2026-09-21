@@ -3,9 +3,9 @@
 <package format="3">
   <name>velocity_controller</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>The velocity controller for vortex</description>
   <maintainer email="henrimha@stud.ntnu.no">henrik</maintainer>
-  <license>TODO: License declaration</license> 
+  <license>MIT</license> 
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
@@ -33,5 +33,5 @@
 </package>
 
 <!--TODO(henrimha): Fix package descritpion and license declaration-->
-<!--TODO(henrimha): Remove the ct from packages and fix-->
+
 

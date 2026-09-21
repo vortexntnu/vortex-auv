@@ -11,16 +11,14 @@
 #include "velocity_controller/utilities.hpp"
 #include "ct/optcon/lqr/LQR.hpp"
 
-//TODO(henrimha): Make the constructor take in a LQR_params struct and make a LQR_params struct in the header file
-//TODO(henrimha): figure out how to hold the matrices in the class, and what to take in as parameters
 struct LQR_params{
-    std::vector<double> Q;
-    std::vector<double> R;
-    std::vector<double> inertia_matrix;
-    std::vector<double> D_low;
-    std::vector<double> D_high;
+    Eigen::Matrix<double,8,8> Q;
+    Eigen::Matrix<double,3,3> R;
+    Eigen::Matrix<double,6,6> inertia_matrix;
+    Eigen::Matrix<double,6,6> D_low;
+    Eigen::Matrix<double,6,6> D_high;
     double interval;
-    LQR_params(std::vector<double> Q_val, std::vector<double> R_val, std::vector<double> inertia_matrix_val, std::vector<double> D_low_val, std::vector<double> D_high_val, double interval_val)
+    LQR_params(Eigen::Matrix<double,8,8> Q_val, Eigen::Matrix<double,3,3> R_val, Eigen::Matrix<double,6,6> inertia_matrix_val, Eigen::Matrix<double,6,6> D_low_val, Eigen::Matrix<double,6,6> D_high_val, double interval_val)
         : Q(Q_val), R(R_val), inertia_matrix(inertia_matrix_val), D_low(D_low_val), D_high(D_high_val), interval(interval_val) {};
     LQR_params() = default;
 };
@@ -31,18 +29,15 @@ class LQRController : public controller{
     geometry_msgs::msg::WrenchStamped calculate_thrust(const State& state, const State& error_state) override;
 
    private:
+   // Helper functions for LQRController
     Eigen::Matrix<double, 8, 8> linearize(const State& states);
-    //Eigen::Matrix<double, 6, 6> coriolis(const State& s);
-
-    /*std::tuple<double, double> saturate(double value,
-                                        bool windup,
-                                        double limit);*/
-    /*double anti_windup(double error, double integral_sum, bool windup);*/
+    
     void anti_windup(const State& error_state);
-    /*Eigen::Vector<double, 3> saturate_input(Eigen::Vector<double, 3> u);*/
 
     Eigen::Vector<double, 8> update_error(const State& error_state,
                                           const State& state);
+                                          
+    //Internal variables
     LQR_params params_;
     double integral_error_surge;
     double integral_error_pitch;
@@ -61,5 +56,5 @@ class LQRController : public controller{
 
     ct::optcon::LQR<8, 3> lqr;
     
-    friend class LQRTestAccessor;  // Gir testene tilgang til private medlemmer
+    friend class LQRTestAccessor; //For tests
 };

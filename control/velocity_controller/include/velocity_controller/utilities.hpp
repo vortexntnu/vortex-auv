@@ -16,12 +16,14 @@ struct angle {
 };
 angle quaternion_to_euler_angle(double w, double x, double y, double z); //TODO(henrimha): Mangler implementasjon
 geometry_msgs::msg::Quaternion euler_angle_to_quaternion(double roll, double pitch, double yaw);
+/** @brief A struct representing the state of the vehicle.
+    It contains the surge, sway, heave, roll_rate, pitch_rate, yaw_rate, roll, pitch, yaw, and quaternion components (w, x, y, z) of the vehicle's state.
+*/
 struct State {
    public:
-    double surge = 0.0, sway = 0.0, heave = 0.0, roll_rate = 0.0,
-           pitch_rate = 0.0,
-           yaw_rate = 0.0;  // roll_rate=0.0, pitch_rate=0.0, yaw_rate=0.0;
-    double roll = 0.0, pitch = 0.0, yaw = 0.0;  // phi, theta, psi
+    double surge = 0.0, sway = 0.0, heave = 0.0, 
+        roll_rate = 0.0, pitch_rate = 0.0,yaw_rate = 0.0,  
+        roll = 0.0, pitch = 0.0, yaw = 0.0;  // phi, theta, psi
     double w = 0.0, x = 0.0, y = 0.0, z = 0.0;
     explicit State(double surge = 0, double pitch = 0, double yaw = 0)
         : surge{surge}, pitch{pitch}, yaw{yaw} {}
@@ -37,6 +39,10 @@ struct State {
     State operator=(nav_msgs::msg::Odometry::SharedPtr rhs);
     angle get_angle();
 };
+
+/** @brief A struct representing the guidance data for the vehicle.
+    It contains the surge, pitch, and yaw components of the guidance data.
+*/
 struct Guidance_data {
    public:
     double surge = 0.0;

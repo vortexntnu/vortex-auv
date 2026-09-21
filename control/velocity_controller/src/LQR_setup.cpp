@@ -3,15 +3,11 @@
 #include <geometry_msgs/msg/detail/wrench_stamped__struct.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <rclcpp/logger.hpp>
-// #include <sstream>
 #include <std_msgs/msg/string.hpp>
 #include <vector>
-// #include "rclcpp/rclcpp.hpp"
 #include <casadi/casadi.hpp>
-// #include "velocity_controller/PID_setup.hpp"
 #include "ct/optcon/lqr/LQR.hpp"
 #include "velocity_controller/utilities.hpp"
-// #include "vortex/utils/math.hpp"
 
 LQRController::LQRController(const LQR_params& params, const controller_params& control_params) :  controller(control_params),params_(params) {
     inertia_matrix_inv.setZero();
@@ -19,13 +15,13 @@ LQRController::LQRController(const LQR_params& params, const controller_params& 
         valid = false;
         return;
     }
-    else if (params_.Q.size() != 8) {
+    else if (params_.Q.size() != 64) {
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),
                      "The Q matrix has the wrong amount of elements");
         valid = false;
         return;
     }
-    else if (params_.R.size() != 3) {
+    else if (params_.R.size() != 9) {
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),
                      "The R matrix has the wrong amount of elements");
         valid = false;
@@ -50,18 +46,15 @@ LQRController::LQRController(const LQR_params& params, const controller_params& 
         valid = false;
         return;
     }
-    Q.diagonal() = Eigen::Map<Eigen::VectorXd>(params_.Q.data(), params_.Q.size());
-    R.diagonal() = Eigen::Map<Eigen::VectorXd>(params_.R.data(), params_.R.size());
-    Ixx = params_.inertia_matrix.at(6 * 3 + 3);
-    Iyy = params_.inertia_matrix.at(4 * 6 + 4);
-    Izz = params_.inertia_matrix.at(5 * 6 + 5);
-    mass = params_.inertia_matrix.at(0);
+    Q=params_.Q;
+    R=params_.R;
+    Ixx = params_.inertia_matrix( 3 , 3);
+    Iyy = params_.inertia_matrix(4 , 4);
+    Izz = params_.inertia_matrix(5, 5);
+    mass = params_.inertia_matrix(0);
 
-    Eigen::Matrix<double, 6, 6> inertia_matrix =
-        Eigen::Map<const Eigen::Matrix<double, 6, 6>>(params_.inertia_matrix.data(), 6,
-                                                      6);
-    D = Eigen::Map<const Eigen::Matrix<double, 6, 6>>(params_.D_low.data(), 6, 6);
-    inertia_matrix_inv = inertia_matrix.inverse();
+    D = params_.D_low;
+    inertia_matrix_inv = params_.inertia_matrix.inverse();
 
     Eigen::Matrix<double, 6, 3> B_t =
         inertia_matrix_inv * (Eigen::Matrix<double, 6, 3>() << 1, 0, 0, 0, 0, 0,
@@ -70,7 +63,7 @@ LQRController::LQRController(const LQR_params& params, const controller_params& 
     Eigen::Matrix<double, 9, 3> B_m = Eigen::Matrix<double, 9, 3>::Zero();
     B_m.block<6, 3>(0, 0) = B_t;
     std::vector<std::vector<int>> swaplines{{1, 7}, {2, 8}, {3, 4}, {4, 5}};
-    for (int64_t i = 0; i < swaplines.size(); i++) {
+    for ( size_t i = 0; i < swaplines.size(); i++) {
         B_m.row(swaplines[i][0]).swap(B_m.row(swaplines[i][1]));
     }
     B.setZero();
@@ -96,7 +89,7 @@ Eigen::Matrix<double, 8, 8> LQRController::linearize(const State& s) {
     A.block<6, 6>(0, 0) = D_;
     A.block<3, 3>(6, 3) = T;
     std::vector<std::vector<int>> swaplines{{1, 7}, {2, 8}, {3, 4}, {4, 5}};
-    for (int64_t i = 0; i < swaplines.size(); i++) {
+    for (size_t i = 0; i < swaplines.size(); i++) {
         A.row(swaplines[i][0]).swap(A.row(swaplines[i][1]));
         A.col(swaplines[i][0]).swap(A.col(swaplines[i][1]));
     }

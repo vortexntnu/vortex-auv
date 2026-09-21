@@ -48,9 +48,8 @@ class test_velocity_controller : public rclcpp::Node {
     std::string topic_state = "/state";
     std::string topic_odometry;
     
-    /**
-    * @brief The total time elapsed since the start of the simulation. Used to calculate the reference signal as a function of time.
-    */
+    // The total time elapsed since the start of the simulation. Used to calculate the reference signal as a function of time.
+    
 
     double totaltime = 0;
 };

@@ -6,15 +6,23 @@
 
 control_manager::control_manager(control_manager_params params) : params_(params) {}
 
-bool control_manager::switch_controller() {
-    // Implementation for switching controllers
+bool control_manager::switch_controller(int nr) {
+    switch (nr) {
+        case 1:
+            if (!controller_3DOF) throw std::runtime_error("PID_3DOF controller not initialized");
+            params_.control_type = 1;
+            break;
+        case 2:
+            if (!controller_LQR) throw std::runtime_error("LQR controller not initialized");
+            params_.control_type = 2;
+            break;
+        default:
+            throw std::invalid_argument("Invalid controller number. Must be 1 (PID) or 2 (LQR).");
+    }
+
     return true;
 }
 
-void control_manager::shutdown_controller() {
-    controller_3DOF.reset();
-    controller_LQR.reset();
-}
 
 geometry_msgs::msg::WrenchStamped control_manager::get_output(Guidance_data guidance_values, State current_state) {
     // TODO(henrimha): Do I need ssa here?
@@ -66,15 +74,24 @@ bool control_manager::get_validity() {
     }
 }
 
-void control_manager::reset_controllers(int nr) {
+void control_manager::reset_controller(int nr) {
     switch (params_.control_type) {
         case 1:
-            if(!controller_3DOF)throw std::runtime_error("PID_3DOF controller not initialized");
+            if(!controller_3DOF)throw std::runtime_error("PID_3DOF controller not initialized") ;
             controller_3DOF->reset_controller(nr);
             break;
         case 2:
             if(!controller_LQR) throw std::runtime_error("LQR controller not initialized");
             controller_LQR->reset_controller(nr);
             break;
+    }
+}
+
+void control_manager::reset_controllers(){
+    if(controller_3DOF){
+        controller_3DOF->reset_controller();
+    }
+    if(controller_LQR){
+        controller_LQR->reset_controller();
     }
 }

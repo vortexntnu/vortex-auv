@@ -5,7 +5,6 @@
 #include <geometry_msgs/msg/detail/wrench_stamped__struct.hpp>
 #include <nav_msgs/msg/detail/odometry__struct.hpp>
 #include "Eigen/Dense"
-#include "geometry_msgs/msg/wrench_stamped.hpp"
 
 angle quaternion_to_euler_angle(double w, double x, double y, double z) {
     double ysqr = y * y;

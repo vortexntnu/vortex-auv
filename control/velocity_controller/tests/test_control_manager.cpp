@@ -40,21 +40,19 @@ PID_3DOF_params make_valid_pid3dof_params(double dt = 0.01) {
 }
 
 LQR_params make_valid_lqr_params(double interval = 0.01) {
-    std::vector<double> inertia(36, 0.0);
-    inertia[0] = 30.0;
-    inertia[1 * 6 + 1] = 30.0;
-    inertia[2 * 6 + 2] = 30.0;
-    inertia[3 * 6 + 3] = 2.0;
-    inertia[4 * 6 + 4] = 3.0;
-    inertia[5 * 6 + 5] = 3.0;
-
+    Eigen::Vector<double, 8> Q= Eigen::Vector<double, 8>(200.0, 32.84, 32.84, 15.0, 15.0, 100.0, 32.84, 32.84);
+    Eigen::Vector<double, 3> R= Eigen::Vector<double, 3>(0.02, 3.1, 3.10);
+    Eigen::Vector<double,6> inertia_matrix = Eigen::Vector<double,6>(30,30,30,2,3,4);
+    Eigen::Matrix<double,6,6> D_low;
+    D_low<<104.0,0,0,0,0,0, 0,46,0,0,0,0, 0,0,46,0,0,0,  0,0,0,46,0,0, 0,0,0,0,46,0, 0,0,0,0,0,46;
+    Eigen::Matrix<double,6,6> D_high;
+    D_high<<104.0,0,0,0,0,0, 0,46,0,0,0,0, 0,0,46,0,0,0,  0,0,0,46,0,0, 0,0,0,0,46,0, 0,0,0,0,0,46;
     return LQR_params(
-        /*Q=*/ {200.0, 32.84, 32.84, 15.0, 15.0, 100.0, 32.84, 32.84},
-        /*R=*/ {0.02, 3.1, 3.10},
-        /*inertia_matrix=*/ inertia,
-        /*D_low=*/ std::vector<double>{104.0,0,0,0,0,0, 0,46,0,0,0,0, 0,0,46,0,0,0,
-                                        0,0,0,46,0,0, 0,0,0,0,46,0, 0,0,0,0,0,46},
-        /*D_high=*/ std::vector<double>(36, 1.0),
+        Q.asDiagonal(),
+        R.asDiagonal(),
+        inertia_matrix.asDiagonal(),
+        D_low,
+        D_high,
         interval);
 }
 
@@ -89,10 +87,6 @@ TEST(ControlManagerGuardTest, GetValidityThrowsIfNotInitialized) {
     EXPECT_THROW(cm.get_validity(), std::runtime_error);
 }
 
-TEST(ControlManagerGuardTest, ResetControllersThrowsIfNotInitialized) {
-    control_manager cm(make_manager_params(1, false));
-    EXPECT_THROW(cm.reset_controllers(), std::runtime_error);
-}
 
 TEST(ControlManagerGuardTest, GetOutputWorksAfterInitialization) {
     control_manager cm(make_manager_params(1, false));
@@ -214,5 +208,5 @@ TEST(ControlManagerTest, ResetControllersDelegatesToActiveController) {
     State state{};
     cm.get_output(guidance, state);  // bygger opp integral i surge-PID
 
-    EXPECT_NO_THROW(cm.reset_controllers(1));  // skal resette kun surge, ikke krasje
+    EXPECT_NO_THROW(cm.reset_controller(1));  // skal resette kun surge, ikke krasje
 }

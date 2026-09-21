@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 #include <velocity_controller/lib/LQR_setup.hpp>
 #include "velocity_controller/utilities.hpp"
+#include <Eigen/Dense>
 
 // I test_LQR.cpp, før testene
 class LQRTestAccessor {
@@ -22,25 +23,19 @@ public:
 namespace {
 
 LQR_params make_valid_lqr_params(double interval = 0.01) {
+    Eigen::Vector<double, 8> Q= Eigen::Vector<double, 8>(200.0, 32.84, 32.84, 15.0, 15.0, 100.0, 32.84, 32.84);
+    Eigen::Vector<double, 3> R= Eigen::Vector<double, 3>(0.02, 3.1, 3.10);
+    Eigen::Vector<double,6> inertia_matrix = Eigen::Vector<double,6>(30,30,30,2,3,4);
+    Eigen::Matrix<double,6,6> D_low;
+    D_low<<104.0,0,0,0,0,0, 0,46,0,0,0,0, 0,0,46,0,0,0,  0,0,0,46,0,0, 0,0,0,0,46,0, 0,0,0,0,0,46;
+    Eigen::Matrix<double,6,6> D_high;
+    D_high<<104.0,0,0,0,0,0, 0,46,0,0,0,0, 0,0,46,0,0,0,  0,0,0,46,0,0, 0,0,0,0,46,0, 0,0,0,0,0,46;
     return LQR_params(
-        /*Q=*/  std::vector<double>{200.0, 32.84, 32.84, 15.0, 15.0, 100.0, 32.84, 32.84},
-        /*R=*/  std::vector<double>{0.02, 3.1, 3.10},
-        /*inertia_matrix=*/ [] {
-            // 6x6 diagonal, row-major: mass ved [0][0], Ixx [3][3], Iyy [4][4], Izz [5][5]
-            std::vector<double> m(36, 0.0);
-            m[0] = 30.0;              // mass
-            m[3 * 6 + 3] = 2.0;       // Ixx
-            m[4 * 6 + 4] = 3.0;       // Iyy
-            m[5 * 6 + 5] = 3.0;       // Izz
-            // NB: sett også nødvendige off-diagonale/andre diagonale ledd
-            // for at inverse() ikke feiler pga singularitet - juster ved behov
-            m[1 * 6 + 1] = 30.0;
-            m[2 * 6 + 2] = 30.0;
-            return m;
-        }(),
-        /*D_low=*/ std::vector<double>{104.0,0,0,0,0,0, 0,46,0,0,0,0, 0,0,46,0,0,0,
-                                        0,0,0,46,0,0, 0,0,0,0,46,0, 0,0,0,0,0,46},
-        /*D_high=*/ std::vector<double>(36, 1.0),
+        Q.asDiagonal(),
+        R.asDiagonal(),
+        inertia_matrix.asDiagonal(),
+        D_low,
+        D_high,
         interval);
 }
 
@@ -84,41 +79,6 @@ TEST_F(LQRValidityTest, ValidParamsProduceValidController) {
 
 TEST_F(LQRValidityTest, ZeroOrNegativeIntervalIsInvalid) {
     auto params = make_valid_lqr_params(/*interval=*/0.0);
-    LQRController lqr(params, cp);
-    EXPECT_FALSE(lqr.get_validity());
-}
-
-TEST_F(LQRValidityTest, WrongSizedQIsInvalid) {
-    auto params = make_valid_lqr_params();
-    params.Q = std::vector<double>{1, 2, 3};  // skal være 8 elementer
-    LQRController lqr(params, cp);
-    EXPECT_FALSE(lqr.get_validity());
-}
-
-TEST_F(LQRValidityTest, WrongSizedRIsInvalid) {
-    auto params = make_valid_lqr_params();
-    params.R = std::vector<double>{1, 2};  // skal være 3
-    LQRController lqr(params, cp);
-    EXPECT_FALSE(lqr.get_validity());
-}
-
-TEST_F(LQRValidityTest, WrongSizedInertiaMatrixIsInvalid) {
-    auto params = make_valid_lqr_params();
-    params.inertia_matrix = std::vector<double>(10, 1.0);  // skal være 36
-    LQRController lqr(params, cp);
-    EXPECT_FALSE(lqr.get_validity());
-}
-
-TEST_F(LQRValidityTest, WrongSizedDLowIsInvalid) {
-    auto params = make_valid_lqr_params();
-    params.D_low = std::vector<double>(10, 1.0);
-    LQRController lqr(params, cp);
-    EXPECT_FALSE(lqr.get_validity());
-}
-
-TEST_F(LQRValidityTest, WrongSizedDHighIsInvalid) {
-    auto params = make_valid_lqr_params();
-    params.D_high = std::vector<double>(10, 1.0);
     LQRController lqr(params, cp);
     EXPECT_FALSE(lqr.get_validity());
 }

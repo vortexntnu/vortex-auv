@@ -3,6 +3,9 @@
 #include "velocity_controller/velocity_controller_ros.hpp"
 #include "rclcpp/rclcpp.hpp"
 
+/** @brief A test accessor class that provides access to private members of the Velocity_node class for testing purposes.
+
+*/
 class VelocityNodeTestAccessor {
 public:
     static void guidance_callback(Velocity_node& node,
@@ -26,4 +29,4 @@ public:
         return node.control_manager_ptr.get();
     }
 };
-#endif
+#endif // VELOCITY_NODE_TEST_ACCESSOR_HPP_

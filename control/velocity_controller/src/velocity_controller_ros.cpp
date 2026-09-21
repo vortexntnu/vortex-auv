@@ -1,15 +1,19 @@
 #include "velocity_controller/velocity_controller_ros.hpp"
+#include <Eigen/src/Core/DiagonalMatrix.h>
 #include <rmw/types.h>
 #include <Eigen/Dense>
 #include <chrono>
 #include <cmath>
 #include <lifecycle_msgs/msg/detail/transition__struct.hpp>
 #include <numbers>
+#include <rclcpp/parameter_value.hpp>
 #include <rclcpp/utilities.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp>
 #include <vector>
+#include "vortex_msgs/msg/los_guidance.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 #include "velocity_controller/control_manager.hpp"
 #include "velocity_controller/lib/controller.hpp"
 #include "velocity_controller/utilities.hpp"
@@ -77,11 +81,11 @@ void Velocity_node::guidance_callback(
     if (node_settings.reset_on_new_ref) {  // On big step changes, reset the controllers to
                              // avoid big overshoots
         if (abs(msg_ptr->surge - guidance_values.surge) >= 0.1)
-            control_manager_ptr->reset_controllers(1);
+            control_manager_ptr->reset_controller(1);
         if (abs(msg_ptr->pitch - guidance_values.pitch) > std::numbers::pi / 4)
-            control_manager_ptr->reset_controllers(2);
+            control_manager_ptr->reset_controller(2);
         if (abs(msg_ptr->yaw - guidance_values.yaw) > std::numbers::pi / 4)
-            control_manager_ptr->reset_controllers(3);
+            control_manager_ptr->reset_controller(3);
     }
     guidance_values = msg_ptr;  // overloaded to fix all the internal states
 
@@ -187,11 +191,15 @@ void Velocity_node::initialize_controllers() {
     PID_3DOF_params pid_3dof_params(surge_gains, pitch_gains, yaw_gains, dt);
 
     //Initialize LQR controller params
-    auto Q = this->get_parameter("LQR_params.Q").as_double_array();
-    auto R = this->get_parameter("LQR_params.R").as_double_array();
-    auto inertia_matrix = this->get_parameter("physical.mass_matrix").as_double_array();
-    auto D_low = this->get_parameter("dampening_matrix_low").as_double_array();
-    auto D_high = this->get_parameter("dampening_matrix_high").as_double_array();
+    Eigen::Matrix<double,8,8> Q;
+    std::vector<double> Q_vec = this->get_parameter("LQR_params.Q").as_double_array();
+    Q.diagonal()=Eigen::Map<Eigen::VectorXd>(Q_vec.data(), 8);
+    std::vector<double> R_vec = this->get_parameter("LQR_params.R").as_double_array();
+    Eigen::Matrix<double,3,3> R;
+    R.diagonal()=Eigen::Map<Eigen::VectorXd>(R_vec.data(), 3);
+    Eigen::Matrix<double,6,6> inertia_matrix = double_array_to_eigen_matrix(this->get_parameter("physical.mass_matrix").as_double_array(),6,6);
+    Eigen::Matrix<double,6,6> D_low = double_array_to_eigen_matrix(this->get_parameter("dampening_matrix_low").as_double_array(),6,6);
+    Eigen::Matrix<double,6,6> D_high = double_array_to_eigen_matrix(this->get_parameter("dampening_matrix_high").as_double_array(),6,6);
     LQR_params lqr_params(Q, R, inertia_matrix, D_low, D_high, dt);
     
     //Initalize all the controllers in control manager
@@ -248,7 +256,7 @@ Velocity_node::on_deactivate(const rclcpp_lifecycle::State& state) {
     RCLCPP_INFO(get_logger(), "Deactivating...");
     auto ret = LifecycleNode::on_deactivate(state);
     timer_calculation.reset();
-    control_manager_ptr->reset_controllers();
+    control_manager_ptr->reset_controller(1);
     return ret;
 }
 

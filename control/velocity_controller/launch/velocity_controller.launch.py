@@ -23,15 +23,6 @@ def launch_setup(context, *args, **kwargs):
     config_path_local = os.path.join(pkg_share, 'config', f'{drone}_params.yaml')
     config_path_global = os.path.join(global_share, 'config', 'robots', f"{drone}.yaml")
 
-    #return [
-    #    Node(
-    #       package='velocity_controller',
-    #      executable='velocity_node',
-    #      name="velocity_controller_node",
-    #      namespace=namespace,
-    #    parameters=[config_path_local, config_path_global],
-    # )
-    #]
     return [
     ComposableNodeContainer(
         name='velocity_container',
@@ -41,7 +32,7 @@ def launch_setup(context, *args, **kwargs):
         composable_node_descriptions=[
             ComposableNode(
                 package='velocity_controller',
-                plugin='Velocity_node',   # must match the class name registered
+                plugin='Velocity_node',   
                 name='velocity_controller_node',
                 namespace=namespace,
                 parameters=[config_path_local, config_path_global],

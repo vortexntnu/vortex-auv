@@ -21,14 +21,24 @@ struct controller_params{
 class controller{
     public:
         controller(const controller_params& params);
+        /** @brief Calculate the required thrust based on the current state and error state */
         virtual geometry_msgs::msg::WrenchStamped calculate_thrust(const State& state, const State& error_state) = 0;
+        /** @brief Reset the controller 
+        @param nr: optional parameter to reset specific controller (for example surge), default is 0 which resets all controllers
+        */
         virtual void reset_controller(int nr=0) = 0;
+        /** @brief Check if the output of the controller is valid
+         * @return true if the output is valid, false otherwise
+         */
         bool get_validity(){return valid;};
         ~controller()=default;
+        
+    protected:
+         /** @brief Saturate the thrust output to be within the min and max thrust limits, keep the same direction of the thrust */
         geometry_msgs::msg::WrenchStamped saturate_thrust_direction(const geometry_msgs::msg::WrenchStamped& thrust_wrench);
+        /** @brief Saturate the thrust output to be within the min and max thrust limits, does not keep the same direction */
         geometry_msgs::msg::WrenchStamped saturate_thrust_block(const geometry_msgs::msg::WrenchStamped& thrust_wrench);
 
-    protected:
         bool valid=false;
         double saturated[6];
 
@@ -37,6 +47,8 @@ class controller{
         Eigen::VectorXd min_force_vec;
         Eigen::VectorXd max_force_vec;
         Eigen::Vector<double,6> tau_max;
+
+   
     private:
         friend class ControllerTestAccessor;  // Gir testene tilgang til private medlemmer
 
