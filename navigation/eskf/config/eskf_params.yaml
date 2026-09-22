@@ -1,7 +1,9 @@
 /**:
   eskf_node:
     ros__parameters:
+      # Continuous noise density std: accel, gyro, gyro-bias RW, accel-bias RW.
       diag_Q_std: [0.05, 0.05, 0.1, 0.01, 0.01, 0.02, 0.001, 0.001, 0.001, 0.0001, 0.0001, 0.0001]
+      # Variances: position, velocity, local rotation, gyro bias, accel bias.
       diag_p_init: [1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
       sensors:
         imu:
@@ -36,3 +38,8 @@
       publish_biases: false
       publish_nis: true
       pressure_is_gauge: true # Stonefish publishes gauge pressure
+      max_imu_dt: 0.1
+      max_estimate_age: 0.25
+      max_aiding_skew: 0.05
+      dvl_nis_threshold: 16.266
+      depth_nis_threshold: 10.828

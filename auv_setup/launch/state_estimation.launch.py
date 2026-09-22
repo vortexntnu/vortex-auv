@@ -2,8 +2,13 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, OpaqueFunction
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    OpaqueFunction,
+)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 
@@ -15,13 +20,6 @@ from auv_setup.launch_arg_common import (
 
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
-
-    drone_params = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config",
-        "robots",
-        f"{drone}.yaml",
-    )
 
     drone_description_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -43,83 +41,6 @@ def launch_setup(context, *args, **kwargs):
         package="rclcpp_components",
         executable="component_container_mt",
         composable_node_descriptions=[
-            ComposableNode(
-                package="eskf",
-                plugin="ESKFNode",
-                name="eskf_node",
-                namespace=namespace,
-                parameters=[
-                    drone_params,
-                    {
-                        "diag_Q_std": [
-                            0.05,
-                            0.05,
-                            0.1,
-                            0.01,
-                            0.01,
-                            0.02,
-                            0.001,
-                            0.001,
-                            0.001,
-                            0.0001,
-                            0.0001,
-                            0.0001,
-                        ],
-                        "diag_p_init": [
-                            1.0,
-                            1.0,
-                            1.0,
-                            0.5,
-                            0.5,
-                            0.5,
-                            0.1,
-                            0.1,
-                            0.1,
-                            0.001,
-                            0.001,
-                            0.001,
-                            0.001,
-                            0.001,
-                            0.001,
-                        ],
-                        "transform.imu_frame_r": [
-                            -1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            -1.0,
-                        ],
-                        "transform.imu_frame_t": [0.0, 0.0, 0.0],
-                        "transform.dvl_frame_r": [
-                            0.0,
-                            -1.0,
-                            0.0,
-                            1.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0,
-                        ],
-                        "transform.dvl_frame_t": [0.4, 0.0, 0.2],
-                        "transform.depth_frame_t": [0.0, 0.0, 0.0],
-                        "use_tf_transforms": True,
-                        "publish_tf": True,
-                        "publish_pose": True,
-                        "publish_twist": True,
-                        "publish_rate_ms": 5,
-                        "add_gravity_to_imu": True,
-                        "frame_prefix": namespace,
-                        "initial_gyro_bias": [0.0, 0.0, 0.0],
-                        "initial_accel_bias": [0.0, 0.0, -0.05],
-                    },
-                ],
-                extra_arguments=[{"use_intra_process_comms": True}],
-            ),
             ComposableNode(
                 package="mru_ros_interface",
                 plugin="MruRosInterface",
@@ -195,13 +116,42 @@ def launch_setup(context, *args, **kwargs):
         arguments=["--ros-args", "--log-level", "error"],
     )
 
-    return [drone_description_launch, container]
+    use_sim = LaunchConfiguration("use_sim").perform(context)
+    arguments = {
+        "drone": drone,
+        "namespace": namespace,
+        "use_sim": use_sim,
+        "environment": LaunchConfiguration("environment").perform(context),
+        "debug_output": LaunchConfiguration("debug_output").perform(context),
+    }
+    if use_sim.lower() != "true":
+        arguments.update(
+            {
+                "imu_topic": f"/{namespace}/imu/data_raw",
+                "dvl_topic": f"/{namespace}/nucleus/dvl",
+                "pressure_topic": f"/{namespace}/nucleus/pressure",
+            }
+        )
+    estimator = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("eskf"), "launch", "eskf.launch.py"
+            )
+        ),
+        launch_arguments=arguments.items(),
+    )
+    return [drone_description_launch, estimator] + (
+        [] if use_sim.lower() == "true" else [container]
+    )
 
 
 def generate_launch_description():
     return LaunchDescription(
         declare_drone_and_namespace_args()
         + [
+            DeclareLaunchArgument("use_sim", default_value="false"),
+            DeclareLaunchArgument("environment", default_value="trondheim_freshwater"),
+            DeclareLaunchArgument("debug_output", default_value="true"),
             OpaqueFunction(function=launch_setup),
         ]
     )
