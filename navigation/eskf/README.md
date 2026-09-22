@@ -68,7 +68,7 @@ The numerical library depends only on Eigen. Tests run with checks enabled even
 in release builds:
 
 ```sh
-cmake -S navigation/eskf -B /tmp/eskf-build -DESKF_BUILD_ROS=OFF -DCMAKE_BUILD_TYPE=Release
+cmake -S navigation/eskf -B /tmp/eskf-build -DESKF_BUILD_ROS=OFF -DESKF_WITH_GTSAM=OFF -DCMAKE_BUILD_TYPE=Release
 cmake --build /tmp/eskf-build -j2
 ctest --test-dir /tmp/eskf-build --output-on-failure
 ```
@@ -108,3 +108,81 @@ comparison transformer and RPY utility are disabled unless requested.
 These changes repair the report's mathematical defects and make the timing,
 validity and launch contracts explicit. Native and synthetic ROS tests do not
 establish physical sensor calibration, Stonefish control cutover or vehicle safety.
+
+## GTSAM manifold preintegration backend
+
+This branch adds an optional **host** backend using GTSAM's Forster
+`ManifoldPreintegration`, `ImuFactor`, bias-random-walk factors, and
+`IncrementalFixedLagSmoother`. It shares the ROS sensor processing, gating policy,
+validity, reset and output contracts with the repaired ESKF.
+
+The graph owns pose, navigation velocity and both biases at each keyframe.
+Every IMU sample enters one preintegrated interval. A keyframe is created when
+`keyframe_interval` elapses or an accepted aiding update closes the current
+interval. Same-epoch DVL/depth factors reuse one state. Old states are marginalized
+after `smoother_lag`. The current full joint pose/velocity/bias covariance is
+converted to the ESKF coordinate convention, preserving cross terms. GTSAM bias
+order is accelerometer then gyro; ESKF order is gyro then accelerometer.
+
+Between graph updates, a fresh ESKF instance initialized from the optimized state
+and covariance supplies high-rate output propagation and innovation gating. Its
+predictions are **not factors or priors fed back into the graph**; raw IMU
+information is represented there only by the preintegrated factor. This retains
+the repaired propagation covariance code rather than introducing a second custom
+propagator. Joint marginal extraction and the Van Loan predictor are deliberate
+host-prototype costs, not demonstrated MCU or hard-real-time performance.
+
+This first integration retains the adapter's bounded-skew aiding policy. It does
+not insert measurements at historical acquisition times, rewind an interval,
+accept aiding beyond the skew threshold, or revise marginalized states. Smoothing
+still revises retained historical states when new current-time aiding arrives.
+A future delayed-aiding adapter must preserve raw samples, split intervals or
+associate measurements with retained timestamps and account for resulting timing
+approximations explicitly.
+
+### Reproducible dependency build
+
+Use GTSAM 4.2 at `4f66a491ffc83cf092d0d818b11dc35135521612`. The backend rejects a
+build with `GTSAM_TANGENT_PREINTEGRATION` enabled at compile time. A default binary
+package may use tangent preintegration and is not a substitute for this build.
+GTSAM 4.2's smoother requires `gtsam_unstable` as well as `gtsam`.
+
+On Ubuntu 22.04/ROS Humble, install build prerequisites (`build-essential`, `cmake`,
+`git`, `libeigen3-dev`, `libboost-all-dev`) and build into an isolated prefix:
+
+```sh
+bash navigation/eskf/tools/build_gtsam.sh /tmp/gtsam-forster-build /tmp/gtsam-forster
+export CMAKE_PREFIX_PATH=/tmp/gtsam-forster:${CMAKE_PREFIX_PATH:-}
+export LD_LIBRARY_PATH=/tmp/gtsam-forster/lib:${LD_LIBRARY_PATH:-}
+cmake -S navigation/eskf -B /tmp/gtsam-navigation-build \
+  -DESKF_BUILD_ROS=OFF -DESKF_WITH_GTSAM=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build /tmp/gtsam-navigation-build -j2
+ctest --test-dir /tmp/gtsam-navigation-build --output-on-failure
+```
+
+`ESKF_WITH_GTSAM` defaults to ON on this branch. Use `-DESKF_WITH_GTSAM=OFF` to
+build only the repaired ESKF without GTSAM. For ROS, keep the same dependency
+prefix/runtime path and build with `colcon build --packages-up-to eskf`.
+The runtime default remains `estimator_backend:=eskf`; select GTSAM explicitly:
+
+```sh
+ros2 launch eskf eskf.launch.py drone:=nautilus use_sim:=true estimator_backend:=gtsam
+# Equivalent backend-selecting entry point:
+ros2 launch eskf gtsam.launch.py drone:=nautilus use_sim:=true
+ESKF_TEST_BACKEND=gtsam ros2 run eskf ros_contract_test.py
+```
+
+`keyframe_interval` defaults to 0.2 s and `smoother_lag` to 2.0 s; set these ROS
+parameters in estimator YAML. The lag must exceed the keyframe interval plus the
+maximum accepted IMU step. Initial covariance and all four independent process
+noise blocks must be positive definite. GTSAM's additional integration covariance
+is 1e-8 by default in `GtsamNavigationParams`. Tune sensor densities for the actual
+filtered STIM profile instead of treating these defaults as calibrated values.
+
+The new tests compare motion against independent direct integration, bias updates
+against reintegration, both sensor-factor Jacobians against finite differences,
+and a known aided trajectory across repeated window marginalization. They also
+verify that later aiding changes an earlier retained state and that the full
+navigation covariance includes cross terms. The same synthetic ROS contract test
+runs against either backend. No physical sensors, vehicle control or comparative
+accuracy claims are implied by these tests.

@@ -123,6 +123,7 @@ def launch_setup(context, *args, **kwargs):
         "use_sim": use_sim,
         "environment": LaunchConfiguration("environment").perform(context),
         "debug_output": LaunchConfiguration("debug_output").perform(context),
+        "estimator_backend": LaunchConfiguration("estimator_backend").perform(context),
     }
     if use_sim.lower() != "true":
         arguments.update(
@@ -149,6 +150,9 @@ def generate_launch_description():
     return LaunchDescription(
         declare_drone_and_namespace_args()
         + [
+            DeclareLaunchArgument(
+                "estimator_backend", default_value="eskf", choices=["eskf", "gtsam"]
+            ),
             DeclareLaunchArgument("use_sim", default_value="false"),
             DeclareLaunchArgument("environment", default_value="trondheim_freshwater"),
             DeclareLaunchArgument("debug_output", default_value="true"),

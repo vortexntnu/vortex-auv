@@ -20,6 +20,7 @@ from std_srvs.srv import Trigger
 
 def main():
     parameters = {
+        'estimator_backend': os.environ.get('ESKF_TEST_BACKEND', 'eskf'),
         'frame_prefix': 'test',
         'publish_debug': True,
         'publish_tf': False,

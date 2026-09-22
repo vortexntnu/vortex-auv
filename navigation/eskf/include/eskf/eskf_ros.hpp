@@ -101,7 +101,11 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::TimerBase::SharedPtr odom_pub_timer_;
 
-    std::unique_ptr<ESKF> eskf_;
+    std::unique_ptr<NavigationEstimator> eskf_;
+    void reset_estimator();
+    std::string estimator_backend_ = "eskf";
+    double smoother_lag_ = 2.0;
+    double keyframe_interval_ = 0.2;
 
     bool first_imu_msg_received_ = false;
     bool propagated_ = false;

@@ -5,6 +5,9 @@
 #include <rclcpp_components/register_node_macro.hpp>
 #include <stdexcept>
 #include "eskf/output.hpp"
+#ifdef ESKF_WITH_GTSAM
+#include "eskf/gtsam_navigation.hpp"
+#endif
 #include "eskf/typedefs.hpp"
 
 auto start_message{R"(
@@ -114,7 +117,7 @@ void ESKFNode::set_subscribers_and_publisher() {
         "eskf/reset",
         [this](const std::shared_ptr<std_srvs::srv::Trigger::Request>,
                std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
-            eskf_ = std::make_unique<ESKF>(filter_params_);
+            reset_estimator();
             first_imu_msg_received_ = propagated_ = dvl_received_ =
                 depth_received_ = faulted_ = false;
             last_dvl_stamp_ = last_depth_stamp_ = -1;
@@ -301,8 +304,31 @@ void ESKFNode::set_parameters() {
         declare_parameter<double>("dvl_nis_threshold", 16.266);
     eskf_params.depth_nis_threshold =
         declare_parameter<double>("depth_nis_threshold", 10.828);
+    estimator_backend_ =
+        declare_parameter<std::string>("estimator_backend", "eskf");
+    smoother_lag_ = declare_parameter<double>("smoother_lag", 2.0);
+    keyframe_interval_ = declare_parameter<double>("keyframe_interval", 0.2);
     filter_params_ = eskf_params;
-    eskf_ = std::make_unique<ESKF>(filter_params_);
+    reset_estimator();
+}
+
+void ESKFNode::reset_estimator() {
+    if (estimator_backend_ == "eskf") {
+        eskf_ = std::make_unique<ESKF>(filter_params_);
+        return;
+    }
+#ifdef ESKF_WITH_GTSAM
+    if (estimator_backend_ == "gtsam") {
+        GtsamNavigationParams options;
+        options.lag_seconds = smoother_lag_;
+        options.keyframe_interval = keyframe_interval_;
+        eskf_ = std::make_unique<GtsamNavigation>(filter_params_, options);
+        return;
+    }
+#endif
+    throw std::runtime_error(
+        "Unknown/unavailable estimator_backend; build with ESKF_WITH_GTSAM for "
+        "gtsam");
 }
 
 void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::ConstSharedPtr msg) {
@@ -349,6 +375,8 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::ConstSharedPtr msg) {
                         alpha.cross(T_imu_eskf_);
     if (!eskf_->imu_update(measurement, dt)) {
         faulted_ = true;
+        RCLCPP_ERROR(get_logger(), "Estimator propagation failed: %s",
+                     eskf_->error_message().c_str());
         return;
     }
     const Eigen::Map<const Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>
@@ -430,6 +458,11 @@ void ESKFNode::dvl_callback(
 
     const bool accepted = eskf_->dvl_update(dvl_sensor);
     dvl_received_ = dvl_received_ || accepted;
+    if (!eskf_->healthy()) {
+        faulted_ = true;
+        RCLCPP_ERROR(get_logger(), "Estimator failed: %s",
+                     eskf_->error_message().c_str());
+    }
     if (!accepted)
         RCLCPP_WARN_THROTTLE(
             get_logger(), *get_clock(), 2000,
@@ -474,6 +507,11 @@ void ESKFNode::pressure_callback(
 
     const bool accepted = eskf_->depth_update(depth_sensor);
     depth_received_ = depth_received_ || accepted;
+    if (!eskf_->healthy()) {
+        faulted_ = true;
+        RCLCPP_ERROR(get_logger(), "Estimator failed: %s",
+                     eskf_->error_message().c_str());
+    }
     if (!accepted)
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
                              "Depth correction rejected (invalid "
@@ -491,7 +529,8 @@ void ESKFNode::publish_odom() {
     const double age =
         first_imu_msg_received_ ? (now() - last_imu_time_).seconds() : -1;
     validity.data = propagated_ && dvl_received_ && depth_received_ &&
-                    !faulted_ && age >= 0 && age <= max_estimate_age_;
+                    !faulted_ && eskf_->healthy() && age >= 0 &&
+                    age <= max_estimate_age_;
     validity_pub_->publish(validity);
     if (!validity.data)
         return;

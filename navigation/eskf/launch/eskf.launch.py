@@ -42,6 +42,7 @@ def launch_setup(context, *args, **kwargs):
         'frame_prefix': namespace,
         'publish_debug': debug_output,
         'use_sim_time': use_sim,
+        'estimator_backend': LaunchConfiguration('estimator_backend').perform(context),
     }
     defaults = {
         'imu_topic': f'/{namespace}/imu/data_raw' if use_sim else '',
@@ -127,6 +128,9 @@ def launch_setup(context, *args, **kwargs):
 def generate_launch_description():
     return LaunchDescription(
         [
+            DeclareLaunchArgument(
+                'estimator_backend', default_value='eskf', choices=['eskf', 'gtsam']
+            ),
             DeclareLaunchArgument('imu_topic', default_value=''),
             DeclareLaunchArgument('dvl_topic', default_value=''),
             DeclareLaunchArgument('pressure_topic', default_value=''),
