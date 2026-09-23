@@ -2,6 +2,7 @@
 #define REFERENCE_FILTER_DP_QUAT__LIB__WAYPOINT_FOLLOWER_HPP_
 
 #include <mutex>
+#include <optional>
 #include <vortex/utils/types.hpp>
 #include <vortex/utils/waypoint_utils.hpp>
 #include "reference_filter_dp_quat/lib/eigen_typedefs.hpp"
@@ -32,7 +33,9 @@ class WaypointFollower {
      * @brief Initialize the follower with the current vehicle state and target.
      * @param pose Current vehicle pose.
      * @param twist Current vehicle twist (body frame).
-     * @param waypoint Target waypoint with mode.
+     * @param waypoint Target waypoint with mode. If it sets
+     * position_tolerance or orientation_tolerance, those are used instead of
+     * the combined threshold (an unset one falls back to the threshold).
      * @param convergence_threshold Max error norm to consider target reached.
      */
     void start(const Pose& pose,
@@ -77,6 +80,22 @@ class WaypointFollower {
      * threshold.
      */
     bool within_convergance_ignore_z(const Pose& measured_pose) const;
+
+    /**
+     * @brief Convergence check with hold time.
+     *
+     * Converged only once the measured pose has stayed inside the tolerance
+     * continuously for @p hold_time_sec. Leaving the tolerance restarts the
+     * hold. With hold_time_sec <= 0 this is the plain convergence check.
+     * @param measured_pose Current measured pose.
+     * @param t_sec Monotonic time [s] of this measurement.
+     * @param ignore_z Exclude z from the position error (altitude hold).
+     * @param hold_time_sec Required continuous time inside the tolerance.
+     */
+    bool update_convergence(const Pose& measured_pose,
+                            double t_sec,
+                            bool ignore_z,
+                            double hold_time_sec);
 
     /**
      * @brief Update the reference goal pose mid-sequence.
@@ -129,6 +148,19 @@ class WaypointFollower {
      */
     void inject_and_reset();
 
+    /**
+     * @brief Convergence check against the stored threshold or tolerances.
+     * Caller must hold mutex_.
+     */
+    bool within_locked(const Pose& measured_pose) const;
+
+    /**
+     * @brief Store tolerances from the waypoint and restart the hold timer.
+     * Caller must hold mutex_.
+     */
+    void set_convergence_criteria(const Waypoint& waypoint,
+                                  double convergence_threshold);
+
     mutable std::mutex mutex_;
     ReferenceFilter filter_;
     double dt_seconds_{0.01};
@@ -137,6 +169,8 @@ class WaypointFollower {
     Pose waypoint_goal_;
     WaypointMode waypoint_mode_{WaypointMode::FULL_POSE};
     double convergence_threshold_{0.1};
+    std::optional<vortex::utils::waypoints::ConvergenceTolerance> tolerance_;
+    std::optional<double> inside_since_sec_;
 };
 
 }  // namespace vortex::guidance

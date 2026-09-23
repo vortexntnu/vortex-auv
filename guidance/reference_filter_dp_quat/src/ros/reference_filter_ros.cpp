@@ -101,11 +101,13 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
                 msg->twist.twist);
         });
 
-    const std::string waypoint_goal_topic = this->declare_parameter<std::string>(
-        "topics.guidance.waypoint_mode", "guidance/waypoint_mode");
-    waypoint_goal_pub_ = this->create_publisher<vortex_msgs::msg::WaypointDebug>(
-        waypoint_goal_topic,
-        vortex::utils::qos_profiles::reliable_profile(1));
+    const std::string waypoint_goal_topic =
+        this->declare_parameter<std::string>("topics.guidance.waypoint_mode",
+                                             "guidance/waypoint_mode");
+    waypoint_goal_pub_ =
+        this->create_publisher<vortex_msgs::msg::WaypointDebug>(
+            waypoint_goal_topic,
+            vortex::utils::qos_profiles::reliable_profile(1));
 
     if (altitude_control_enabled_) {
         this->declare_parameter<std::string>("topics.dvl_altitude");
@@ -189,9 +191,10 @@ void ReferenceFilterNode::publish_debug_goal() {
 }
 
 void ReferenceFilterNode::publish_waypoint_goal(
-    const vortex::utils::types::Waypoint& wp, double convergence_threshold) {
-    const Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(
-        wp.pose.ori_quaternion());
+    const vortex::utils::types::Waypoint& wp,
+    double convergence_threshold) {
+    const Eigen::Vector3d euler =
+        vortex::utils::math::quat_to_euler(wp.pose.ori_quaternion());
 
     vortex_msgs::msg::WaypointDebug msg;
     msg.pose.header.stamp = this->get_clock()->now();
@@ -289,17 +292,36 @@ void ReferenceFilterNode::execute(
     bool retarget) {
     executing_ = true;
 
-    double threshold = goal_handle->get_goal()->convergence_threshold;
+    auto wp = vortex::utils::waypoints::waypoint_from_ros(
+        goal_handle->get_goal()->waypoint);
+
+    // A per-waypoint threshold overrides the goal's; 0 keeps the goal's.
+    double threshold = wp.convergence_threshold > 0.0
+                           ? wp.convergence_threshold
+                           : goal_handle->get_goal()->convergence_threshold;
     if (threshold <= 0.0) {
         threshold = 0.1;
         spdlog::warn(
             "ReferenceFilter: invalid convergence_threshold (<= 0), using 0.1");
     }
 
-    auto wp = vortex::utils::waypoints::waypoint_from_ros(
-        goal_handle->get_goal()->waypoint);
-
     publish_waypoint_goal(wp, threshold);
+
+    if (wp.mode == vortex::utils::types::WaypointMode::ONLY_Z &&
+        wp.keep_altitude && altitude_control_enabled_ &&
+        !wp.require_altitude_convergence) {
+        // z is ignored in the convergence check during altitude hold, so the
+        // error of an ONLY_Z goal would be 0 and it would succeed instantly.
+        executing_ = false;
+        auto result =
+            std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
+        result->success = false;
+        goal_handle->abort(result);
+        spdlog::error(
+            "ReferenceFilter: ONLY_Z with keep_altitude requires "
+            "require_altitude_convergence");
+        return;
+    }
 
     if (wp.keep_altitude && altitude_control_enabled_ &&
         wp.desired_altitude <= 0.0) {
@@ -406,10 +428,10 @@ void ReferenceFilterNode::execute(
             return current_pose_;
         }();
 
-        const bool converged =
-            (keep_altitude && !wp.require_altitude_convergence)
-                ? follower_->within_convergance_ignore_z(current_pose)
-                : follower_->within_convergance(current_pose);
+        const bool converged = follower_->update_convergence(
+            current_pose, this->get_clock()->now().seconds(),
+            keep_altitude && !wp.require_altitude_convergence,
+            wp.hold_time_sec);
 
         if (converged) {
             follower_->snap_state_to_reference();
