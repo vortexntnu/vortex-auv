@@ -11,3 +11,19 @@ function(add_ros_isolated_launch_test path)
 endfunction()
 
 add_ros_isolated_launch_test(test_intake_two_publishers.py TIMEOUT 300)
+add_ros_isolated_launch_test(test_map_retention.py TIMEOUT 300)
+
+find_package(GTest REQUIRED)
+include(GoogleTest)
+
+add_executable(test_landmark_map
+  test_class_config.cpp
+  test_retained_landmarks.cpp
+  test_course_frame.cpp
+)
+target_link_libraries(test_landmark_map PRIVATE
+  landmark_server_core
+  GTest::GTest
+  GTest::Main
+)
+gtest_discover_tests(test_landmark_map)

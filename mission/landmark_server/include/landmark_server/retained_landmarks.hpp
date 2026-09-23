@@ -1,0 +1,106 @@
+#ifndef LANDMARK_SERVER__RETAINED_LANDMARKS_HPP_
+#define LANDMARK_SERVER__RETAINED_LANDMARKS_HPP_
+
+#include <eigen3/Eigen/Dense>
+#include <functional>
+#include <pose_filtering/lib/typedefs.hpp>
+#include <vector>
+#include "landmark_server/class_config.hpp"
+
+namespace vortex::mission {
+
+/**
+ * @brief A landmark in the map: what the tree can rely on after the live
+ * tracker has forgotten it. Stable id, alive for as long as the class rules
+ * say. ROS-free.
+ */
+struct RetainedLandmark {
+    /// Stable, never reused.
+    int id{-1};
+    vortex::filtering::LandmarkClassKey key{};
+    Eigen::Vector3d position{Eigen::Vector3d::Zero()};
+    /// +X out of the front, +Z down (NED). Valid when has_orientation.
+    Eigen::Quaterniond orientation{Eigen::Quaterniond::Identity()};
+    bool has_orientation{false};
+    /// The yaw is fixed by the map rules and no longer follows the tracker.
+    bool yaw_locked{false};
+    /// Computed by a map rule instead of measured.
+    bool derived{false};
+    Eigen::Matrix<double, 6, 6> covariance{Eigen::Matrix<double, 6, 6>::Zero()};
+    /// Seconds, same clock as the `now` given to update().
+    double first_seen{0.0};
+    double last_measurement{0.0};
+    int observations{0};
+    /// Id of the live track this landmark follows; -1 = remembered only.
+    int live_track_id{-1};
+    int hits{0};
+    int misses{0};
+
+    double yaw() const;
+};
+
+/**
+ * @brief Turns the live tracks from PoseTrackManager into a map with stable
+ * ids and memory, following the class rules (max instances, adoption radius,
+ * retention). ROS-free.
+ *
+ * Live track -> landmark:
+ *  - a track that is already followed updates its landmark;
+ *  - a new track takes over the nearest remembered landmark of the same class
+ *    within the adoption radius (so the id survives a track being deleted and
+ *    recreated);
+ *  - otherwise it becomes a new landmark, unless the class is full, it lies
+ *    outside the lane bounds, or (for pipes) too close to a large structure.
+ */
+class RetainedLandmarks {
+   public:
+    using PositionFilter = std::function<bool(const Eigen::Vector3d&)>;
+
+    explicit RetainedLandmarks(LandmarkMapConfig config);
+
+    /**
+     * @param confirmed The confirmed tracks of PoseTrackManager.
+     * @param now Time [s].
+     * @param position_allowed Optional lane bounds; landmarks outside are
+     * rejected (new) or dropped (existing).
+     */
+    void update(const std::vector<vortex::filtering::Track>& confirmed,
+                double now,
+                const PositionFilter& position_allowed = {});
+
+    /// Forget everything. Ids keep counting up.
+    void clear();
+
+    const std::vector<RetainedLandmark>& landmarks() const {
+        return landmarks_;
+    }
+    /// For the map rules, which may change orientation and add derived
+    /// landmarks.
+    std::vector<RetainedLandmark>& landmarks() { return landmarks_; }
+
+    const RetainedLandmark* find(int id) const;
+
+    /// Add a derived landmark (map rules). Returns its id.
+    int add_derived(RetainedLandmark landmark);
+
+    /// Number of tracks rejected because a class was full, out of bounds or
+    /// too close to a large structure.
+    int rejected_count() const { return rejected_; }
+
+   private:
+    void update_from_track(RetainedLandmark& lm,
+                           const vortex::filtering::Track& track,
+                           double now) const;
+    bool near_large_structure(const Eigen::Vector3d& position,
+                              double distance) const;
+    void forget_expired(double now);
+
+    LandmarkMapConfig config_;
+    std::vector<RetainedLandmark> landmarks_;
+    int next_id_{0};
+    int rejected_{0};
+};
+
+}  // namespace vortex::mission
+
+#endif  // LANDMARK_SERVER__RETAINED_LANDMARKS_HPP_

@@ -126,6 +126,9 @@ struct Landmark {
     LandmarkClassKey class_key{};
     /// Measurement time [s], taken from the message header (0 if unknown).
     double stamp_sec{0.0};
+    /// False when the detector gives position only (the orientation of `pose`
+    /// is then a placeholder and must not be used).
+    bool has_orientation{true};
 };
 
 /**
@@ -152,6 +155,11 @@ struct Track {
 
     /// Sliding window of hit/miss history (true = hit, false = miss)
     std::deque<bool> hit_history{};
+
+    /// Whether the orientation of the track is known. False until a
+    /// measurement with orientation has been associated (the orientation is
+    /// then a placeholder).
+    bool has_orientation{true};
 
     /// Number of hits in the current window
     int hits() const {

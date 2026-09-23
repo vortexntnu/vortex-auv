@@ -1,6 +1,7 @@
 #include <cmath>
 #include <vortex/utils/ros/ros_conversions.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
+#include <vortex_msgs/msg/landmark_type.hpp>
 #include "landmark_server/landmark_server_ros.hpp"
 
 namespace vortex::mission {
@@ -84,10 +85,29 @@ std::vector<Landmark> LandmarkServerNode::ros_msg_to_landmarks(
     std::vector<Landmark> out;
     out.reserve(msg.landmarks.size());
     const double stamp_sec = rclcpp::Time(msg.header.stamp).seconds();
+
+    std::optional<geometry_msgs::msg::Point> vehicle;
+    {
+        std::lock_guard<std::mutex> lock(odom_mtx_);
+        vehicle = last_odom_position_;
+    }
+
     for (const auto& lm_msg : msg.landmarks) {
         if (!is_valid_landmark_msg(lm_msg)) {
             ++dropped_measurements_;
             continue;
+        }
+        // Distant pipes are unreliable.
+        if (lm_msg.type.value == vortex_msgs::msg::LandmarkType::SLALOM_PIPE &&
+            vehicle) {
+            const auto& p = lm_msg.pose.pose.position;
+            const double d =
+                std::hypot(std::hypot(p.x - vehicle->x, p.y - vehicle->y),
+                           p.z - vehicle->z);
+            if (d > map_config_.intake.max_pipe_distance_m) {
+                ++dropped_measurements_;
+                continue;
+            }
         }
         Landmark lm;
         lm.pose =
@@ -95,6 +115,12 @@ std::vector<Landmark> LandmarkServerNode::ros_msg_to_landmarks(
         lm.class_key = vortex::filtering::LandmarkClassKey{
             lm_msg.type.value, lm_msg.subtype.value};
         lm.stamp_sec = stamp_sec;
+        // A rotational variance >= the limit means "no orientation".
+        const auto& cov = lm_msg.pose.covariance;
+        const double no_ori = map_config_.intake.no_orientation_rot_variance;
+        lm.has_orientation =
+            !(cov[3 * 6 + 3] >= no_ori || cov[4 * 6 + 4] >= no_ori ||
+              cov[5 * 6 + 5] >= no_ori);
         out.push_back(lm);
     }
     return out;

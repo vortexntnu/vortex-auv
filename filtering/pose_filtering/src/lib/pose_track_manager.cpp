@@ -41,6 +41,8 @@ void PoseTrackManager::step(std::vector<Landmark>& measurements, double dt) {
                        type_matched_measurements, pdaf_cfg, gate);
 
         bool hit = pdaf_output.gated_measurements.any();
+        adopt_orientation(track, measurements, type_gate_indices,
+                          pdaf_output.gated_measurements);
 
         track.error_state = pdaf_output.x_post;
         inject_and_reset(track);
@@ -78,18 +80,44 @@ PoseTrackManager::compute_measurement_residuals(
 
     for (Eigen::Index k = 0; k < static_cast<Eigen::Index>(indices.size());
          ++k) {
-        const Pose& meas_pose = measurements[indices[k]].pose;
+        const Landmark& measurement = measurements[indices[k]];
+        const Pose& meas_pose = measurement.pose;
 
         const Eigen::Vector3d dp =
             meas_pose.pos_vector() - track.nominal_state.pos;
-        const Eigen::Vector3d dtheta = so3_log_quat(
-            meas_pose.ori_quaternion() * track.nominal_state.ori.conjugate());
+        // Position-only detections, or a track that has no orientation yet,
+        // carry no information about the orientation: leave it untouched.
+        const bool use_orientation =
+            measurement.has_orientation && track.has_orientation;
+        const Eigen::Vector3d dtheta =
+            use_orientation ? so3_log_quat(meas_pose.ori_quaternion() *
+                                           track.nominal_state.ori.conjugate())
+                            : Eigen::Vector3d::Zero().eval();
 
         Z.matrix().col(k).head<3>() = dp;
         Z.matrix().col(k).tail<3>() = dtheta;
     }
 
     return Z;
+}
+
+void PoseTrackManager::adopt_orientation(
+    Track& track,
+    const std::vector<Landmark>& measurements,
+    const std::vector<Eigen::Index>& global_indices,
+    const Eigen::Array<bool, 1, Eigen::Dynamic>& mask) const {
+    if (track.has_orientation) {
+        return;
+    }
+    for (Eigen::Index k = 0;
+         k < static_cast<Eigen::Index>(global_indices.size()); ++k) {
+        const Landmark& m = measurements[global_indices[k]];
+        if (mask(k) && m.has_orientation) {
+            track.nominal_state.ori = m.pose.ori_quaternion();
+            track.has_orientation = true;
+            return;
+        }
+    }
 }
 
 void PoseTrackManager::inject_and_reset(Track& track) {
@@ -195,6 +223,7 @@ void PoseTrackManager::create_tracks(
                 .error_state = vortex::prob::Gauss6d(
                     Eigen::Matrix<double, 6, 1>::Zero(), P0),
                 .confirmed = false};
+        t.has_orientation = measurement.has_orientation;
         t.hit_history.push_back(true);
         return t;
     };

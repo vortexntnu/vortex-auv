@@ -1,0 +1,88 @@
+#include <gtest/gtest.h>
+#include "test_map_utils.hpp"
+
+namespace vortex::mission {
+
+using namespace test;
+
+TEST(ClassConfig, ParsesExampleYaml) {
+    const auto cfg = example_config();
+
+    EXPECT_DOUBLE_EQ(cfg.intake.max_pipe_distance_m, 7.0);
+    EXPECT_DOUBLE_EQ(cfg.plausibility_radius_m, 3.0);
+    EXPECT_EQ(cfg.course_frame.gate_lock_consistent_estimates, 10);
+    EXPECT_DOUBLE_EQ(cfg.course_frame.before_gate.x_max, 45.0);
+    EXPECT_DOUBLE_EQ(cfg.course_frame.after_gate.y_min, -6.0);
+
+    const auto& gate = cfg.rule_for({LT::GATE, LS::GATE_WHOLE});
+    EXPECT_EQ(gate.max_instances, 1);
+    EXPECT_TRUE(gate.retain_forever);
+
+    // Per-subtype max_instances for pipes.
+    EXPECT_EQ(cfg.rule_for({LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE}).max_instances, 10);
+    EXPECT_EQ(cfg.rule_for({LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED}).max_instances, 5);
+    const auto& pipe = cfg.rule_for({LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED});
+    EXPECT_DOUBLE_EQ(pipe.instance_gate_m, 0.7);
+    EXPECT_DOUBLE_EQ(pipe.retain_sec, 15.0);
+    EXPECT_FALSE(pipe.retain_forever);
+    EXPECT_EQ(pipe.keep_after_observations, 30);
+    EXPECT_DOUBLE_EQ(pipe.min_distance_to_large_structures_m, 1.5);
+
+    EXPECT_EQ(cfg.rule_for({LT::BIN, LS::BIN_UNCLASSIFIED}).max_instances, 4);
+    EXPECT_DOUBLE_EQ(cfg.rule_for({LT::BIN, LS::BIN_UNCLASSIFIED}).instance_gate_m, 0.25);
+
+    EXPECT_TRUE(cfg.is_large_structure({LT::GATE, LS::GATE_SURVEY_REPAIR}));
+    EXPECT_TRUE(cfg.is_large_structure({LT::TABLE, LS::TABLE_WHOLE}));
+    EXPECT_TRUE(cfg.is_large_structure({LT::BIN, LS::BIN_STRUCTURE}));
+    EXPECT_FALSE(cfg.is_large_structure({LT::BIN, LS::BIN_UNCLASSIFIED}));
+    EXPECT_FALSE(cfg.is_large_structure({LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED}));
+}
+
+TEST(ClassConfig, UnknownClassIsAnError) {
+    EXPECT_THROW(parse_map_config(YAML::Load("classes: {NOT_A_CLASS: {max_instances: 1}}")),
+                 std::runtime_error);
+    EXPECT_THROW(parse_map_config(YAML::Load(
+                     "classes: {SLALOM_PIPE: {max_instances: {PURPLE: 1}}}")),
+                 std::runtime_error);
+}
+
+TEST(ClassConfig, MissingKeysKeepDefaults) {
+    const auto cfg = parse_map_config(YAML::Load("{}"));
+    EXPECT_DOUBLE_EQ(cfg.intake.max_pipe_distance_m, 7.0);
+    EXPECT_EQ(cfg.rule_for({LT::GATE, 0}).max_instances, 20);
+}
+
+TEST(ClassConfig, PerClassTrackConfigOverridesDefault) {
+    vortex::filtering::LandmarkClassConfig def;
+    def.nm.confirm_n = 3;
+    def.nm.confirm_m = 5;
+    def.dyn_std_dev = 0.2;
+
+    const auto out = parse_per_class_track_config(
+        YAML::Load(R"(
+default: {nm: {confirm_n: 3}}
+SLALOM_PIPE: {nm: {confirm_n: 4, confirm_m: 6}}
+BIN_STRUCTURE: {dyn_mod_std_dev: 0.5}
+)"),
+        def);
+
+    const auto find = [&](uint16_t t, uint16_t s) {
+        for (const auto& [k, c] : out) {
+            if (k.type == t && k.subtype == s) {
+                return c;
+            }
+        }
+        ADD_FAILURE() << "no config for " << t << "/" << s;
+        return def;
+    };
+
+    // A class without subtype covers all its subtypes.
+    EXPECT_EQ(find(LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE).nm.confirm_n, 4);
+    EXPECT_EQ(find(LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED).nm.confirm_m, 6);
+    EXPECT_DOUBLE_EQ(find(LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED).dyn_std_dev, 0.2);
+    // A subtype entry only covers that subtype.
+    EXPECT_DOUBLE_EQ(find(LT::BIN, LS::BIN_STRUCTURE).dyn_std_dev, 0.5);
+    EXPECT_EQ(find(LT::BIN, LS::BIN_STRUCTURE).nm.confirm_n, 3);
+}
+
+}  // namespace vortex::mission

@@ -131,4 +131,51 @@ TEST_F(PoseTrackManagerTests, hits_increase_with_measurements) {
     ASSERT_GT(hits2, hits1);
 }
 
+TEST_F(PoseTrackManagerTests, measurement_without_orientation_keeps_yaw) {
+    PoseTrackManager mgr(make_default_config());
+    const Eigen::Quaterniond yawed(
+        Eigen::AngleAxisd(0.6, Eigen::Vector3d::UnitZ()));
+
+    // Track created from an oriented measurement.
+    std::vector<Landmark> z = {make_landmark({1, 2, 3}, yawed)};
+    mgr.step(z, 0.1);
+    ASSERT_EQ(mgr.get_tracks().size(), 1);
+    ASSERT_TRUE(mgr.get_tracks().front().has_orientation);
+
+    // Position-only detections with a placeholder (identity) orientation.
+    for (int i = 0; i < 20; ++i) {
+        Landmark m = make_landmark({1.0, 2.0, 3.0});
+        m.has_orientation = false;
+        std::vector<Landmark> zz = {m};
+        mgr.step(zz, 0.1);
+    }
+
+    ASSERT_EQ(mgr.get_tracks().size(), 1);
+    const auto& t = mgr.get_tracks().front();
+    EXPECT_TRUE(t.has_orientation);
+    EXPECT_NEAR(t.nominal_state.ori.angularDistance(yawed), 0.0, 1e-9);
+}
+
+TEST_F(PoseTrackManagerTests, track_from_position_only_learns_orientation) {
+    PoseTrackManager mgr(make_default_config());
+
+    Landmark first = make_landmark({0, 0, 0});
+    first.has_orientation = false;
+    std::vector<Landmark> z = {first};
+    mgr.step(z, 0.1);
+    ASSERT_EQ(mgr.get_tracks().size(), 1);
+    EXPECT_FALSE(mgr.get_tracks().front().has_orientation);
+
+    // A later measurement with a large yaw is associated and adopted.
+    const Eigen::Quaterniond yawed(
+        Eigen::AngleAxisd(2.0, Eigen::Vector3d::UnitZ()));
+    std::vector<Landmark> z2 = {make_landmark({0, 0, 0}, yawed)};
+    mgr.step(z2, 0.1);
+
+    ASSERT_EQ(mgr.get_tracks().size(), 1);
+    const auto& t = mgr.get_tracks().front();
+    EXPECT_TRUE(t.has_orientation);
+    EXPECT_NEAR(t.nominal_state.ori.angularDistance(yawed), 0.0, 1e-9);
+}
+
 }  // namespace vortex::filtering

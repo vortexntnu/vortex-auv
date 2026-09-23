@@ -153,6 +153,16 @@ class PoseTrackManager {
         const std::vector<Eigen::Index>& indices) const;
 
     /**
+     * @brief Take the orientation of the first associated measurement that
+     * has one, for a track that does not know its orientation yet.
+     */
+    void adopt_orientation(
+        Track& track,
+        const std::vector<Landmark>& measurements,
+        const std::vector<Eigen::Index>& global_indices,
+        const Eigen::Array<bool, 1, Eigen::Dynamic>& mask) const;
+
+    /**
      * @brief Map a quaternion to the so(3) tangent vector (log map).
      * @param q_in Quaternion representing the relative rotation
      * @return Vector in R^3 representing the axis * angle

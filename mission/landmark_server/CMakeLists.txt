@@ -22,17 +22,37 @@ find_package(vortex_utils REQUIRED)
 find_package(vortex_utils_ros REQUIRED)
 find_package(vortex_utils_ros_tf REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(pose_filtering REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 include_directories(include)
 
 set(LIB_NAME "${PROJECT_NAME}_component")
+set(CORE_LIB_NAME "${PROJECT_NAME}_core")
+
+# ROS-free map logic (class config, retained landmarks, course frame, rules)
+add_library(${CORE_LIB_NAME} SHARED
+  src/class_config.cpp
+  src/course_frame.cpp
+  src/retained_landmarks.cpp)
+
+ament_target_dependencies(${CORE_LIB_NAME} PUBLIC
+  vortex_msgs
+  vortex_utils
+  pose_filtering
+)
+target_link_libraries(${CORE_LIB_NAME} PUBLIC yaml-cpp)
 
 add_library(${LIB_NAME} SHARED
   src/landmark_server_ros.cpp
+  src/landmark_server_publish.cpp
   src/landmark_server_convergence.cpp
   src/landmark_server_ros_debug.cpp
   src/landmark_ros_conversion.cpp)
+
+target_link_libraries(${LIB_NAME} PUBLIC ${CORE_LIB_NAME})
 
 ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp
@@ -43,6 +63,8 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   vortex_utils_ros
   vortex_utils_ros_tf
   tf2_geometry_msgs
+  tf2_ros
+  std_srvs
   geometry_msgs
   nav_msgs
   pose_filtering
@@ -58,7 +80,7 @@ rclcpp_components_register_node(
 
 ament_export_targets(export_${LIB_NAME})
 
-install(TARGETS ${LIB_NAME}
+install(TARGETS ${LIB_NAME} ${CORE_LIB_NAME}
   EXPORT export_${LIB_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

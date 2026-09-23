@@ -12,19 +12,26 @@
 #include <string>
 #include <vector>
 
+#include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp_action/client.hpp>
 #include <rclcpp_action/server_goal_handle.hpp>
 #include <std_msgs/msg/empty.hpp>
+#include <std_srvs/srv/empty.hpp>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/action/landmark_convergence.hpp>
 #include <vortex_msgs/action/landmark_polling.hpp>
+#include <vortex_msgs/msg/course_frame_state.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include <vortex_msgs/msg/landmark_track_array.hpp>
 #include <vortex_msgs/msg/waypoint_mode.hpp>
+#include <vortex_msgs/srv/set_course_frame.hpp>
 
 #include <pose_filtering/lib/pose_track_manager.hpp>
+#include "landmark_server/class_config.hpp"
+#include "landmark_server/course_frame.hpp"
+#include "landmark_server/retained_landmarks.hpp"
 
 #include <atomic>
 #include <cmath>
@@ -33,6 +40,9 @@
 #include <vortex/utils/ros/ros_conversions.hpp>
 
 namespace vortex::mission {
+
+geometry_msgs::msg::PoseWithCovariance track_to_pose_with_covariance(
+    const vortex::filtering::Track& track);
 
 using LandmarkPollingGoalHandle =
     rclcpp_action::ServerGoalHandle<vortex_msgs::action::LandmarkPolling>;
@@ -146,6 +156,23 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void timer_callback();
 
+    // --- Map: retained landmarks, course frame, publishing -----------------
+    void create_map();
+    void update_map();
+    void publish_map();
+    void publish_course_frame();
+    void reset_map();
+    void handle_set_course_frame(
+        const std::shared_ptr<vortex_msgs::srv::SetCourseFrame::Request> req,
+        std::shared_ptr<vortex_msgs::srv::SetCourseFrame::Response> res);
+    void handle_clear(const std::shared_ptr<std_srvs::srv::Empty::Request> req,
+                      std::shared_ptr<std_srvs::srv::Empty::Response> res);
+    vortex_msgs::msg::LandmarkTrack retained_to_msg(
+        const RetainedLandmark& lm) const;
+    vortex_msgs::msg::LandmarkTrack live_track_to_msg(
+        const vortex::filtering::Track& track) const;
+    vortex_msgs::msg::CourseFrameState course_frame_state_msg() const;
+
     std::shared_ptr<
         message_filters::Subscriber<vortex_msgs::msg::LandmarkArray>>
         landmark_sub_;
@@ -236,10 +263,24 @@ class LandmarkServerNode : public rclcpp::Node {
     rclcpp::CallbackGroup::SharedPtr timer_cb_group_;
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
-    std::mutex odom_mtx_;
+    mutable std::mutex odom_mtx_;
     std::optional<geometry_msgs::msg::Point> last_odom_position_;
 
     std::mutex measurements_mtx_;
+
+    LandmarkMapConfig map_config_;
+    std::unique_ptr<RetainedLandmarks> map_;
+    std::unique_ptr<CourseFrameTracker> course_;
+    rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr
+        object_map_pub_;
+    rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr
+        live_tracks_pub_;
+    rclcpp::Publisher<vortex_msgs::msg::CourseFrameState>::SharedPtr
+        course_frame_state_pub_;
+    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+    rclcpp::Service<vortex_msgs::srv::SetCourseFrame>::SharedPtr
+        set_course_frame_srv_;
+    rclcpp::Service<std_srvs::srv::Empty>::SharedPtr clear_srv_;
 
     bool debug_{false};
     rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr

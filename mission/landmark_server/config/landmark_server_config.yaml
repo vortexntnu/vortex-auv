@@ -27,6 +27,47 @@
         prob_of_detection: 0.5
         clutter_intensity: 0.01
 
+    topics:
+      object_map: "landmark_server/object_map"
+      live_tracks: "landmark_server/live_tracks"
+      course_frame_state: "landmark_server/course_frame_state"
+
+    intake:
+      max_pipe_distance_m: 7.0             # pipes farther away are discarded
+      no_orientation_rot_variance: 1000.0  # rotation variance >= this = no orientation
+
+    # Course frame: TF nautilus/course (child of target_frame).
+    # x through the gate, y to the left. Lane limits are in this frame
+    # (estimates, to be measured in the pool).
+    course_frame:
+      publish_tf: true
+      frame_id: "nautilus/course"
+      gate_lock: {consistent_estimates: 10, max_yaw_std_deg: 3.0}
+      warn_start_vs_gate_deg: 30.0
+      lane:
+        before_gate: {x: [-10.0, 45.0], y: [-12.0, 12.0]}
+        after_gate: {x: [-5.0, 40.0], y: [-6.0, 6.0]}
+
+    # Map rules per class.
+    # max_instances is per (type, subtype). retain: forever, or retain_sec.
+    classes:
+      GATE: {max_instances: 1, retain: forever}
+      SLALOM_PIPE:
+        max_instances: {WHITE: 10, RED: 5}
+        instance_gate_m: 0.7
+        retain_sec: 15.0
+        keep_after_observations: 30
+        min_distance_to_large_structures_m: 1.5
+      PATH_MARKER: {max_instances: 2, retain_sec: 15.0}
+      TORPEDO_BOARD: {max_instances: 1, retain: forever}
+      BIN: {max_instances: 4, instance_gate_m: 0.25, retain_sec: 15.0}
+      TABLE: {max_instances: 1, retain: forever}
+      OCTAGON: {max_instances: 1, retain: forever}
+
+    rules:
+      plausibility_radius_m: 3.0
+      large_structures: [GATE, TABLE, TORPEDO_BOARD, BIN_STRUCTURE]
+
     debug:
       enable: false
       topic_name: "landmark_server/debug/landmark_tracks"

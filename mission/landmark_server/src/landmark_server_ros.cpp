@@ -38,6 +38,7 @@ void LandmarkServerNode::setup_ros_communicators() {
     create_polling_action_server();
     create_convergence_action_server();
     create_reference_action_client();
+    create_map();
     create_timer();
     setup_reset_subscription();
 
@@ -297,6 +298,7 @@ void LandmarkServerNode::on_system_reset(std_msgs::msg::Empty::ConstSharedPtr) {
     track_manager_ = std::make_unique<vortex::filtering::PoseTrackManager>(
         track_manager_config_);
     last_step_stamp_sec_.reset();
+    reset_map();
 
     spdlog::info("LandmarkServer: reset complete");
 }
@@ -340,6 +342,10 @@ void LandmarkServerNode::timer_callback() {
     }
 
     track_manager_->step(measurements_snapshot, dt);
+
+    update_map();
+    publish_map();
+    publish_course_frame();
 
     if (debug_) {
         publish_debug_tracks();
