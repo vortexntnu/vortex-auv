@@ -15,17 +15,13 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-#include <rclcpp_action/client.hpp>
 #include <rclcpp_action/server_goal_handle.hpp>
 #include <std_msgs/msg/empty.hpp>
 #include <std_srvs/srv/empty.hpp>
-#include <vortex_msgs/action/guidance_waypoint.hpp>
-#include <vortex_msgs/action/landmark_convergence.hpp>
 #include <vortex_msgs/action/landmark_polling.hpp>
 #include <vortex_msgs/msg/course_frame_state.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include <vortex_msgs/msg/landmark_track_array.hpp>
-#include <vortex_msgs/msg/waypoint_mode.hpp>
 #include <vortex_msgs/srv/set_course_frame.hpp>
 
 #include <pose_filtering/lib/pose_track_manager.hpp>
@@ -46,14 +42,8 @@ geometry_msgs::msg::PoseWithCovariance track_to_pose_with_covariance(
 
 using LandmarkPollingGoalHandle =
     rclcpp_action::ServerGoalHandle<vortex_msgs::action::LandmarkPolling>;
-using LandmarkConvergenceGoalHandle =
-    rclcpp_action::ServerGoalHandle<vortex_msgs::action::LandmarkConvergence>;
-using ReferenceFilterGoalHandle =
-    rclcpp_action::ClientGoalHandle<vortex_msgs::action::GuidanceWaypoint>;
 
 using vortex::filtering::Landmark;
-
-using RF = vortex_msgs::action::GuidanceWaypoint;
 
 class LandmarkServerNode : public rclcpp::Node {
    public:
@@ -63,8 +53,6 @@ class LandmarkServerNode : public rclcpp::Node {
 
    private:
     void setup_ros_communicators();
-
-    void create_reference_publisher();
 
     void create_pose_subscription();
 
@@ -104,44 +92,6 @@ class LandmarkServerNode : public rclcpp::Node {
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::LandmarkPolling>> goal_handle);
 
-    void create_convergence_action_server();
-
-    // @brief Handle incoming landmark convergence action goal requests
-    // @param uuid The goal UUID
-    // @param goal The goal message
-    // @return The goal response
-    rclcpp_action::GoalResponse handle_landmark_convergence_goal(
-        const rclcpp_action::GoalUUID& uuid,
-        std::shared_ptr<const vortex_msgs::action::LandmarkConvergence::Goal>
-            goal_msg);
-
-    // @brief Handle the accepted landmark convergence goal request
-    // @param goal_handle The goal handle
-    void handle_landmark_convergence_accepted(
-        const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-            vortex_msgs::action::LandmarkConvergence>> goal_handle);
-
-    // @brief Handle requests to cancel the landmark convergence action
-    // @param goal_handle The goal handle
-    // @return The cancel response
-    rclcpp_action::CancelResponse handle_landmark_convergence_cancel(
-        const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-            vortex_msgs::action::LandmarkConvergence>> goal_handle);
-
-    vortex_msgs::action::GuidanceWaypoint::Goal make_rf_goal(
-        const geometry_msgs::msg::Pose& target,
-        double convergence_threshold) const;
-
-    void send_reference_filter_goal(
-        const vortex_msgs::action::GuidanceWaypoint::Goal& goal_msg,
-        uint64_t seq);
-
-    geometry_msgs::msg::Pose compute_target_pose(
-        const vortex::filtering::Track& track,
-        const geometry_msgs::msg::Pose& convergence_offset);
-
-    void create_reference_action_client();
-
     void create_timer();
 
     void create_track_manager();
@@ -180,17 +130,8 @@ class LandmarkServerNode : public rclcpp::Node {
     std::shared_ptr<tf2_ros::MessageFilter<vortex_msgs::msg::LandmarkArray>>
         tf_filter_;
 
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
-        reference_pose_pub_;
-
     rclcpp_action::Server<vortex_msgs::action::LandmarkPolling>::SharedPtr
         landmark_polling_server_;
-
-    rclcpp_action::Server<vortex_msgs::action::LandmarkConvergence>::SharedPtr
-        landmark_convergence_server_;
-
-    rclcpp_action::Client<vortex_msgs::action::GuidanceWaypoint>::SharedPtr
-        reference_filter_client_;
 
     std::unique_ptr<vortex::filtering::PoseTrackManager> track_manager_;
     vortex::filtering::TrackManagerConfig track_manager_config_;
@@ -215,50 +156,6 @@ class LandmarkServerNode : public rclcpp::Node {
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
 
     std::shared_ptr<LandmarkPollingGoalHandle> active_landmark_polling_goal_;
-    std::shared_ptr<LandmarkConvergenceGoalHandle>
-        active_landmark_convergence_goal_;
-    std::shared_ptr<ReferenceFilterGoalHandle> active_reference_filter_goal_;
-
-    enum class RFState { IDLE, PENDING, ACTIVE };
-    RFState rf_state_{RFState::IDLE};
-
-    // Convergence state variables
-    uint64_t convergence_session_id_{0};
-    bool convergence_active_{false};
-    bool convergence_dead_reckoning_handoff_{false};
-    vortex_msgs::msg::WaypointMode convergence_mode_;
-    std::optional<vortex::filtering::Track> convergence_last_known_track_;
-
-    bool convergence_track_lost_{false};
-    rclcpp::Time convergence_track_lost_since_{0, 0, RCL_ROS_TIME};
-
-    const vortex_msgs::action::LandmarkConvergence::Goal* convergence_goal()
-        const {
-        return active_landmark_convergence_goal_->get_goal().get();
-    }
-
-    void convergence_update();
-
-    std::optional<vortex::filtering::Track> get_convergence_track() const;
-
-    bool convergence_goal_active() const;
-
-    void cancel_reference_filter_goal();
-
-    void handle_rf_result(rclcpp_action::ResultCode resultCode);
-
-    bool convergence_track_timeout() const;
-
-    void convergence_abort_track_loss();
-
-    void convergence_handle_track_loss();
-
-    void convergence_update_target(const vortex::filtering::Track& track);
-
-    void convergence_try_dead_reckoning_handoff();
-
-    vortex_msgs::action::LandmarkConvergence::Result build_convergence_result(
-        bool success) const;
 
     rclcpp::CallbackGroup::SharedPtr timer_cb_group_;
 
@@ -285,15 +182,12 @@ class LandmarkServerNode : public rclcpp::Node {
     bool debug_{false};
     rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr
         landmark_track_debug_pub_;
-    rclcpp::Publisher<vortex_msgs::msg::LandmarkTrack>::SharedPtr
-        convergence_landmark_debug_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
         landmark_pose_debug_pub_;
 
     uint16_t debug_landmark_type_{0};
     uint16_t debug_landmark_subtype_{0};
 
-    void publish_convergence_landmark_debug();
     void publish_debug_landmark_pose();
 };
 

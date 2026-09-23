@@ -11,13 +11,6 @@ void LandmarkServerNode::setup_debug_publishers() {
         this->create_publisher<vortex_msgs::msg::LandmarkTrackArray>(
             debug_topic, qos);
 
-    std::string convergence_landmark_topic =
-        this->declare_parameter<std::string>(
-            "debug.convergence_landmark_topic");
-    convergence_landmark_debug_pub_ =
-        this->create_publisher<vortex_msgs::msg::LandmarkTrack>(
-            convergence_landmark_topic, qos);
-
     const std::string landmark_pose_topic =
         this->declare_parameter<std::string>("debug.landmark_pose_topic");
     debug_landmark_type_ = static_cast<uint16_t>(
@@ -87,23 +80,6 @@ void LandmarkServerNode::publish_debug_landmark_pose() {
         landmark_pose_debug_pub_->publish(msg);
         return;
     }
-}
-
-void LandmarkServerNode::publish_convergence_landmark_debug() {
-    if (!convergence_active_ || !convergence_last_known_track_)
-        return;
-
-    const auto& track = *convergence_last_known_track_;
-
-    vortex_msgs::msg::LandmarkTrack msg;
-    msg.header.stamp = this->now();
-    msg.header.frame_id = target_frame_;
-    msg.landmark = track_to_landmark_msg(track);
-    msg.confirmed = track.confirmed;
-    msg.hits = track.hits();
-    msg.misses = track.misses();
-
-    convergence_landmark_debug_pub_->publish(msg);
 }
 
 }  // namespace vortex::mission

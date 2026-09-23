@@ -32,12 +32,9 @@ LandmarkServerNode::LandmarkServerNode(const rclcpp::NodeOptions& options)
 }
 
 void LandmarkServerNode::setup_ros_communicators() {
-    create_reference_publisher();
     create_pose_subscription();
     create_odom_subscription();
     create_polling_action_server();
-    create_convergence_action_server();
-    create_reference_action_client();
     create_map();
     create_timer();
     setup_reset_subscription();
@@ -54,16 +51,6 @@ void LandmarkServerNode::create_timer() {
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(timer_rate_ms),
         std::bind(&LandmarkServerNode::timer_callback, this), timer_cb_group_);
-}
-
-void LandmarkServerNode::create_reference_publisher() {
-    std::string reference_pose_topic =
-        this->declare_parameter<std::string>("topics.reference_pose");
-    auto qos_sensor_profile =
-        vortex::utils::qos_profiles::sensor_data_profile(1);
-    reference_pose_pub_ =
-        this->create_publisher<geometry_msgs::msg::PoseStamped>(
-            reference_pose_topic, qos_sensor_profile);
 }
 
 void LandmarkServerNode::create_pose_subscription() {
@@ -145,39 +132,6 @@ void LandmarkServerNode::create_polling_action_server() {
             [this](auto goal_handle) {
                 return handle_landmark_polling_accepted(goal_handle);
             });
-}
-
-void LandmarkServerNode::create_convergence_action_server() {
-    std::string landmark_convergence_action_name =
-        this->declare_parameter<std::string>(
-            "action_servers.landmark_convergence");
-    landmark_convergence_server_ =
-        rclcpp_action::create_server<vortex_msgs::action::LandmarkConvergence>(
-            this, landmark_convergence_action_name,
-
-            [this](auto goal_id, auto goal) {
-                return handle_landmark_convergence_goal(goal_id, goal);
-            },
-
-            [this](auto goal_id) {
-                return handle_landmark_convergence_cancel(goal_id);
-            },
-
-            [this](auto goal_handle) {
-                return handle_landmark_convergence_accepted(goal_handle);
-            });
-}
-
-void LandmarkServerNode::create_reference_action_client() {
-    std::string reference_action_name =
-        this->declare_parameter<std::string>("action_servers.reference_filter");
-    reference_filter_client_ =
-        rclcpp_action::create_client<vortex_msgs::action::GuidanceWaypoint>(
-            this, reference_action_name);
-    if (!reference_filter_client_->wait_for_action_server(
-            std::chrono::seconds(3))) {
-        spdlog::warn("ReferenceFilter server not ready");
-    }
 }
 
 rclcpp_action::GoalResponse LandmarkServerNode::handle_landmark_polling_goal(
@@ -278,23 +232,6 @@ void LandmarkServerNode::on_system_reset(std_msgs::msg::Empty::ConstSharedPtr) {
     }
     active_landmark_polling_goal_ = nullptr;
 
-    if (active_landmark_convergence_goal_ &&
-        active_landmark_convergence_goal_->is_active()) {
-        auto result =
-            std::make_shared<vortex_msgs::action::LandmarkConvergence_Result>();
-        active_landmark_convergence_goal_->abort(result);
-    }
-    active_landmark_convergence_goal_ = nullptr;
-
-    cancel_reference_filter_goal();
-
-    convergence_active_ = false;
-    convergence_session_id_++;
-    convergence_track_lost_ = false;
-    convergence_dead_reckoning_handoff_ = false;
-    convergence_last_known_track_.reset();
-    rf_state_ = RFState::IDLE;
-
     track_manager_ = std::make_unique<vortex::filtering::PoseTrackManager>(
         track_manager_config_);
     last_step_stamp_sec_.reset();
@@ -349,11 +286,8 @@ void LandmarkServerNode::timer_callback() {
 
     if (debug_) {
         publish_debug_tracks();
-        publish_convergence_landmark_debug();
         publish_debug_landmark_pose();
     }
-
-    convergence_update();
 
     if (active_landmark_polling_goal_ &&
         active_landmark_polling_goal_->is_canceling()) {

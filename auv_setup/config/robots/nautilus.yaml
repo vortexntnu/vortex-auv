@@ -133,7 +133,6 @@
       reference_filter: "reference_filter"
       los: "los_guidance"
       landmark_polling: "landmark_polling"
-      landmark_convergence: "landmark_convergence"
       waypoint_manager: "waypoint_manager"
 
 

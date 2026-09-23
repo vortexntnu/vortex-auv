@@ -49,7 +49,6 @@ target_link_libraries(${CORE_LIB_NAME} PUBLIC yaml-cpp)
 add_library(${LIB_NAME} SHARED
   src/landmark_server_ros.cpp
   src/landmark_server_publish.cpp
-  src/landmark_server_convergence.cpp
   src/landmark_server_ros_debug.cpp
   src/landmark_ros_conversion.cpp)
 
