@@ -17,6 +17,7 @@ course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
 | `landmarks` | topic in (`LandmarkArray`) | Detections. `header.stamp` = image time, `frame_id` = camera frame (TF to `target_frame` at that time) |
 | `odom` | topic in (`Odometry`) | Vehicle position (pipe distance limit, which side of the gate is the front) |
 | `landmark_server/object_map` | topic out (`LandmarkTrackArray`) | The map: stable ids, `retained`, `has_orientation`, `derived`, `first_seen`, `last_measurement`, `observations` |
+| `landmark_server/markers` | topic out (`visualization_msgs/MarkerArray`) | The map for Foxglove/RViz: a sphere per landmark (cube if derived by a rule, faded if only remembered), its name with id and age, an arrow along +X when the yaw is known, and the course direction and lane bounds in force. Colour per type |
 | `landmark_server/live_tracks` | topic out (`LandmarkTrackArray`) | The live tracks of the tracker (always on) |
 | `landmark_server/course_frame_state` | topic out (`CourseFrameState`, latched) | `UNSET` / `COARSE` / `GATE_LOCKED` |
 | TF `nautilus/course` | TF (child of `target_frame`) | Course frame: x through the gate, y to the left. Not published while `UNSET` |

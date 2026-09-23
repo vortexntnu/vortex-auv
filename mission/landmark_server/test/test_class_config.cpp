@@ -69,6 +69,15 @@ TEST(ClassConfig, ZLockIsOffByDefault) {
     EXPECT_DOUBLE_EQ(cfg.intake.noise_variance_per_meter, 0.0);
 }
 
+TEST(ClassConfig, ClassNamesAreReadable) {
+    EXPECT_EQ(class_name({LT::GATE, LS::GATE_WHOLE}), "GATE_WHOLE");
+    EXPECT_EQ(class_name({LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED}), "SLALOM_PIPE_RED");
+    EXPECT_EQ(class_name({LT::TORPEDO_BOARD, LS::TORPEDO_ICON_FIRE}), "TORPEDO_ICON_FIRE");
+    EXPECT_EQ(class_name({LT::GATE, 0}), "GATE");
+    EXPECT_EQ(class_name({LT::GATE, 99}), "GATE/99");
+    EXPECT_EQ(class_name({77, 3}), "77/3");
+}
+
 TEST(ClassConfig, UnknownClassIsAnError) {
     EXPECT_THROW(parse_map_config(YAML::Load("classes: {NOT_A_CLASS: {max_instances: 1}}")),
                  std::runtime_error);

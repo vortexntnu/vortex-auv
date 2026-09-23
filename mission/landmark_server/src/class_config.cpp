@@ -176,6 +176,22 @@ std::optional<uint16_t> parse_landmark_subtype(uint16_t type,
     return std::nullopt;
 }
 
+std::string class_name(const LandmarkClassKey& key) {
+    for (const auto& s : kSubtypes) {
+        if (s.type == key.type && s.value == key.subtype) {
+            return s.full;
+        }
+    }
+    for (const auto& t : kTypes) {
+        if (t.value == key.type) {
+            return key.subtype == 0 ? std::string(t.name)
+                                    : std::string(t.name) + "/" +
+                                          std::to_string(key.subtype);
+        }
+    }
+    return std::to_string(key.type) + "/" + std::to_string(key.subtype);
+}
+
 std::vector<uint16_t> known_subtypes(uint16_t type) {
     std::vector<uint16_t> out;
     for (const auto& s : kSubtypes) {

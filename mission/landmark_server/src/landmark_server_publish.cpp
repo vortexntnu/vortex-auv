@@ -1,5 +1,6 @@
 #include <spdlog/spdlog.h>
 #include <algorithm>
+#include <cstdio>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <sstream>
 #include <vortex/utils/ros/qos_profiles.hpp>
@@ -117,6 +118,10 @@ void LandmarkServerNode::create_map() {
     live_tracks_pub_ =
         this->create_publisher<vortex_msgs::msg::LandmarkTrackArray>(
             live_tracks_topic, rclcpp::QoS(10).reliable());
+    markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
+        this->declare_parameter<std::string>("topics.markers",
+                                             "landmark_server/markers"),
+        rclcpp::QoS(1).reliable());
     course_frame_state_pub_ =
         this->create_publisher<vortex_msgs::msg::CourseFrameState>(
             course_state_topic, rclcpp::QoS(1).reliable().transient_local());
@@ -298,6 +303,179 @@ void LandmarkServerNode::publish_map() {
         live.landmark_tracks.push_back(live_track_to_msg(t));
     }
     live_tracks_pub_->publish(live);
+
+    publish_markers();
+}
+
+namespace {
+
+std_msgs::msg::ColorRGBA color_for(uint16_t type, float alpha) {
+    // One colour per landmark type, so the map reads at a glance.
+    struct Rgb {
+        float r, g, b;
+    };
+    Rgb c{0.7F, 0.7F, 0.7F};
+    switch (type) {
+        case vortex_msgs::msg::LandmarkType::GATE:
+            c = {1.0F, 0.6F, 0.0F};
+            break;
+        case vortex_msgs::msg::LandmarkType::SLALOM_PIPE:
+            c = {0.9F, 0.2F, 0.2F};
+            break;
+        case vortex_msgs::msg::LandmarkType::TORPEDO_BOARD:
+            c = {0.2F, 0.6F, 1.0F};
+            break;
+        case vortex_msgs::msg::LandmarkType::BIN:
+            c = {0.3F, 0.8F, 0.3F};
+            break;
+        case vortex_msgs::msg::LandmarkType::PATH_MARKER:
+            c = {0.9F, 0.9F, 0.2F};
+            break;
+        case vortex_msgs::msg::LandmarkType::TABLE:
+            c = {0.6F, 0.4F, 0.2F};
+            break;
+        case vortex_msgs::msg::LandmarkType::OCTAGON:
+            c = {0.8F, 0.3F, 0.9F};
+            break;
+        default:
+            break;
+    }
+    std_msgs::msg::ColorRGBA out;
+    out.r = c.r;
+    out.g = c.g;
+    out.b = c.b;
+    out.a = alpha;
+    return out;
+}
+
+}  // namespace
+
+void LandmarkServerNode::publish_markers() {
+    using visualization_msgs::msg::Marker;
+    visualization_msgs::msg::MarkerArray array;
+    const auto stamp = this->now();
+
+    // The map is republished whole every tick.
+    Marker clear;
+    clear.header.frame_id = target_frame_;
+    clear.header.stamp = stamp;
+    clear.action = Marker::DELETEALL;
+    array.markers.push_back(clear);
+
+    const auto base = [&](const RetainedLandmark& lm, const char* ns) {
+        Marker m;
+        m.header.frame_id = target_frame_;
+        m.header.stamp = stamp;
+        m.ns = ns;
+        m.id = lm.id;
+        m.action = Marker::ADD;
+        m.pose.position.x = lm.position.x();
+        m.pose.position.y = lm.position.y();
+        m.pose.position.z = lm.position.z();
+        m.pose.orientation.w = 1.0;
+        return m;
+    };
+
+    for (const auto& lm : map_->landmarks()) {
+        if (lm.absorbed_by >= 0) {
+            continue;
+        }
+        // Remembered landmarks (not seen now) are faded.
+        const float alpha = lm.live_track_id >= 0 ? 0.9F : 0.4F;
+        const auto color = color_for(lm.key.type, alpha);
+
+        // The point: a sphere when measured, a cube when derived by a rule.
+        Marker point = base(lm, "landmark");
+        point.type = lm.derived ? Marker::CUBE : Marker::SPHERE;
+        point.scale.x = point.scale.y = point.scale.z = 0.25;
+        point.color = color;
+        array.markers.push_back(point);
+
+        // The name, with id and age since the last measurement.
+        Marker label = base(lm, "label");
+        label.type = Marker::TEXT_VIEW_FACING;
+        label.pose.position.z -= 0.35;
+        label.scale.z = 0.18;
+        label.color.r = label.color.g = label.color.b = 1.0F;
+        label.color.a = 1.0F;
+        char age[32];
+        std::snprintf(age, sizeof(age), "%.1f",
+                      stamp.seconds() - lm.last_measurement);
+        label.text = class_name(lm.key) + " #" + std::to_string(lm.id) + " (" +
+                     age + " s)";
+        array.markers.push_back(label);
+
+        // +X out of the front, when the orientation is known.
+        if (lm.has_orientation) {
+            Marker arrow = base(lm, "front");
+            arrow.type = Marker::ARROW;
+            arrow.pose.orientation.x = lm.orientation.x();
+            arrow.pose.orientation.y = lm.orientation.y();
+            arrow.pose.orientation.z = lm.orientation.z();
+            arrow.pose.orientation.w = lm.orientation.w();
+            arrow.scale.x = 0.8;
+            arrow.scale.y = 0.06;
+            arrow.scale.z = 0.06;
+            arrow.color = color;
+            arrow.color.a = 1.0F;
+            array.markers.push_back(arrow);
+        }
+    }
+
+    // The course frame: its origin, the direction through the gate and the
+    // lane bounds that are in force.
+    if (course_->status() != CourseFrameStatus::UNSET) {
+        const auto point3 = [&](const Eigen::Vector2d& odom_xy) {
+            geometry_msgs::msg::Point p;
+            p.x = odom_xy.x();
+            p.y = odom_xy.y();
+            p.z = 0.0;
+            return p;
+        };
+        const bool locked = course_->status() == CourseFrameStatus::GATE_LOCKED;
+        const LaneBox& box = locked ? map_config_.course_frame.after_gate
+                                    : map_config_.course_frame.before_gate;
+
+        Marker lane;
+        lane.header.frame_id = target_frame_;
+        lane.header.stamp = stamp;
+        lane.ns = "course_lane";
+        lane.id = 0;
+        lane.action = Marker::ADD;
+        lane.type = Marker::LINE_STRIP;
+        lane.pose.orientation.w = 1.0;
+        lane.scale.x = 0.05;
+        lane.color.r = locked ? 0.2F : 0.9F;
+        lane.color.g = locked ? 0.9F : 0.9F;
+        lane.color.b = 0.2F;
+        lane.color.a = 0.8F;
+        for (const auto& c : {Eigen::Vector2d(box.x_min, box.y_min),
+                              Eigen::Vector2d(box.x_max, box.y_min),
+                              Eigen::Vector2d(box.x_max, box.y_max),
+                              Eigen::Vector2d(box.x_min, box.y_max),
+                              Eigen::Vector2d(box.x_min, box.y_min)}) {
+            lane.points.push_back(point3(course_->from_course(c)));
+        }
+        array.markers.push_back(lane);
+
+        Marker axis;
+        axis.header = lane.header;
+        axis.ns = "course_axis";
+        axis.id = 0;
+        axis.action = Marker::ADD;
+        axis.type = Marker::ARROW;
+        axis.pose.orientation.w = 1.0;
+        axis.scale.x = 0.08;
+        axis.scale.y = 0.2;
+        axis.scale.z = 0.2;
+        axis.color = lane.color;
+        axis.color.a = 1.0F;
+        axis.points.push_back(point3(course_->from_course({0.0, 0.0})));
+        axis.points.push_back(point3(course_->from_course({3.0, 0.0})));
+        array.markers.push_back(axis);
+    }
+
+    markers_pub_->publish(array);
 }
 
 vortex_msgs::msg::CourseFrameState LandmarkServerNode::course_frame_state_msg()

@@ -149,6 +149,10 @@ std::optional<uint16_t> parse_landmark_type(const std::string& name);
 std::optional<uint16_t> parse_landmark_subtype(uint16_t type,
                                                const std::string& name);
 
+/// Readable name of a class: the subtype constant ("GATE_WHOLE") when known,
+/// else the type name plus the subtype value ("GATE/9"), else "type/subtype".
+std::string class_name(const LandmarkClassKey& key);
+
 /// All subtype values known for a type (empty if unknown).
 std::vector<uint16_t> known_subtypes(uint16_t type);
 

@@ -18,6 +18,7 @@
 #include <rclcpp_action/server_goal_handle.hpp>
 #include <std_msgs/msg/empty.hpp>
 #include <std_srvs/srv/empty.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 #include <vortex_msgs/action/landmark_polling.hpp>
 #include <vortex_msgs/msg/course_frame_state.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
@@ -110,6 +111,7 @@ class LandmarkServerNode : public rclcpp::Node {
     void create_map();
     void update_map();
     void publish_map();
+    void publish_markers();
     void publish_course_frame();
     void reset_map();
     void handle_set_course_frame(
@@ -174,6 +176,8 @@ class LandmarkServerNode : public rclcpp::Node {
         live_tracks_pub_;
     rclcpp::Publisher<vortex_msgs::msg::CourseFrameState>::SharedPtr
         course_frame_state_pub_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+        markers_pub_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     rclcpp::Service<vortex_msgs::srv::SetCourseFrame>::SharedPtr
         set_course_frame_srv_;

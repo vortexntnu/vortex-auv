@@ -24,6 +24,7 @@ find_package(vortex_utils_ros_tf REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(pose_filtering REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
@@ -65,6 +66,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   tf2_geometry_msgs
   tf2_ros
   std_srvs
+  visualization_msgs
   geometry_msgs
   nav_msgs
   pose_filtering

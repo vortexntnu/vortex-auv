@@ -28,6 +28,7 @@ from rclpy.qos import (
     qos_profile_sensor_data,
 )
 from std_srvs.srv import Empty
+from visualization_msgs.msg import MarkerArray
 from tf2_ros import Buffer, TransformListener
 from vortex_msgs.msg import (
     CourseFrameState,
@@ -168,6 +169,22 @@ class TestLandmarkMap(unittest.TestCase):
         gate_id = gate.landmark.id
         self.assertEqual(gate.landmark.type.value, LandmarkType.GATE)
         self.assertFalse(gate.retained)
+
+        # The map is also published as markers for Foxglove.
+        markers = []
+        node.create_subscription(
+            MarkerArray,
+            f'/{NAMESPACE}/landmark_server/markers',
+            lambda m: markers.append(m),
+            QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE),
+        )
+        self._spin(1.0)
+        latest_markers = markers[-1].markers
+        labels = [m.text for m in latest_markers if m.ns == 'label']
+        self.assertTrue(
+            any(t.startswith('GATE_WHOLE #') for t in labels), f'labels: {labels}'
+        )
+        self.assertTrue(any(m.ns == 'landmark' for m in latest_markers))
 
         # Not seen any more: the tracker deletes its track, the map keeps it.
         timer.cancel()
