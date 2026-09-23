@@ -18,6 +18,9 @@ find_package(rclcpp REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(spdlog REQUIRED)
 
 include_directories(include)
 
@@ -28,6 +31,7 @@ set(ROS_LIB_NAME ${PROJECT_NAME}_ros)
 add_library(${CORE_LIB_NAME} SHARED
   src/landmark_target.cpp
   src/geometry.cpp
+  src/slalom.cpp
 )
 ament_target_dependencies(${CORE_LIB_NAME} PUBLIC Eigen3 vortex_utils)
 
@@ -44,6 +48,13 @@ ament_target_dependencies(${ROS_LIB_NAME} PUBLIC
   vortex_msgs
   vortex_utils_ros
 )
+
+# Example: a scenario runner that uses the library the way BT nodes do.
+add_executable(${PROJECT_NAME}_scenario_node examples/scenario_node.cpp)
+target_link_libraries(${PROJECT_NAME}_scenario_node PRIVATE ${ROS_LIB_NAME} spdlog::spdlog)
+ament_target_dependencies(${PROJECT_NAME}_scenario_node PUBLIC
+  rclcpp rclcpp_action nav_msgs vortex_msgs vortex_utils_ros tf2_ros)
+install(TARGETS ${PROJECT_NAME}_scenario_node DESTINATION lib/${PROJECT_NAME})
 
 install(TARGETS ${CORE_LIB_NAME} ${ROS_LIB_NAME}
   EXPORT export_${PROJECT_NAME}

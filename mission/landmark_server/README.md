@@ -1,92 +1,67 @@
 # Landmark Server
 
-The **Landmark Server** maintains a probabilistic map of detected landmarks using an IPDA filter. It exposes two action interfaces to mission planners: one for **polling** until a landmark is found, and one for **converging** the AUV onto a landmark.
+The **Landmark Server** is the map. It receives detections (`LandmarkArray`), tracks them, remembers them with stable ids and derives structure from the parts (gate yaw from the panels, torpedo openings from the icons, bin roles, the octagon over the table). It does **not** move the vehicle: the behavior tree computes targets from the map with the `landmark_targets` library and sends them to `waypoint_manager`.
 
----
+```
+perception (position without orientation) ─ LandmarkArray ─▶ intake
+   ─▶ PoseTrackManager (live tracks, PDAF, N/M)
+   ─▶ RetainedLandmarks (stable ids, memory, class rules)
+   ─▶ map rules (yaw, openings, roles, octagon) ─▶ object_map
+course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
+```
 
 ## Interfaces
 
-| Interface | Type |
+| Interface | Type | Purpose |
+|---|---|---|
+| `landmarks` | topic in (`LandmarkArray`) | Detections. `header.stamp` = image time, `frame_id` = camera frame (TF to `target_frame` at that time) |
+| `odom` | topic in (`Odometry`) | Vehicle position (pipe distance limit, which side of the gate is the front) |
+| `landmark_server/object_map` | topic out (`LandmarkTrackArray`) | The map: stable ids, `retained`, `has_orientation`, `derived`, `first_seen`, `last_measurement`, `observations` |
+| `landmark_server/live_tracks` | topic out (`LandmarkTrackArray`) | The live tracks of the tracker (always on) |
+| `landmark_server/course_frame_state` | topic out (`CourseFrameState`, latched) | `UNSET` / `COARSE` / `GATE_LOCKED` |
+| TF `nautilus/course` | TF (child of `target_frame`) | Course frame: x through the gate, y to the left. Not published while `UNSET` |
+| `landmark_server/set_course_frame` | service (`SetCourseFrame`) | Start value from the start pose and the coin flip (0, ±π/2 or π). Rejects NaN and illegal angles |
+| `landmark_server/clear` | service (`std_srvs/Empty`) | Empty the map and the live tracks |
+| `mission/wipe` | topic in (`Empty`) | Clear everything, including the course frame |
+| `LandmarkPolling` | action server | Wait for a confirmed live track of a type/subtype (unchanged) |
+
+## Conventions
+
+- **Landmark frame**: origin in the object, +X out of the front, +Z down (NED). For the gate the front is the side the vehicle first saw it from (toward the start); the yaw is then locked after `yaw_lock.consistent_estimates` consistent estimates and never flips.
+- **No orientation**: a rotation variance >= `intake.no_orientation_rot_variance` (1000) means position only. The tracker then leaves the orientation alone and `has_orientation` stays false.
+- **Course frame**: odom X is the heading the ESKF started with, not the course direction. Nothing here uses fixed odom coordinates; the lane limits are boxes in the course frame (generous before the gate is locked, tight after). When the gate yaw is consistent for 10 estimates the frame moves to the gate; more than `warn_start_vs_gate_deg` off the start value gives a warning and the gate wins.
+
+## Map rules (config `rules`, `classes`)
+
+| Rule | What it does |
 |---|---|
-| `LandmarkPolling` | Action server |
-| `LandmarkConvergence` | Action server |
+| Stable ids | A new track within `instance_gate_m` of a remembered landmark of the same class takes over its id; classes with `max_instances: 1` accept `plausibility_radius_m`. A false gate 8 m away does not take over |
+| Memory | `retain: forever` (gate, board, table, octagon) or `retain_sec`; pipes with `keep_after_observations` observations are kept for the rest of the run |
+| Limits | `max_instances` per (type, subtype); no pipes within `min_distance_to_large_structures_m` of a gate/table/board/bin structure; pipes farther than `max_pipe_distance_m` are discarded at intake |
+| Gate | Yaw from the panel line, gate pulled to the panel midpoint, synthetic `GATE_WHOLE` if only the panels were seen, panels inherit the yaw |
+| Torpedo board | Yaw and centre from the icon pairs, version from the icon heights (fire above blood = 1), `TORPEDO_TARGET_*` from icon + `torpedo_targets_from_icons` offsets (board frame; placeholder values, to be measured on our board) |
+| Bins | The role icon seen by the down camera gives the role of the nearest bin; the roleless duplicate is hidden |
+| Octagon | `OCTAGON_WHOLE` over the table |
 
----
+## Files
 
-## LandmarkPolling
+- ROS-free (gtest): `class_config`, `retained_landmarks`, `course_frame`, `map_rules`
+- ROS: `landmark_server_ros.cpp` (intake, tick, polling, reset), `landmark_server_publish.cpp` (map, live tracks, course frame, services)
 
-Waits until a confirmed track matching the requested `type` and `subtype` is found, then returns the result.
+```bash
+ros2 topic echo /nautilus/landmark_server/object_map
+ros2 service call /nautilus/landmark_server/set_course_frame vortex_msgs/srv/SetCourseFrame \
+  "{start_pose: {orientation: {w: 1.0}}, heading_offset_rad: 0.0}"
+ros2 service call /nautilus/landmark_server/clear std_srvs/srv/Empty
+```
 
-| Field | Type | Description |
-|---|---|---|
-| `type` | `LandmarkType` | Landmark class to search for |
-| `subtype` | `LandmarkSubtype` | Landmark subtype to search for |
+## Polling
 
----
-
-| Result | Type | Description |
-|---|---|---|
-| `landmarks` | `LandmarkArray` | All confirmed tracks matching the requested type/subtype |
-
----
+`LandmarkPolling` waits until a confirmed track matching `type` and `subtype` (0 = any subtype) exists and returns all of them.
 
 ```bash
 ros2 action send_goal /orca/landmark_polling vortex_msgs/action/LandmarkPolling "{
-  type: {value: 2},
-  subtype: {value: 1}
+  type: {value: 6},
+  subtype: {value: 0}
 }"
 ```
-
----
-
-## LandmarkConvergence
-
-Drives the AUV towards a landmark. Succeeds when the AUV has converged onto the landmark.
-
-| Goal Field | Type | Description |
-|---|---|---|
-| `type` | `LandmarkType` | Landmark class to converge towards |
-| `subtype` | `LandmarkSubtype` | Landmark subtype to converge towards |
-| `convergence_offset` | `geometry_msgs/Pose` | Offset from the landmark pose |
-| `convergence_threshold` | `float64` | Distance (m) to declare convergence |
-| `dead_reckoning_threshold` | `float64` | Distance (m) at which target updates stop|
-| `track_loss_timeout_sec` | `float64` | Seconds to wait for landmark to reappear before aborting.|
-| `convergence_mode` | `uint8` | Waypoint mode used by the ReferenceFilter (see modes below) |
-
----
-
-| Result Field | Type | Description |
-|---|---|---|
-| `success` | `bool` | Whether the AUV successfully converged |
-| `landmark_valid` | `bool` | Whether a last-known landmark track exists |
-| `landmark` | `Landmark` | Last known pose and covariance of the landmark |
-
----
-
-```bash
-ros2 action send_goal /orca/landmark_convergence vortex_msgs/action/LandmarkConvergence "{
-  type: {value: 1},
-  subtype: {value: 19},
-  convergence_offset: {
-    position: {x: 0.0, y: 0.0, z: -1.0},
-    orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
-  },
-  convergence_threshold: 0.3,
-  dead_reckoning_threshold: 1.0,
-  track_loss_timeout_sec: 10.0,
-  convergence_mode: 0,
-}"
-```
-
----
-
-## Convergence modes
-
-The `convergence_mode` field controls how the ReferenceFilter will approach the target.
-
-| Value | Constant | Behavior |
-|---:|---|---|
-| 0 | `FULL_POSE` | Match both position and orientation (full pose control). |
-| 1 | `ONLY_POSITION` | Only control position; keep current heading/orientation. |
-| 2 | `FORWARD_HEADING` | Drive towards the target while keeping a forward-facing heading |
-| 3 | `ONLY_ORIENTATION` | Only control orientation; used when rotating in-place to align with a landmark. |

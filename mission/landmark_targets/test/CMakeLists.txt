@@ -7,6 +7,7 @@ add_executable(test_landmark_targets
   test_resolve_target.cpp
   test_landmark_target.cpp
   test_geometry.cpp
+  test_slalom.cpp
 )
 target_link_libraries(test_landmark_targets PRIVATE
   ${CORE_LIB_NAME}

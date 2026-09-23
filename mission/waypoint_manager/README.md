@@ -43,6 +43,19 @@ Allowed only during **persistent** missions:
 
 ---
 
+### Frames, outcome and retargeting
+
+* `frame` in the goal: `WORLD` (default, absolute odom poses), `BODY_RELATIVE` (offsets in the vehicle frame when the goal started, e.g. "2 m ahead, 30° to the right") or `WORLD_RELATIVE` (offsets along the odom axes). The offsets are resolved to odom once, when the goal starts; the reference filter only sees odom. All waypoints of a goal are relative to the start pose, not to each other.
+* A new goal replaces the running one **without** stopping the vehicle: the reference filter retargets and keeps its velocity. The replaced goal ends with `outcome = PREEMPTED`.
+* Result: `outcome` (`SUCCEEDED`, `PREEMPTED`, `CANCELED`, `INVALID_GOAL`, `REFERENCE_FILTER_ABORTED`), `message`, `reached_index` (last reached waypoint, -1 if none). Feedback: `current_waypoint`, `current_index`.
+* `INVALID_GOAL`: NaN or inf in a pose, unknown frame, or a relative frame before any pose was received. A running mission is left alone.
+* Cancelling a goal that has no reference filter goal (for instance a persistent goal without waypoints) finishes it as canceled.
+* Per waypoint (`Waypoint.msg`, read by the reference filter): `position_tolerance` [m], `orientation_tolerance` [rad], `hold_time_sec`, `convergence_threshold`. 0 keeps the goal's threshold.
+* The reference filter action name comes from `action_servers.reference_filter`; the pose from `topics.pose`.
+* waypoint_manager has no landmarks, no dead reckoning and no timeouts: the behavior tree computes targets from the map (see `landmark_targets`) and sends new goals when a target moves.
+
+---
+
 ### Check available interfaces:
 
 ```bash
