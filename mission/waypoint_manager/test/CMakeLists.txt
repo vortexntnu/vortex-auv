@@ -15,3 +15,11 @@ endfunction()
 add_ros_isolated_launch_test(test_single_waypoint.py TIMEOUT 300)
 add_ros_isolated_launch_test(test_service.py TIMEOUT 300)
 add_ros_isolated_launch_test(test_cancel_persistent.py TIMEOUT 300)
+add_ros_isolated_launch_test(test_new_goal_retarget.py TIMEOUT 300)
+
+find_package(GTest REQUIRED)
+include(GoogleTest)
+
+add_executable(test_frame_resolver test_frame_resolver.cpp)
+target_link_libraries(test_frame_resolver PRIVATE waypoint_manager_core GTest::GTest)
+gtest_discover_tests(test_frame_resolver)

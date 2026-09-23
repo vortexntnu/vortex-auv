@@ -14,6 +14,7 @@
   <depend>rclcpp_action</depend>
   <depend>geometry_msgs</depend>
   <depend>vortex_msgs</depend>
+  <depend>vortex_utils</depend>
   <depend>vortex_utils_ros</depend>
   <depend>tf2_geometry_msgs</depend>
 
@@ -21,6 +22,7 @@
   <test_depend>launch_testing_ros</test_depend>
   <test_depend>launch_testing_ament_cmake</test_depend>
   <test_depend>reference_filter_dp</test_depend>
+  <test_depend>reference_filter_dp_quat</test_depend>
   <test_depend>auv_setup</test_depend>
   <test_depend>action_msgs</test_depend>
 
