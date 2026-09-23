@@ -51,6 +51,12 @@ void RetainedLandmarks::update_from_track(RetainedLandmark& lm,
                                           double now) const {
     lm.live_track_id = track.id;
     lm.position = track.nominal_state.pos;
+    const ZLockConfig& z_lock = config_.map_rules.z_lock;
+    if (z_lock.is_floor(lm.key)) {
+        lm.position.z() = z_lock.floor_z;
+    } else if (z_lock.is_surface(lm.key)) {
+        lm.position.z() = z_lock.surface_z;
+    }
     if (track.has_orientation && !lm.yaw_locked) {
         lm.orientation = track.nominal_state.ori;
         lm.has_orientation = true;

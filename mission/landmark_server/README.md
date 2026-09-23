@@ -39,9 +39,11 @@ course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
 | Memory | `retain: forever` (gate, board, table, octagon) or `retain_sec`; pipes with `keep_after_observations` observations are kept for the rest of the run |
 | Limits | `max_instances` per (type, subtype); no pipes within `min_distance_to_large_structures_m` of a gate/table/board/bin structure; pipes farther than `max_pipe_distance_m` are discarded at intake |
 | Gate | Yaw from the panel line, gate pulled to the panel midpoint, synthetic `GATE_WHOLE` if only the panels were seen, panels inherit the yaw |
-| Torpedo board | Yaw and centre from the icon pairs, version from the icon heights (fire above blood = 1), `TORPEDO_TARGET_*` from icon + `torpedo_targets_from_icons` offsets (board frame; placeholder values, to be measured on our board) |
+| Torpedo board | Yaw and centre from the icon pairs (the normals of both pairs are added), version from the icon heights (fire above blood = 1), `TORPEDO_TARGET_*` from icon + `torpedo_targets_from_icons` offsets (board frame; placeholder values, to be measured on our board) |
 | Bins | The role icon seen by the down camera gives the role of the nearest bin; the roleless duplicate is hidden |
-| Octagon | `OCTAGON_WHOLE` over the table |
+| Octagon | `OCTAGON_WHOLE` over the table; with `z_lock` on it floats at `surface_z` |
+| Depth lock | `rules.z_lock`: floor classes get `floor_z`, surface classes `surface_z` (odom z, down positive). Off by default in code, on in the config with the simulator's pool depth: measure the real one |
+| Distance noise | `intake.distance_noise`: the tracker adds `base + per_meter * distance` to the sensor variance, so far detections weigh less. The covariance from perception is not used for the position |
 
 ## Files
 

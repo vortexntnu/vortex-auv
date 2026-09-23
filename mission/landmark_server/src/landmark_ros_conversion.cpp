@@ -115,6 +115,14 @@ std::vector<Landmark> LandmarkServerNode::ros_msg_to_landmarks(
         lm.class_key = vortex::filtering::LandmarkClassKey{
             lm_msg.type.value, lm_msg.subtype.value};
         lm.stamp_sec = stamp_sec;
+        if (vehicle) {
+            const auto& p = lm_msg.pose.pose.position;
+            const double d =
+                std::hypot(std::hypot(p.x - vehicle->x, p.y - vehicle->y),
+                           p.z - vehicle->z);
+            lm.extra_variance = map_config_.intake.noise_base_variance +
+                                map_config_.intake.noise_variance_per_meter * d;
+        }
         // A rotational variance >= the limit means "no orientation".
         const auto& cov = lm_msg.pose.covariance;
         const double no_ori = map_config_.intake.no_orientation_rot_variance;

@@ -33,6 +33,10 @@ struct IntakeConfig {
     double max_pipe_distance_m{7.0};
     /// A rotational covariance diagonal >= this means "no orientation".
     double no_orientation_rot_variance{1000.0};
+    /// Extra measurement variance [m^2] = base + per_meter * distance from
+    /// the vehicle. Far detections weigh less in the tracker.
+    double noise_base_variance{0.0};
+    double noise_variance_per_meter{0.0};
 };
 
 struct CourseFrameConfig {
@@ -74,8 +78,23 @@ struct TorpedoIconOffsets {
     Eigen::Vector3d ambulance{Eigen::Vector3d::Zero()};
 };
 
+/// Objects that lie on the pool floor or at the water surface get that depth,
+/// instead of the (noisy) measured one. Depths are odom z (NED, down positive).
+struct ZLockConfig {
+    bool enable{false};
+    double floor_z{0.0};
+    double surface_z{0.0};
+    /// (type, subtype); subtype 0 = every subtype of the type.
+    std::vector<std::pair<uint16_t, uint16_t>> floor_classes;
+    std::vector<std::pair<uint16_t, uint16_t>> surface_classes;
+
+    bool is_floor(const LandmarkClassKey& key) const;
+    bool is_surface(const LandmarkClassKey& key) const;
+};
+
 /// Rules that derive structure from parts.
 struct MapRulesConfig {
+    ZLockConfig z_lock;
     bool gate_yaw_from_panels{true};
     bool board_yaw_from_icons{true};
     bool bin_role_from_down_icons{true};

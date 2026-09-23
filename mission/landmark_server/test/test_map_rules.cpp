@@ -288,6 +288,37 @@ TEST(MapRulesBoard, YawFromEachIconPair) {
     }
 }
 
+TEST(MapRulesBoard, YawFusesBothIconPairs) {
+    // The two pairs are off in opposite directions (+-6 deg): the fused yaw is
+    // the average, which is closer to the truth than either pair alone.
+    const Eigen::Vector3d board(20.0, 3.0, 2.0);
+    const auto pair_tracks = [&](double yaw_error) {
+        const Eigen::Quaterniond q = yaw_q(M_PI + yaw_error);
+        return q;
+    };
+    const Eigen::Quaterniond q_vehicle_pair = pair_tracks(6.0 * kDeg);
+    const Eigen::Quaterniond q_hazard_pair = pair_tracks(-6.0 * kDeg);
+    const Layout l = version_1_layout();
+
+    std::vector<Track> tracks = {
+        make_track(1, LT::TORPEDO_BOARD, LS::TORPEDO_ICON_FIRE,
+                   board + q_hazard_pair * l.fire, true, false),
+        make_track(2, LT::TORPEDO_BOARD, LS::TORPEDO_ICON_BLOOD,
+                   board + q_hazard_pair * l.blood, true, false),
+        make_track(3, LT::TORPEDO_BOARD, LS::TORPEDO_ICON_FIRETRUCK,
+                   board + q_vehicle_pair * l.firetruck, true, false),
+        make_track(4, LT::TORPEDO_BOARD, LS::TORPEDO_ICON_AMBULANCE,
+                   board + q_vehicle_pair * l.ambulance, true, false)};
+
+    Scene s;
+    s.vehicle = v(5.0, 3.0);
+    s.tick(tracks);
+    const auto* b = s.find(LT::TORPEDO_BOARD, LS::TORPEDO_BOARD_WHOLE);
+    ASSERT_NE(b, nullptr);
+    // Both pairs have their own error, the fused one is close to pi.
+    EXPECT_LT(std::abs(wrap(b->yaw() - M_PI)), 2.0 * kDeg);
+}
+
 TEST(MapRulesBoard, BoardIsPulledToTheIconCentre) {
     Scene s;
     s.vehicle = v(5.0, 3.0);
@@ -403,6 +434,20 @@ TEST(MapRulesBins, RoleBinTooFarAwayIsNotMatched) {
 }
 
 // --- Octagon ----------------------------------------------------------------
+
+TEST(MapRulesOctagon, OctagonFloatsAtTheSurfaceWhenZLockIsOn) {
+    Scene s;
+    s.rules.z_lock.enable = true;
+    s.rules.z_lock.surface_z = 0.2;
+    s.run({make_track(1, LT::TABLE, LS::TABLE_WHOLE, v(30.0, 2.0, 3.4), true, false)}, 3);
+
+    const auto* octagon = s.find(LT::OCTAGON, LS::OCTAGON_WHOLE);
+    ASSERT_NE(octagon, nullptr);
+    EXPECT_NEAR(octagon->position.x(), 30.0, 1e-9);
+    EXPECT_NEAR(octagon->position.y(), 2.0, 1e-9);
+    EXPECT_NEAR(octagon->position.z(), 0.2, 1e-9);  // not the table's 3.4
+    EXPECT_NEAR(s.find(LT::TABLE, LS::TABLE_WHOLE)->position.z(), 3.4, 1e-9);
+}
 
 TEST(MapRulesOctagon, OctagonAboveTheTable) {
     Scene s;

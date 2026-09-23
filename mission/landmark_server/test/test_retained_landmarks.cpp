@@ -217,6 +217,38 @@ TEST(RetainedLandmarks, LockedYawIsNotOverwritten) {
     EXPECT_NEAR(map.landmarks()[0].yaw(), 1.0, 1e-12);
 }
 
+TEST(RetainedLandmarks, ZLockPutsFloorAndSurfaceObjectsAtTheirDepth) {
+    auto cfg = example_config();
+    cfg.map_rules.z_lock.enable = true;
+    cfg.map_rules.z_lock.floor_z = 3.4;
+    cfg.map_rules.z_lock.surface_z = 0.1;
+    cfg.map_rules.z_lock.floor_classes = {{LT::TABLE, 0}};
+    cfg.map_rules.z_lock.surface_classes = {{LT::OCTAGON, 0}};
+    RetainedLandmarks map(cfg);
+
+    // Measured depths are off; the gate is not depth locked.
+    map.update({make_track(1, LT::TABLE, LS::TABLE_WHOLE, v(30, 2, 2.9)),
+                make_track(2, LT::OCTAGON, LS::OCTAGON_WHOLE, v(30, 2, 0.9)),
+                make_track(3, LT::GATE, LS::GATE_WHOLE, v(10, 0, 1.7))},
+               0.0);
+
+    for (const auto& lm : map.landmarks()) {
+        if (lm.key.type == LT::TABLE) {
+            EXPECT_DOUBLE_EQ(lm.position.z(), 3.4);
+        } else if (lm.key.type == LT::OCTAGON) {
+            EXPECT_DOUBLE_EQ(lm.position.z(), 0.1);
+        } else {
+            EXPECT_DOUBLE_EQ(lm.position.z(), 1.7);
+        }
+    }
+}
+
+TEST(RetainedLandmarks, ZLockOffKeepsMeasuredDepth) {
+    RetainedLandmarks map(example_config());
+    map.update({make_track(1, LT::TABLE, LS::TABLE_WHOLE, v(30, 2, 2.9))}, 0.0);
+    EXPECT_DOUBLE_EQ(map.landmarks()[0].position.z(), 2.9);
+}
+
 TEST(RetainedLandmarks, ClearForgetsEverythingButNeverReusesIds) {
     RetainedLandmarks map(example_config());
     map.update({make_track(1, LT::GATE, LS::GATE_WHOLE, v(10, 0))}, 0.0);

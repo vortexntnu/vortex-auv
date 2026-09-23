@@ -215,36 +215,33 @@ void apply_board_rules(RetainedLandmarks& map,
     // The board is pulled to the centre of its icons.
     board->position = centre;
 
-    // Yaw from the icon pairs: the pair with the widest horizontal spread.
+    // Yaw from the icon pairs. Each pair with enough horizontal spread gives
+    // a normal; the normals of both pairs are added, so noise in one pair is
+    // averaged with the other.
     if (cfg.board_yaw_from_icons && all_fresh) {
         struct Pair {
             Icon a;
             Icon b;
         };
-        std::optional<std::pair<Eigen::Vector2d, Eigen::Vector2d>> best;
-        double best_sep = cfg.min_icon_separation_m;
+        const Eigen::Vector2d reference =
+            board->has_orientation
+                ? Eigen::Vector2d(std::cos(board->yaw()),
+                                  std::sin(board->yaw()))
+                : Eigen::Vector2d((vehicle - centre).head<2>());
+        Eigen::Vector2d fused = Eigen::Vector2d::Zero();
         for (const Pair& pair : {Pair{ambulance, truck}, Pair{fire, blood}}) {
             if (!pair.a || !pair.b) {
                 continue;
             }
             const Eigen::Vector2d pa = pair.a.p().head<2>();
             const Eigen::Vector2d pb = pair.b.p().head<2>();
-            const double sep = (pb - pa).norm();
-            if (sep >= best_sep) {
-                best_sep = sep;
-                best = {pa, pb};
+            if ((pb - pa).norm() < cfg.min_icon_separation_m) {
+                continue;
             }
+            fused += normal_towards(pa, pb, reference);
         }
-        if (best) {
-            const Eigen::Vector2d reference =
-                board->has_orientation
-                    ? Eigen::Vector2d(std::cos(board->yaw()),
-                                      std::sin(board->yaw()))
-                    : Eigen::Vector2d((vehicle - centre).head<2>());
-            feed_yaw_estimate(*board,
-                              yaw_of_direction(normal_towards(
-                                  best->first, best->second, reference)),
-                              cfg);
+        if (fused.norm() > 1e-6) {
+            feed_yaw_estimate(*board, yaw_of_direction(fused), cfg);
         }
     }
 
@@ -343,7 +340,8 @@ void apply_octagon_rules(RetainedLandmarks& map,
     if (table == nullptr) {
         return;
     }
-    // The octagon is over the table: same xy, height of the table surface.
+    // The octagon is over the table: same xy. It floats at the water surface,
+    // the table stands on the floor.
     RetainedLandmark* octagon =
         find_measured(map, {LT::OCTAGON, LS::OCTAGON_WHOLE});
     absorb_derived_into_measured(map, "octagon_whole", octagon);
@@ -353,6 +351,9 @@ void apply_octagon_rules(RetainedLandmarks& map,
         octagon->last_measurement = table->last_measurement;
     }
     octagon->position = table->position;
+    if (cfg.z_lock.enable) {
+        octagon->position.z() = cfg.z_lock.surface_z;
+    }
 }
 
 }  // namespace

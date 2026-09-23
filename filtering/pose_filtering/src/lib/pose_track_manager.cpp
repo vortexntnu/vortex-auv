@@ -1,5 +1,6 @@
 #include "pose_filtering/lib/pose_track_manager.hpp"
 #include <algorithm>
+#include <cmath>
 #include <probability/multi_var_gauss.hpp>
 #include <ranges>
 #include <vortex/utils/math.hpp>
@@ -29,7 +30,17 @@ void PoseTrackManager::step(std::vector<Landmark>& measurements, double dt) {
         gate.mahalanobis_threshold = cfg.mahalanobis_threshold;
 
         DynMod dyn_mod(cfg.dyn_std_dev);
-        SensorMod sensor_mod(cfg.sens_std_dev);
+        // Noisier measurements (for instance far away) weigh less: the extra
+        // variance of the candidate measurements adds to the sensor noise.
+        double extra_variance = 0.0;
+        for (const Eigen::Index i : type_gate_indices) {
+            extra_variance += measurements[i].extra_variance;
+        }
+        if (!type_gate_indices.empty()) {
+            extra_variance /= static_cast<double>(type_gate_indices.size());
+        }
+        SensorMod sensor_mod(
+            std::sqrt(cfg.sens_std_dev * cfg.sens_std_dev + extra_variance));
 
         PDAF::Config pdaf_cfg;
         pdaf_cfg.pdaf.mahalanobis_threshold = cfg.mahalanobis_threshold;

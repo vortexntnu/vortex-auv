@@ -35,6 +35,9 @@
     intake:
       max_pipe_distance_m: 7.0             # pipes farther away are discarded
       no_orientation_rot_variance: 1000.0  # rotation variance >= this = no orientation
+      # Extra measurement variance [m^2] = base + per_meter * distance from the
+      # vehicle: far detections weigh less in the tracker.
+      distance_noise: {base_variance: 0.0, variance_per_meter: 0.005}
 
     # Course frame: TF nautilus/course (child of target_frame).
     # x through the gate, y to the left. Lane limits are in this frame
@@ -72,6 +75,16 @@
       bin_role_from_down_icons: true  # role icon from the down camera -> nearest bin
       octagon_from_table: true        # OCTAGON_WHOLE over the table
       yaw_lock: {consistent_estimates: 5, max_jump_deg: 90.0}
+      # Objects on the floor or at the surface get that depth (odom z, down
+      # positive) instead of the measured one; the octagon floats at the
+      # surface. The depths are the simulator's pool, measure them for the
+      # real pool.
+      z_lock:
+        enable: true
+        floor_z: 3.432
+        surface_z: 0.0
+        floor_classes: [TABLE, PATH_MARKER, BIN_STRUCTURE]
+        surface_classes: [OCTAGON]
       # Board frame: +X out of the front, +Y right, +Z down. Offsets from an
       # icon to its opening, per board version (fire above blood = version 1).
       # Placeholder values, to be measured on our own board.

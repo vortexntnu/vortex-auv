@@ -199,6 +199,26 @@ std::optional<std::pair<uint16_t, uint16_t>> parse_class_name(
     return std::nullopt;
 }
 
+namespace {
+
+bool in_class_list(const std::vector<std::pair<uint16_t, uint16_t>>& list,
+                   const LandmarkClassKey& key) {
+    return std::any_of(list.begin(), list.end(), [&](const auto& c) {
+        return c.first == key.type &&
+               (c.second == 0 || c.second == key.subtype);
+    });
+}
+
+}  // namespace
+
+bool ZLockConfig::is_floor(const LandmarkClassKey& key) const {
+    return enable && in_class_list(floor_classes, key);
+}
+
+bool ZLockConfig::is_surface(const LandmarkClassKey& key) const {
+    return enable && in_class_list(surface_classes, key);
+}
+
 const ClassRule& LandmarkMapConfig::rule_for(
     const LandmarkClassKey& key) const {
     auto it = class_rules.find({key.type, key.subtype});
@@ -228,6 +248,13 @@ LandmarkMapConfig parse_map_config(const YAML::Node& root) {
         cfg.intake.no_orientation_rot_variance =
             get_or<double>(intake, "no_orientation_rot_variance",
                            cfg.intake.no_orientation_rot_variance);
+        if (const auto noise = intake["distance_noise"]) {
+            cfg.intake.noise_base_variance = get_or<double>(
+                noise, "base_variance", cfg.intake.noise_base_variance);
+            cfg.intake.noise_variance_per_meter =
+                get_or<double>(noise, "variance_per_meter",
+                               cfg.intake.noise_variance_per_meter);
+        }
     }
 
     if (const auto cf = root["course_frame"]) {
@@ -312,6 +339,31 @@ LandmarkMapConfig parse_map_config(const YAML::Node& root) {
             rules, "min_icon_separation_m", mr.min_icon_separation_m);
         mr.min_panel_separation_m = get_or<double>(
             rules, "min_panel_separation_m", mr.min_panel_separation_m);
+        if (const auto z = rules["z_lock"]) {
+            const auto classes =
+                [&](const char* key,
+                    std::vector<std::pair<uint16_t, uint16_t>>& out) {
+                    if (!z[key]) {
+                        return;
+                    }
+                    for (const auto& item : z[key]) {
+                        const auto parsed =
+                            parse_class_name(item.as<std::string>());
+                        if (!parsed) {
+                            throw std::runtime_error(
+                                "Unknown class in z_lock: " +
+                                item.as<std::string>());
+                        }
+                        out.push_back(*parsed);
+                    }
+                };
+            mr.z_lock.enable = get_or<bool>(z, "enable", mr.z_lock.enable);
+            mr.z_lock.floor_z = get_or<double>(z, "floor_z", mr.z_lock.floor_z);
+            mr.z_lock.surface_z =
+                get_or<double>(z, "surface_z", mr.z_lock.surface_z);
+            classes("floor_classes", mr.z_lock.floor_classes);
+            classes("surface_classes", mr.z_lock.surface_classes);
+        }
         if (const auto targets = rules["torpedo_targets_from_icons"]) {
             const auto vec = [](const YAML::Node& n, Eigen::Vector3d& out) {
                 if (n && n.size() == 3) {

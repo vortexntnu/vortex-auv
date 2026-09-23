@@ -38,6 +38,37 @@ TEST(ClassConfig, ParsesExampleYaml) {
     EXPECT_FALSE(cfg.is_large_structure({LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED}));
 }
 
+TEST(ClassConfig, ParsesZLockAndDistanceNoise) {
+    const auto cfg = parse_map_config(YAML::Load(R"(
+intake:
+  distance_noise: {base_variance: 0.01, variance_per_meter: 0.005}
+rules:
+  z_lock:
+    enable: true
+    floor_z: 3.4
+    surface_z: 0.1
+    floor_classes: [TABLE, BIN_STRUCTURE]
+    surface_classes: [OCTAGON]
+)"));
+    EXPECT_DOUBLE_EQ(cfg.intake.noise_base_variance, 0.01);
+    EXPECT_DOUBLE_EQ(cfg.intake.noise_variance_per_meter, 0.005);
+    const auto& z = cfg.map_rules.z_lock;
+    EXPECT_TRUE(z.enable);
+    EXPECT_DOUBLE_EQ(z.floor_z, 3.4);
+    EXPECT_DOUBLE_EQ(z.surface_z, 0.1);
+    EXPECT_TRUE(z.is_floor({LT::TABLE, LS::TABLE_ITEM_PILL}));
+    EXPECT_TRUE(z.is_floor({LT::BIN, LS::BIN_STRUCTURE}));
+    EXPECT_FALSE(z.is_floor({LT::BIN, LS::BIN_UNCLASSIFIED}));
+    EXPECT_TRUE(z.is_surface({LT::OCTAGON, LS::OCTAGON_WHOLE}));
+    EXPECT_FALSE(z.is_surface({LT::GATE, LS::GATE_WHOLE}));
+}
+
+TEST(ClassConfig, ZLockIsOffByDefault) {
+    const auto cfg = parse_map_config(YAML::Load("{}"));
+    EXPECT_FALSE(cfg.map_rules.z_lock.enable);
+    EXPECT_DOUBLE_EQ(cfg.intake.noise_variance_per_meter, 0.0);
+}
+
 TEST(ClassConfig, UnknownClassIsAnError) {
     EXPECT_THROW(parse_map_config(YAML::Load("classes: {NOT_A_CLASS: {max_instances: 1}}")),
                  std::runtime_error);

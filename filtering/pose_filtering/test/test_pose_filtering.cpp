@@ -131,6 +131,25 @@ TEST_F(PoseTrackManagerTests, hits_increase_with_measurements) {
     ASSERT_GT(hits2, hits1);
 }
 
+TEST_F(PoseTrackManagerTests, noisy_measurements_move_the_track_less) {
+    const auto shift_after = [&](double extra_variance) {
+        PoseTrackManager mgr(make_default_config());
+        std::vector<Landmark> first = {make_landmark({0.0, 0.0, 0.0})};
+        mgr.step(first, 0.1);
+        // A measurement 0.3 m away, inside the gate.
+        Landmark m = make_landmark({0.3, 0.0, 0.0});
+        m.extra_variance = extra_variance;
+        std::vector<Landmark> second = {m};
+        mgr.step(second, 0.1);
+        return mgr.get_tracks().front().nominal_state.pos.x();
+    };
+
+    const double trusting = shift_after(0.0);
+    const double distrusting = shift_after(4.0);
+    EXPECT_GT(trusting, 0.0);
+    EXPECT_LT(distrusting, trusting);
+}
+
 TEST_F(PoseTrackManagerTests, measurement_without_orientation_keeps_yaw) {
     PoseTrackManager mgr(make_default_config());
     const Eigen::Quaterniond yawed(
