@@ -124,6 +124,8 @@ struct NominalState {
 struct Landmark {
     vortex::utils::types::Pose pose{};
     LandmarkClassKey class_key{};
+    /// Measurement time [s], taken from the message header (0 if unknown).
+    double stamp_sec{0.0};
 };
 
 /**

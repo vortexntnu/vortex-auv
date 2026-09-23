@@ -1,3 +1,4 @@
+#include <cmath>
 #include <vortex/utils/ros/ros_conversions.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include "landmark_server/landmark_server_ros.hpp"
@@ -47,16 +48,53 @@ geometry_msgs::msg::PoseWithCovariance track_to_pose_with_covariance(
     return msg;
 }
 
+namespace {
+
+bool is_valid_landmark_msg(const vortex_msgs::msg::Landmark& lm) {
+    const auto& p = lm.pose.pose.position;
+    const auto& q = lm.pose.pose.orientation;
+    if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z)) {
+        return false;
+    }
+    if (!std::isfinite(q.x) || !std::isfinite(q.y) || !std::isfinite(q.z) ||
+        !std::isfinite(q.w)) {
+        return false;
+    }
+    if (q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w < 1e-12) {
+        return false;
+    }
+    // Covariance may be all zeros (unknown), but must not contain NaN or
+    // negative variances on the diagonal.
+    for (size_t i = 0; i < lm.pose.covariance.size(); ++i) {
+        const double c = lm.pose.covariance[i];
+        if (!std::isfinite(c)) {
+            return false;
+        }
+        if (i % 7 == 0 && c < 0.0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+}  // namespace
+
 std::vector<Landmark> LandmarkServerNode::ros_msg_to_landmarks(
     const vortex_msgs::msg::LandmarkArray& msg) const {
     std::vector<Landmark> out;
     out.reserve(msg.landmarks.size());
+    const double stamp_sec = rclcpp::Time(msg.header.stamp).seconds();
     for (const auto& lm_msg : msg.landmarks) {
+        if (!is_valid_landmark_msg(lm_msg)) {
+            ++dropped_measurements_;
+            continue;
+        }
         Landmark lm;
         lm.pose =
             vortex::utils::ros_conversions::ros_pose_to_pose(lm_msg.pose.pose);
         lm.class_key = vortex::filtering::LandmarkClassKey{
             lm_msg.type.value, lm_msg.subtype.value};
+        lm.stamp_sec = stamp_sec;
         out.push_back(lm);
     }
     return out;

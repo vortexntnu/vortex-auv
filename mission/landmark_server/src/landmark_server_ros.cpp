@@ -1,5 +1,7 @@
 #include "landmark_server/landmark_server_ros.hpp"
 #include <spdlog/spdlog.h>
+#include <algorithm>
+#include <iterator>
 #include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp_action/create_client.hpp>
@@ -67,8 +69,9 @@ void LandmarkServerNode::create_pose_subscription() {
     std::string landmark_topic =
         this->declare_parameter<std::string>("topics.landmarks");
     target_frame_ = this->declare_parameter<std::string>("target_frame");
+    // Queue of 10 so bursts and several detectors do not drop messages
     auto qos_sensor_profile =
-        vortex::utils::qos_profiles::sensor_data_profile(1);
+        vortex::utils::qos_profiles::sensor_data_profile(10);
     auto sub = std::make_shared<
         message_filters::Subscriber<vortex_msgs::msg::LandmarkArray>>(
         this, landmark_topic, qos_sensor_profile.get_rmw_qos_profile());
@@ -100,7 +103,10 @@ void LandmarkServerNode::create_pose_subscription() {
             auto new_measurements = ros_msg_to_landmarks(pose_tf);
             {
                 std::lock_guard<std::mutex> lock(measurements_mtx_);
-                measurements_ = std::move(new_measurements);
+                measurements_.insert(
+                    measurements_.end(),
+                    std::make_move_iterator(new_measurements.begin()),
+                    std::make_move_iterator(new_measurements.end()));
             }
         });
 
@@ -290,6 +296,7 @@ void LandmarkServerNode::on_system_reset(std_msgs::msg::Empty::ConstSharedPtr) {
 
     track_manager_ = std::make_unique<vortex::filtering::PoseTrackManager>(
         track_manager_config_);
+    last_step_stamp_sec_.reset();
 
     spdlog::info("LandmarkServer: reset complete");
 }
@@ -302,7 +309,37 @@ void LandmarkServerNode::timer_callback() {
         measurements_.clear();
     }
 
-    track_manager_->step(measurements_snapshot, filter_dt_seconds_);
+    double dt = filter_dt_seconds_;
+    if (!measurements_snapshot.empty()) {
+        double newest_stamp = 0.0;
+        for (const auto& m : measurements_snapshot) {
+            newest_stamp = std::max(newest_stamp, m.stamp_sec);
+        }
+        if (last_step_stamp_sec_) {
+            const double stamp_dt = newest_stamp - *last_step_stamp_sec_;
+            if (stamp_dt > 0.0 && stamp_dt <= max_stamp_dt_seconds_) {
+                dt = stamp_dt;
+            } else {
+                spdlog::warn(
+                    "LandmarkServer: dt from stamps is {:.3f} s, using {:.3f} "
+                    "s instead",
+                    stamp_dt, filter_dt_seconds_);
+            }
+        }
+        last_step_stamp_sec_ = newest_stamp;
+    } else if (last_step_stamp_sec_) {
+        *last_step_stamp_sec_ += dt;
+    }
+
+    const auto dropped = dropped_measurements_.load();
+    if (dropped != reported_dropped_measurements_) {
+        spdlog::warn(
+            "LandmarkServer: {} invalid measurements discarded in total",
+            dropped);
+        reported_dropped_measurements_ = dropped;
+    }
+
+    track_manager_->step(measurements_snapshot, dt);
 
     if (debug_) {
         publish_debug_tracks();

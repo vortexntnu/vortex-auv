@@ -1,9 +1,12 @@
 """Baseline test: two detectors publishing on ``landmarks`` at different rates.
 
-Today ``landmark_server`` keeps only the latest message between two ticks
-(``measurements_`` is overwritten), so a slow publisher is starved by a fast
-one and its track never survives. This test reproduces that: it FAILS on the
-current code and should pass once intake keeps every message (rework step 2).
+Before rework step 2 ``landmark_server`` kept only the latest message between
+two ticks (``measurements_`` was overwritten), so a slow publisher was starved
+by a fast one and its track never survived. Intake now keeps every message.
+
+The default N/M windows (confirm 3/5, delete 5/7) are counted in ticks (200 ms)
+and cannot be satisfied by a 2 Hz detector (a hit only every 2-3 ticks), so the
+test uses windows sized for that rate. Per-class configs come in step 5.
 """
 
 import os
@@ -75,7 +78,14 @@ def launch_setup(context, *args, **kwargs):
         parameters=[
             landmark_config,
             drone_config,
-            {"use_sim_time": False, "debug.enable": True},
+            {
+                "use_sim_time": False,
+                "debug.enable": True,
+                "track_config.default.nm.confirm_n": 2,
+                "track_config.default.nm.confirm_m": 5,
+                "track_config.default.nm.delete_n": 6,
+                "track_config.default.nm.delete_m": 8,
+            },
         ],
         output="screen",
     )
