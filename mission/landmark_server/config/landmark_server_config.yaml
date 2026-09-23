@@ -67,6 +67,19 @@
     rules:
       plausibility_radius_m: 3.0
       large_structures: [GATE, TABLE, TORPEDO_BOARD, BIN_STRUCTURE]
+      gate_yaw_from_panels: true      # normal on the line between the panels
+      board_yaw_from_icons: true      # normal on the icon pairs
+      bin_role_from_down_icons: true  # role icon from the down camera -> nearest bin
+      octagon_from_table: true        # OCTAGON_WHOLE over the table
+      yaw_lock: {consistent_estimates: 5, max_jump_deg: 90.0}
+      # Board frame: +X out of the front, +Y right, +Z down. Offsets from an
+      # icon to its opening, per board version (fire above blood = version 1).
+      # Placeholder values, to be measured on our own board.
+      torpedo_targets_from_icons:
+        version_1: {fire: [0.0, 0.0, -0.169], blood: [0.0, 0.0, -0.169],
+                    firetruck: [0.0, 0.1888, 0.0], ambulance: [0.0, -0.192, 0.0]}
+        version_2: {fire: [0.0, 0.0, -0.218], blood: [0.0, 0.0, -0.168],
+                    firetruck: [0.0, -0.1555, -0.15], ambulance: [0.0, 0.193, 0.0]}
 
     debug:
       enable: false

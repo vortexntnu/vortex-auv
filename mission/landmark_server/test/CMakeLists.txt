@@ -20,6 +20,7 @@ add_executable(test_landmark_map
   test_class_config.cpp
   test_retained_landmarks.cpp
   test_course_frame.cpp
+  test_map_rules.cpp
 )
 target_link_libraries(test_landmark_map PRIVATE
   landmark_server_core

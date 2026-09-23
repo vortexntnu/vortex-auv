@@ -289,6 +289,48 @@ LandmarkMapConfig parse_map_config(const YAML::Node& root) {
     if (const auto rules = root["rules"]) {
         cfg.plausibility_radius_m = get_or<double>(
             rules, "plausibility_radius_m", cfg.plausibility_radius_m);
+        MapRulesConfig& mr = cfg.map_rules;
+        mr.gate_yaw_from_panels = get_or<bool>(rules, "gate_yaw_from_panels",
+                                               mr.gate_yaw_from_panels);
+        mr.board_yaw_from_icons = get_or<bool>(rules, "board_yaw_from_icons",
+                                               mr.board_yaw_from_icons);
+        mr.bin_role_from_down_icons = get_or<bool>(
+            rules, "bin_role_from_down_icons", mr.bin_role_from_down_icons);
+        mr.octagon_from_table =
+            get_or<bool>(rules, "octagon_from_table", mr.octagon_from_table);
+        if (const auto lock = rules["yaw_lock"]) {
+            mr.yaw_lock_consistent_estimates = get_or<int>(
+                lock, "consistent_estimates", mr.yaw_lock_consistent_estimates);
+            mr.yaw_max_jump_deg =
+                get_or<double>(lock, "max_jump_deg", mr.yaw_max_jump_deg);
+            mr.yaw_agree_deg =
+                get_or<double>(lock, "agree_deg", mr.yaw_agree_deg);
+        }
+        mr.bin_role_radius_m =
+            get_or<double>(rules, "bin_role_radius_m", mr.bin_role_radius_m);
+        mr.min_icon_separation_m = get_or<double>(
+            rules, "min_icon_separation_m", mr.min_icon_separation_m);
+        mr.min_panel_separation_m = get_or<double>(
+            rules, "min_panel_separation_m", mr.min_panel_separation_m);
+        if (const auto targets = rules["torpedo_targets_from_icons"]) {
+            const auto vec = [](const YAML::Node& n, Eigen::Vector3d& out) {
+                if (n && n.size() == 3) {
+                    out = Eigen::Vector3d(n[0].as<double>(), n[1].as<double>(),
+                                          n[2].as<double>());
+                }
+            };
+            const auto load = [&](const YAML::Node& v, TorpedoIconOffsets& o) {
+                if (!v) {
+                    return;
+                }
+                vec(v["fire"], o.fire);
+                vec(v["blood"], o.blood);
+                vec(v["firetruck"], o.firetruck);
+                vec(v["ambulance"], o.ambulance);
+            };
+            load(targets["version_1"], mr.torpedo_version_1);
+            load(targets["version_2"], mr.torpedo_version_2);
+        }
         if (const auto ls = rules["large_structures"]) {
             for (const auto& item : ls) {
                 const auto parsed = parse_class_name(item.as<std::string>());

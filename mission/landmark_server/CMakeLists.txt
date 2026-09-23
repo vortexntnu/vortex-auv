@@ -36,6 +36,7 @@ set(CORE_LIB_NAME "${PROJECT_NAME}_core")
 add_library(${CORE_LIB_NAME} SHARED
   src/class_config.cpp
   src/course_frame.cpp
+  src/map_rules.cpp
   src/retained_landmarks.cpp)
 
 ament_target_dependencies(${CORE_LIB_NAME} PUBLIC

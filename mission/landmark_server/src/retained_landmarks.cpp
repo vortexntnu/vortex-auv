@@ -25,11 +25,25 @@ const RetainedLandmark* RetainedLandmarks::find(int id) const {
     return it == landmarks_.end() ? nullptr : &*it;
 }
 
-int RetainedLandmarks::add_derived(RetainedLandmark landmark) {
-    landmark.id = next_id_++;
-    landmark.derived = true;
-    landmarks_.push_back(std::move(landmark));
-    return landmarks_.back().id;
+RetainedLandmark& RetainedLandmarks::upsert_derived(
+    const std::string& slot,
+    const vortex::filtering::LandmarkClassKey& key,
+    double now) {
+    for (auto& lm : landmarks_) {
+        if (lm.derived && lm.derived_slot == slot) {
+            lm.key = key;
+            return lm;
+        }
+    }
+    RetainedLandmark lm;
+    lm.id = next_id_++;
+    lm.key = key;
+    lm.derived = true;
+    lm.derived_slot = slot;
+    lm.first_seen = now;
+    lm.last_measurement = now;
+    landmarks_.push_back(std::move(lm));
+    return landmarks_.back();
 }
 
 void RetainedLandmarks::update_from_track(RetainedLandmark& lm,

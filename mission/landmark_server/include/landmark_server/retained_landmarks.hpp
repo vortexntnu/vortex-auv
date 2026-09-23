@@ -1,9 +1,11 @@
 #ifndef LANDMARK_SERVER__RETAINED_LANDMARKS_HPP_
 #define LANDMARK_SERVER__RETAINED_LANDMARKS_HPP_
 
+#include <deque>
 #include <eigen3/Eigen/Dense>
 #include <functional>
 #include <pose_filtering/lib/typedefs.hpp>
+#include <string>
 #include <vector>
 #include "landmark_server/class_config.hpp"
 
@@ -35,6 +37,17 @@ struct RetainedLandmark {
     int live_track_id{-1};
     int hits{0};
     int misses{0};
+
+    /// Stable name of a derived landmark ("gate_whole", "torpedo_target_fire"
+    /// ...), so a rule updates the same landmark every tick.
+    std::string derived_slot;
+    /// Hidden from the published map because another landmark describes the
+    /// same object better (id of that landmark), or -1.
+    int absorbed_by{-1};
+    /// Running circular mean of consistent yaw estimates (map rules).
+    double yaw_sum_sin{0.0};
+    double yaw_sum_cos{0.0};
+    int yaw_count{0};
 
     double yaw() const;
 };
@@ -71,17 +84,22 @@ class RetainedLandmarks {
     /// Forget everything. Ids keep counting up.
     void clear();
 
-    const std::vector<RetainedLandmark>& landmarks() const {
-        return landmarks_;
-    }
+    const std::deque<RetainedLandmark>& landmarks() const { return landmarks_; }
     /// For the map rules, which may change orientation and add derived
     /// landmarks.
-    std::vector<RetainedLandmark>& landmarks() { return landmarks_; }
+    std::deque<RetainedLandmark>& landmarks() { return landmarks_; }
 
     const RetainedLandmark* find(int id) const;
 
-    /// Add a derived landmark (map rules). Returns its id.
-    int add_derived(RetainedLandmark landmark);
+    /**
+     * @brief The derived landmark with this slot, created on first use.
+     * Derived landmarks keep their id and are remembered for the rest of the
+     * run. References stay valid when others are added.
+     */
+    RetainedLandmark& upsert_derived(
+        const std::string& slot,
+        const vortex::filtering::LandmarkClassKey& key,
+        double now);
 
     /// Number of tracks rejected because a class was full, out of bounds or
     /// too close to a large structure.
@@ -96,7 +114,7 @@ class RetainedLandmarks {
     void forget_expired(double now);
 
     LandmarkMapConfig config_;
-    std::vector<RetainedLandmark> landmarks_;
+    std::deque<RetainedLandmark> landmarks_;
     int next_id_{0};
     int rejected_{0};
 };

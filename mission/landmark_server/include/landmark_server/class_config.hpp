@@ -3,6 +3,7 @@
 
 #include <yaml-cpp/yaml.h>
 #include <cstdint>
+#include <eigen3/Eigen/Dense>
 #include <map>
 #include <optional>
 #include <pose_filtering/lib/typedefs.hpp>
@@ -64,8 +65,42 @@ struct ClassRule {
     double min_distance_to_large_structures_m{0.0};
 };
 
+/// Offsets from a torpedo board icon to its opening, in the board frame
+/// (x out of the front, y right, z down) [m].
+struct TorpedoIconOffsets {
+    Eigen::Vector3d fire{Eigen::Vector3d::Zero()};
+    Eigen::Vector3d blood{Eigen::Vector3d::Zero()};
+    Eigen::Vector3d firetruck{Eigen::Vector3d::Zero()};
+    Eigen::Vector3d ambulance{Eigen::Vector3d::Zero()};
+};
+
+/// Rules that derive structure from parts.
+struct MapRulesConfig {
+    bool gate_yaw_from_panels{true};
+    bool board_yaw_from_icons{true};
+    bool bin_role_from_down_icons{true};
+    bool octagon_from_table{true};
+    bool torpedo_targets_from_icons{true};
+    /// Yaw estimates that must agree before the yaw is locked.
+    int yaw_lock_consistent_estimates{5};
+    /// Estimates within this many degrees of the running mean agree.
+    double yaw_agree_deg{10.0};
+    /// Estimates that differ this much from the current yaw are ignored [deg].
+    double yaw_max_jump_deg{90.0};
+    /// Bin role icon and bin must be this close (xy) [m].
+    double bin_role_radius_m{0.6};
+    /// Icons of a pair must be this far apart (xy) to give a board yaw [m].
+    double min_icon_separation_m{0.05};
+    /// Panels must be this far apart (xy) to give a gate yaw [m].
+    double min_panel_separation_m{0.3};
+    /// Board offsets from icon to opening, per board version (1 and 2).
+    TorpedoIconOffsets torpedo_version_1;
+    TorpedoIconOffsets torpedo_version_2;
+};
+
 struct LandmarkMapConfig {
     IntakeConfig intake;
+    MapRulesConfig map_rules;
     CourseFrameConfig course_frame;
     ClassRule default_rule;
     std::map<std::pair<uint16_t, uint16_t>, ClassRule> class_rules;

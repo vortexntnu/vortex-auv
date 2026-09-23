@@ -5,6 +5,7 @@
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
 #include "landmark_server/landmark_server_ros.hpp"
+#include "landmark_server/map_rules.hpp"
 
 namespace vortex::mission {
 
@@ -193,7 +194,27 @@ void LandmarkServerNode::update_map() {
             confirmed.push_back(t);
         }
     }
-    map_->update(confirmed, this->now().seconds(), filter);
+    const double now = this->now().seconds();
+    map_->update(confirmed, now, filter);
+
+    // Map rules need the vehicle position (which side of the gate is the
+    // front). Without odometry they wait.
+    std::optional<geometry_msgs::msg::Point> vehicle;
+    {
+        std::lock_guard<std::mutex> lock(odom_mtx_);
+        vehicle = last_odom_position_;
+    }
+    if (vehicle) {
+        apply_map_rules(*map_, map_config_.map_rules,
+                        Eigen::Vector3d(vehicle->x, vehicle->y, vehicle->z),
+                        now, course_.get());
+        if (course_->take_deviation_warning()) {
+            spdlog::warn(
+                "LandmarkServer: the gate direction differs {:.1f} deg from "
+                "the start value of the course frame; the gate wins",
+                course_->start_vs_gate_deviation_deg());
+        }
+    }
 }
 
 vortex_msgs::msg::LandmarkTrack LandmarkServerNode::retained_to_msg(
@@ -264,6 +285,9 @@ void LandmarkServerNode::publish_map() {
     object_map.header.stamp = this->now();
     object_map.header.frame_id = target_frame_;
     for (const auto& lm : map_->landmarks()) {
+        if (lm.absorbed_by >= 0) {
+            continue;  // described better by another landmark
+        }
         object_map.landmark_tracks.push_back(retained_to_msg(lm));
     }
     object_map_pub_->publish(object_map);
