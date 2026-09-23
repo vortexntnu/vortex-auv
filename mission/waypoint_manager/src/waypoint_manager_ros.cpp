@@ -269,22 +269,22 @@ std::string WaypointManagerNode::validate_and_resolve_goal(
         }
     }
 
-    OffsetFrame frame = OffsetFrame::WORLD;
+    GoalFrame frame = GoalFrame::WORLD;
     switch (goal.frame) {
         case WaypointManager::Goal::WORLD:
             break;
         case WaypointManager::Goal::BODY_RELATIVE:
-            frame = OffsetFrame::BODY_RELATIVE;
+            frame = GoalFrame::BODY_RELATIVE;
             break;
         case WaypointManager::Goal::WORLD_RELATIVE:
-            frame = OffsetFrame::WORLD_RELATIVE;
+            frame = GoalFrame::WORLD_RELATIVE;
             break;
         default:
             return "unknown frame " + std::to_string(goal.frame);
     }
 
     resolved = goal.waypoints;
-    if (frame == OffsetFrame::WORLD) {
+    if (frame == GoalFrame::WORLD) {
         return "";
     }
 

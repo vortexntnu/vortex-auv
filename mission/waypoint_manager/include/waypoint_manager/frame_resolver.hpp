@@ -10,7 +10,7 @@ using vortex::utils::types::Pose;
 /**
  * @brief How the poses in a waypoint goal are to be interpreted.
  */
-enum class OffsetFrame {
+enum class GoalFrame {
     /// Absolute poses in odom.
     WORLD,
     /// Offsets in the vehicle frame at goal start (x forward, y right, z down).
@@ -33,7 +33,7 @@ enum class OffsetFrame {
  * @param start The vehicle pose in odom at goal start.
  * @return The absolute pose in odom.
  */
-Pose resolve_pose(const Pose& target, OffsetFrame frame, const Pose& start);
+Pose resolve_pose(const Pose& target, GoalFrame frame, const Pose& start);
 
 }  // namespace vortex::mission
 
