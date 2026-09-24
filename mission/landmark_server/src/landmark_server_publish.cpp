@@ -175,7 +175,7 @@ void LandmarkServerNode::handle_clear(
     map_->clear();
     track_manager_ = std::make_unique<vortex::filtering::PoseTrackManager>(
         track_manager_config_);
-    last_step_stamp_sec_.reset();
+    filter_time_sec_.reset();
     spdlog::info("LandmarkServer: map cleared");
 }
 
@@ -253,7 +253,7 @@ vortex_msgs::msg::LandmarkTrack LandmarkServerNode::retained_to_msg(
     msg.confirmed = true;
     msg.hits = lm.hits;
     msg.misses = lm.misses;
-    msg.retained = lm.live_track_id < 0;
+    msg.retained = !lm.is_live();
     msg.has_orientation = lm.has_orientation;
     msg.derived = lm.derived;
     msg.first_seen =
@@ -381,7 +381,7 @@ void LandmarkServerNode::publish_markers() {
             continue;
         }
         // Remembered landmarks (not seen now) are faded.
-        const float alpha = lm.live_track_id >= 0 ? 0.9F : 0.4F;
+        const float alpha = lm.is_live() ? 0.9F : 0.4F;
         const auto color = color_for(lm.key.type, alpha);
 
         // The point: a sphere when measured, a cube when derived by a rule.

@@ -518,6 +518,12 @@ void WaypointManagerNode::send_reference_filter_goal(
                     if (wm_canceling) {
                         finish_active_goal(WaypointManager::Result::CANCELED,
                                            "canceled by client");
+                    } else {
+                        // Canceled by someone else: nothing drives the goal
+                        // any more, so it must not be left running.
+                        finish_active_goal(
+                            WaypointManager::Result::REFERENCE_FILTER_ABORTED,
+                            "reference filter goal was canceled externally");
                     }
                     break;
                 }

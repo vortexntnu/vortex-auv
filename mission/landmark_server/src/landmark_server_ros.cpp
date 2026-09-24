@@ -234,7 +234,7 @@ void LandmarkServerNode::on_system_reset(std_msgs::msg::Empty::ConstSharedPtr) {
 
     track_manager_ = std::make_unique<vortex::filtering::PoseTrackManager>(
         track_manager_config_);
-    last_step_stamp_sec_.reset();
+    filter_time_sec_.reset();
     reset_map();
 
     spdlog::info("LandmarkServer: reset complete");
@@ -248,26 +248,34 @@ void LandmarkServerNode::timer_callback() {
         measurements_.clear();
     }
 
+    // The filters run on measurement time. Ticks without measurements
+    // advance it by the tick period (prediction). A measurement older than
+    // the filter time (camera latency after such ticks) is applied without
+    // predicting further; a jump larger than max_stamp_dt_seconds_ (clock
+    // change, bag loop) resynchronises the filter time.
     double dt = filter_dt_seconds_;
     if (!measurements_snapshot.empty()) {
-        double newest_stamp = 0.0;
+        double newest_stamp = measurements_snapshot.front().stamp_sec;
         for (const auto& m : measurements_snapshot) {
             newest_stamp = std::max(newest_stamp, m.stamp_sec);
         }
-        if (last_step_stamp_sec_) {
-            const double stamp_dt = newest_stamp - *last_step_stamp_sec_;
-            if (stamp_dt > 0.0 && stamp_dt <= max_stamp_dt_seconds_) {
-                dt = stamp_dt;
-            } else {
+        if (!filter_time_sec_) {
+            filter_time_sec_ = newest_stamp;
+        } else {
+            const double stamp_dt = newest_stamp - *filter_time_sec_;
+            if (std::abs(stamp_dt) > max_stamp_dt_seconds_) {
                 spdlog::warn(
-                    "LandmarkServer: dt from stamps is {:.3f} s, using {:.3f} "
-                    "s instead",
-                    stamp_dt, filter_dt_seconds_);
+                    "LandmarkServer: measurement time jumped {:.3f} s, "
+                    "resynchronising",
+                    stamp_dt);
+                filter_time_sec_ = newest_stamp;
+            } else {
+                dt = std::max(stamp_dt, min_step_dt_seconds_);
+                filter_time_sec_ = std::max(*filter_time_sec_, newest_stamp);
             }
         }
-        last_step_stamp_sec_ = newest_stamp;
-    } else if (last_step_stamp_sec_) {
-        *last_step_stamp_sec_ += dt;
+    } else if (filter_time_sec_) {
+        *filter_time_sec_ += dt;
     }
 
     const auto dropped = dropped_measurements_.load();

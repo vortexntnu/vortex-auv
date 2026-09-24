@@ -1,7 +1,7 @@
 // Example: how BT nodes use landmark_targets. Runs one RoboSub scenario against
 // landmark_server (object_map) and waypoint_manager, without a behavior tree:
 //
-//   ros2 run landmark_targets landmark_targets_scenario_node \
+//   ros2 run landmark_targets landmark_targets_scenario_node
 //     --ros-args -r __ns:=/nautilus -p scenario:=gate
 //
 // scenario: gate | slalom | torpedo | bin | return_home
@@ -466,10 +466,14 @@ class SlalomStep : public Step {
                 return Status::RUNNING;
             case Phase::PASS:
                 if (c.nav_state() == Context::NavState::SUCCEEDED) {
-                    passed_.push_back(current_gap_.red_id);
                     last_reference_ = c.odom()->pos_vector().head<2>();
-                    offset_ = lt::SlalomOffset{current_gap_.offset_from_red,
-                                               current_gap_.heading};
+                    if (current_gap_.red_id >= 0) {
+                        // A matched layer: remember it for the next one. A
+                        // blind layer teaches nothing about the offset.
+                        passed_.push_back(current_gap_.red_id);
+                        offset_ = lt::SlalomOffset{current_gap_.offset_from_red,
+                                                   current_gap_.heading};
+                    }
                     ++layer_;
                     phase_ = Phase::MATCH;
                     started_ = c.now();
@@ -523,9 +527,9 @@ class ScenarioNode : public rclcpp::Node {
             declare_parameter<std::string>("gate_side", "left");
         const auto side =
             gate_side == "left" ? lt::Side::LEFT : lt::Side::RIGHT;
-        const double lane_left = declare_parameter<double>("lane_left_m", 6.0);
-        const double lane_right =
-            declare_parameter<double>("lane_right_m", -6.0);
+        // Lane limits in course y (y to the right).
+        const double lane_y_min = declare_parameter<double>("lane_y_min", -6.0);
+        const double lane_y_max = declare_parameter<double>("lane_y_max", 6.0);
 
         const auto yaw_pose = [](double x, double y, double z, double yaw) {
             return Pose::from_eigen(Eigen::Vector3d(x, y, z),
@@ -583,7 +587,7 @@ class ScenarioNode : public rclcpp::Node {
                         *course,
                         Eigen::Vector2d(slalom_reference[0],
                                         slalom_reference[1]),
-                        lane_left, lane_right, 2.5, 0.8);
+                        lane_y_min, lane_y_max, 2.5, 0.8);
                 }));
             lt::TargetSpec spec;
             spec.frame = lt::OffsetFrame::LANDMARK;

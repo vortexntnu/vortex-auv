@@ -15,6 +15,7 @@
   <depend>vortex_msgs</depend>
   <depend>vortex_utils</depend>
   <depend>pose_filtering</depend>
+  <depend>landmark_targets</depend>
   <depend>vortex_utils_ros_tf</depend>
   <depend>vortex_utils_ros</depend>
   <depend>auv_setup</depend>

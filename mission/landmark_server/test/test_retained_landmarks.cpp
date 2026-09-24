@@ -102,6 +102,24 @@ TEST(RetainedLandmarks, ClassIsFullAtMaxInstances) {
     EXPECT_EQ(map.rejected_count(), 2);
 }
 
+TEST(RetainedLandmarks, SplitTrackOnAFollowedObjectIsNotANewLandmark) {
+    RetainedLandmarks map(example_config());
+    map.update({make_track(1, LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED, v(10, 0))}, 0.0);
+
+    // The tracker opens a second track 0.3 m away while the first still lives.
+    map.update({make_track(1, LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED, v(10, 0)),
+                make_track(2, LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED, v(10.3, 0))},
+               0.1);
+    EXPECT_EQ(map.landmarks().size(), 1u);
+    EXPECT_EQ(map.rejected_count(), 1);
+
+    // A pipe 2 m away is a different pipe.
+    map.update({make_track(1, LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED, v(10, 0)),
+                make_track(3, LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED, v(10, 2))},
+               0.2);
+    EXPECT_EQ(map.landmarks().size(), 2u);
+}
+
 TEST(RetainedLandmarks, PipeNextToTheGateIsRejected) {
     RetainedLandmarks map(example_config());
     map.update({make_track(1, LT::GATE, LS::GATE_WHOLE, v(10, 0))}, 0.0);
@@ -161,7 +179,7 @@ TEST(RetainedLandmarks, GateInTheNeighbourLaneIsRejected) {
         return course.position_allowed(p);
     };
 
-    // In the course frame x is odom +y and y (left) is odom +x. The gate is
+    // In the course frame x is odom +y and y (right) is odom -x. The gate is
     // 8 m ahead of the start; the neighbour's gate is 20 m to the side
     // (course y = 20, beyond the +-12 m limit).
     map.update({make_track(1, LT::GATE, LS::GATE_WHOLE, v(0, 8)),

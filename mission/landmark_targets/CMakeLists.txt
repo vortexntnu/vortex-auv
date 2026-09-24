@@ -33,6 +33,10 @@ add_library(${CORE_LIB_NAME} SHARED
   src/geometry.cpp
   src/slalom.cpp
 )
+target_include_directories(${CORE_LIB_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 ament_target_dependencies(${CORE_LIB_NAME} PUBLIC Eigen3 vortex_utils)
 
 # Thin ROS helpers: LandmarkTrack conversion and TF lookups.

@@ -15,7 +15,7 @@ namespace vortex::mission {
 
 using vortex::filtering::LandmarkClassKey;
 
-/// Axis-aligned box in the course frame [m] (x through the gate, y left).
+/// Axis-aligned box in the course frame [m] (x through the gate, y right).
 struct LaneBox {
     double x_min{-1e9};
     double x_max{1e9};

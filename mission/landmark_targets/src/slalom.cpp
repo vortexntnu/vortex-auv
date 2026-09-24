@@ -167,19 +167,18 @@ std::optional<PipeGap> match_pipes(
 std::vector<vortex::utils::types::Pose> avoid_slalom_waypoints(
     const CourseFrame& course,
     const Eigen::Vector2d& reference,
-    double lane_left_m,
-    double lane_right_m,
+    double lane_y_min,
+    double lane_y_max,
     double return_x,
     double z) {
     const Eigen::Vector2d ref = to_course(course, reference);
 
-    // Room on each side of the reference (left limit positive, right limit
-    // negative).
-    const double room_left = lane_left_m - ref.y();
-    const double room_right = ref.y() - lane_right_m;
-    const double y_side = room_left >= room_right
-                              ? 0.5 * (ref.y() + lane_left_m)
-                              : 0.5 * (ref.y() + lane_right_m);
+    // Go out on the side of the reference with the most room to the lane
+    // limit, halfway to it.
+    const double room_min = ref.y() - lane_y_min;
+    const double room_max = lane_y_max - ref.y();
+    const double y_side = room_max >= room_min ? 0.5 * (ref.y() + lane_y_max)
+                                               : 0.5 * (ref.y() + lane_y_min);
 
     const double heading = ssa(course.through_yaw + M_PI);
     const Eigen::Quaterniond q(

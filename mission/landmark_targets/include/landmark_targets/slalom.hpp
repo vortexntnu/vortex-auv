@@ -85,15 +85,15 @@ std::optional<PipeGap> match_pipes(
  * between the reference and the lane limit with most room.
  *
  * @param reference Where the last slalom layer was, in odom (x, y).
- * @param lane_left_m / lane_right_m Lane limits in course y (left positive,
- * right negative, e.g. 6 and -6).
+ * @param lane_y_min / lane_y_max Lane limits in course y (y to the right,
+ * e.g. -6 and 6).
  * @param return_x Course x of the return point (in front of the gate).
  */
 std::vector<vortex::utils::types::Pose> avoid_slalom_waypoints(
     const CourseFrame& course,
     const Eigen::Vector2d& reference,
-    double lane_left_m,
-    double lane_right_m,
+    double lane_y_min,
+    double lane_y_max,
     double return_x = 2.5,
     double z = 0.0);
 

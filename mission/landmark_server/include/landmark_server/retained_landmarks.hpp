@@ -49,7 +49,14 @@ struct RetainedLandmark {
     double yaw_sum_cos{0.0};
     int yaw_count{0};
 
+    /// For a derived landmark: the parts it is computed from are being seen.
+    bool derived_live{false};
+
     double yaw() const;
+    /// Seen now: followed by a live track, or derived from parts that are.
+    bool is_live() const {
+        return live_track_id >= 0 || (derived && derived_live);
+    }
 };
 
 /**

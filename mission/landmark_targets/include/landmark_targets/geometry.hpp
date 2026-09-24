@@ -36,7 +36,9 @@ enum class CourseState : uint8_t { UNSET, COARSE, GATE_LOCKED };
 
 /**
  * @brief The course frame: origin at the gate (or start estimate), x through
- * the gate, y to the left (NED, z down).
+ * the gate, y to the right, z down (NED). The same axes as TF
+ * nautilus/course, so a tf2 transform into that frame gives the same result as
+ * to_course().
  */
 struct CourseFrame {
     Eigen::Vector2d origin{Eigen::Vector2d::Zero()};

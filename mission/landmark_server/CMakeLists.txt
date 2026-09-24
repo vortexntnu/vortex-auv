@@ -26,6 +26,7 @@ find_package(tf2_ros REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(pose_filtering REQUIRED)
+find_package(landmark_targets REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
 include_directories(include)
@@ -44,6 +45,7 @@ ament_target_dependencies(${CORE_LIB_NAME} PUBLIC
   vortex_msgs
   vortex_utils
   pose_filtering
+  landmark_targets
 )
 target_link_libraries(${CORE_LIB_NAME} PUBLIC yaml-cpp)
 

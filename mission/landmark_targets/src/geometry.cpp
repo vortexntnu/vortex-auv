@@ -48,8 +48,9 @@ Eigen::Vector2d to_course(const CourseFrame& course,
     const double c = std::cos(course.through_yaw);
     const double s = std::sin(course.through_yaw);
     const Eigen::Vector2d d = odom_xy - course.origin;
-    // x along the course direction, y to the left (NED, z down).
-    return {c * d.x() + s * d.y(), s * d.x() - c * d.y()};
+    // x along the course direction, y to the right, z down: the same axes as
+    // TF nautilus/course.
+    return {c * d.x() + s * d.y(), -s * d.x() + c * d.y()};
 }
 
 Eigen::Vector2d from_course(const CourseFrame& course,
@@ -57,8 +58,8 @@ Eigen::Vector2d from_course(const CourseFrame& course,
     const double c = std::cos(course.through_yaw);
     const double s = std::sin(course.through_yaw);
     return course.origin +
-           Eigen::Vector2d(c * course_xy.x() + s * course_xy.y(),
-                           s * course_xy.x() - c * course_xy.y());
+           Eigen::Vector2d(c * course_xy.x() - s * course_xy.y(),
+                           s * course_xy.x() + c * course_xy.y());
 }
 
 }  // namespace vortex::mission

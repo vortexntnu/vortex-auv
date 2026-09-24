@@ -3,6 +3,7 @@
 
 #include <deque>
 #include <eigen3/Eigen/Dense>
+#include <landmark_targets/geometry.hpp>
 #include <string>
 #include <vortex/utils/types.hpp>
 #include "landmark_server/class_config.hpp"
@@ -13,7 +14,8 @@ enum class CourseFrameStatus : uint8_t { UNSET, COARSE, GATE_LOCKED };
 
 /**
  * @brief The course frame (TF nautilus/course): origin at the gate, x through
- * the gate, y to the left (NED, z down). ROS-free.
+ * the gate, y to the right, z down (NED): the axes of TF nautilus/course.
+ * The conversions are landmark_targets' to_course/from_course. ROS-free.
  *
  * - UNSET: nothing known; no frame exists.
  * - COARSE: from the start pose and the coin flip angle (set_coarse).
@@ -67,7 +69,7 @@ class CourseFrameTracker {
     /// True once when locking found a deviation over the warning limit.
     bool take_deviation_warning();
 
-    /// Course coordinates of an odom position (x through the gate, y left).
+    /// Course coordinates of an odom position (x through the gate, y right).
     Eigen::Vector2d to_course(const Eigen::Vector2d& odom_xy) const;
     Eigen::Vector2d from_course(const Eigen::Vector2d& course_xy) const;
 

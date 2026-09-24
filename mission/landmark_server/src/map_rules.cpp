@@ -1,4 +1,5 @@
 #include "landmark_server/map_rules.hpp"
+#include <algorithm>
 #include <cmath>
 #include <optional>
 #include <vortex/utils/math.hpp>
@@ -136,6 +137,7 @@ void apply_gate_rules(RetainedLandmarks& map,
         gate =
             &map.upsert_derived("gate_whole", {LT::GATE, LS::GATE_WHOLE}, now);
         gate->last_measurement = last_seen;
+        gate->derived_live = is_fresh(*survey) || is_fresh(*rescue);
     }
     gate->position = midpoint;
 
@@ -211,6 +213,9 @@ void apply_board_rules(RetainedLandmarks& map,
         board = &map.upsert_derived(
             "board_whole", {LT::TORPEDO_BOARD, LS::TORPEDO_BOARD_WHOLE}, now);
         board->last_measurement = last_seen;
+        board->derived_live =
+            std::any_of(icons.begin(), icons.end(),
+                        [](const Icon& i) { return is_fresh(*i.lm); });
     }
     // The board is pulled to the centre of its icons.
     board->position = centre;
@@ -285,6 +290,7 @@ void apply_board_rules(RetainedLandmarks& map,
         target.has_orientation = true;
         target.yaw_locked = board->yaw_locked;
         target.last_measurement = t.icon.lm->last_measurement;
+        target.derived_live = is_fresh(*t.icon.lm);
     }
 }
 
@@ -349,6 +355,7 @@ void apply_octagon_rules(RetainedLandmarks& map,
         octagon = &map.upsert_derived("octagon_whole",
                                       {LT::OCTAGON, LS::OCTAGON_WHOLE}, now);
         octagon->last_measurement = table->last_measurement;
+        octagon->derived_live = is_fresh(*table);
     }
     octagon->position = table->position;
     if (cfg.z_lock.enable) {

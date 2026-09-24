@@ -138,18 +138,14 @@ bool CourseFrameTracker::take_deviation_warning() {
 
 Eigen::Vector2d CourseFrameTracker::to_course(
     const Eigen::Vector2d& odom_xy) const {
-    const double c = std::cos(through_yaw_);
-    const double s = std::sin(through_yaw_);
-    const Eigen::Vector2d d = odom_xy - origin_;
-    return {c * d.x() + s * d.y(), s * d.x() - c * d.y()};
+    return ::vortex::mission::to_course(
+        CourseFrame{origin_, through_yaw_, CourseState::COARSE}, odom_xy);
 }
 
 Eigen::Vector2d CourseFrameTracker::from_course(
     const Eigen::Vector2d& course_xy) const {
-    const double c = std::cos(through_yaw_);
-    const double s = std::sin(through_yaw_);
-    return origin_ + Eigen::Vector2d(c * course_xy.x() + s * course_xy.y(),
-                                     s * course_xy.x() - c * course_xy.y());
+    return ::vortex::mission::from_course(
+        CourseFrame{origin_, through_yaw_, CourseState::COARSE}, course_xy);
 }
 
 bool CourseFrameTracker::position_allowed(

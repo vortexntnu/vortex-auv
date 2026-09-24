@@ -145,14 +145,16 @@ class LandmarkServerNode : public rclcpp::Node {
     rclcpp::TimerBase::SharedPtr timer_;
 
     double filter_dt_seconds_{0.0};
-    /// Time [s] the track filters were last stepped to (measurement stamps).
-    std::optional<double> last_step_stamp_sec_;
+    /// Time [s] the track filters have been predicted to (measurement time).
+    std::optional<double> filter_time_sec_;
     /// Measurements discarded by intake validation (NaN, zero quaternion,
     /// invalid covariance).
     mutable std::atomic<uint64_t> dropped_measurements_{0};
     uint64_t reported_dropped_measurements_{0};
     /// Larger gaps between measurement stamps are treated as invalid.
     static constexpr double max_stamp_dt_seconds_{5.0};
+    /// Smallest prediction step, for measurements older than the filter time.
+    static constexpr double min_step_dt_seconds_{1e-3};
     std::string target_frame_;
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;

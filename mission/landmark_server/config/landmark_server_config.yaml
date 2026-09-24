@@ -40,7 +40,7 @@
       distance_noise: {base_variance: 0.0, variance_per_meter: 0.005}
 
     # Course frame: TF nautilus/course (child of target_frame).
-    # x through the gate, y to the left. Lane limits are in this frame
+    # x through the gate, y to the right, z down. Lane limits are in this frame
     # (estimates, to be measured in the pool).
     course_frame:
       publish_tf: true

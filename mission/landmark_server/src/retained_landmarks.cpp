@@ -160,16 +160,20 @@ void RetainedLandmarks::update(
         // 2. A remembered landmark of the same class takes the track over.
         RetainedLandmark* best = nullptr;
         double best_dist = std::numeric_limits<double>::infinity();
+        bool duplicate = false;
         int instances = 0;
         for (auto& lm : landmarks_) {
             if (lm.key != track.class_key || lm.derived) {
                 continue;
             }
             ++instances;
+            const double d = (lm.position - position).norm();
             if (lm.live_track_id >= 0) {
+                // A second live track on an object that is already followed
+                // (the tracker split it): not a new object.
+                duplicate = duplicate || d <= gate;
                 continue;
             }
-            const double d = (lm.position - position).norm();
             if (d <= adopt_radius && d < best_dist) {
                 best = &lm;
                 best_dist = d;
@@ -177,6 +181,10 @@ void RetainedLandmarks::update(
         }
         if (best != nullptr) {
             update_from_track(*best, track, now);
+            continue;
+        }
+        if (duplicate) {
+            ++rejected_;
             continue;
         }
 
