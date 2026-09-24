@@ -63,6 +63,19 @@ rules:
     EXPECT_FALSE(z.is_surface({LT::GATE, LS::GATE_WHOLE}));
 }
 
+TEST(ClassConfig, ZLockCanSelectSingleSubtypes) {
+    const auto cfg = parse_map_config(YAML::Load(R"(
+rules:
+  z_lock:
+    enable: true
+    surface_classes: [OCTAGON_WHOLE]
+)"));
+    const auto& z = cfg.map_rules.z_lock;
+    EXPECT_TRUE(z.is_surface({LT::OCTAGON, LS::OCTAGON_WHOLE}));
+    EXPECT_FALSE(z.is_surface({LT::OCTAGON, LS::OCTAGON_IMAGE_REPAIR}));
+    EXPECT_FALSE(z.is_floor({LT::TABLE, LS::TABLE_ITEM_PILL}));
+}
+
 TEST(ClassConfig, ZLockIsOffByDefault) {
     const auto cfg = parse_map_config(YAML::Load("{}"));
     EXPECT_FALSE(cfg.map_rules.z_lock.enable);

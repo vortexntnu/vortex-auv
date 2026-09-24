@@ -66,7 +66,12 @@
         min_distance_to_large_structures_m: 1.5
       PATH_MARKER: {max_instances: 2, retain_sec: 15.0}
       TORPEDO_BOARD: {max_instances: 1, retain: forever}
-      BIN: {max_instances: 4, instance_gate_m: 0.25, retain_sec: 15.0}
+      # Handbook 3.2.4: two bins per role (blood, fire).
+      BIN:
+        max_instances: {SEARCH_RESCUE: 2, SURVEY_REPAIR: 2, UNCLASSIFIED: 4,
+                        STRUCTURE: 1}
+        instance_gate_m: 0.25
+        retain_sec: 15.0
       TABLE: {max_instances: 1, retain: forever}
       OCTAGON: {max_instances: 1, retain: forever}
 
@@ -80,14 +85,16 @@
       yaw_lock: {consistent_estimates: 5, max_jump_deg: 90.0}
       # Objects on the floor or at the surface get that depth (odom z, down
       # positive) instead of the measured one; the octagon floats at the
+      # surface. Not the table: its top and the things on it are ~0.7 m above
+      # the floor. Only the octagon itself: its image plates hang under the
       # surface. The depths are the simulator's pool, measure them for the
       # real pool.
       z_lock:
         enable: true
         floor_z: 3.432
         surface_z: 0.0
-        floor_classes: [TABLE, PATH_MARKER, BIN_STRUCTURE]
-        surface_classes: [OCTAGON]
+        floor_classes: [PATH_MARKER, BIN_STRUCTURE]
+        surface_classes: [OCTAGON_WHOLE]
       # Board frame: +X out of the front, +Y right, +Z down. Offsets from an
       # icon to its opening, per board version (fire above blood = version 1).
       # Placeholder values, to be measured on our own board.
