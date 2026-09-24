@@ -54,7 +54,10 @@
     # Map rules per class.
     # max_instances is per (type, subtype). retain: forever, or retain_sec.
     classes:
-      GATE: {max_instances: 1, retain: forever}
+      GATE:
+        max_instances: {SEARCH_RESCUE: 1, SURVEY_REPAIR: 1, WHOLE: 1,
+                        POLE_EDGE: 2, POLE_MIDDLE: 1}
+        retain: forever
       SLALOM_PIPE:
         max_instances: {WHITE: 10, RED: 5}
         instance_gate_m: 0.7

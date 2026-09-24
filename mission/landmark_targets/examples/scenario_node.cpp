@@ -541,10 +541,15 @@ class ScenarioNode : public rclcpp::Node {
         if (scenario == "gate") {
             lt::TargetSpec spec;
             spec.frame = lt::OffsetFrame::LANDMARK;
+            // Through the opening of the chosen role, not the gate centre:
+            // the middle post hangs there. The role image sits high in its
+            // opening, so go 0.45 m deeper to pass through the middle of it.
             spec.offset =
-                yaw_pose(2.5, 0.0, 0.0, M_PI);  // 2.5 m in front, looking at it
+                yaw_pose(2.5, 0.0, 0.45, M_PI);  // in front, facing it
+            const auto sub =
+                survey ? LSub::GATE_SURVEY_REPAIR : LSub::GATE_SEARCH_RESCUE;
             steps_.push_back(std::make_unique<ApproachStep>(
-                "gate", LType::GATE, LSub::GATE_WHOLE, spec, WMode::FULL_POSE));
+                "gate opening", LType::GATE, sub, spec, WMode::FULL_POSE));
             steps_.push_back(std::make_unique<MoveRelativeStep>(
                 Eigen::Vector3d(5.0, 0.0, 0.0)));
         } else if (scenario == "torpedo") {
