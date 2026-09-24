@@ -5,6 +5,8 @@
 #include <sstream>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
+#include <vortex_msgs/msg/landmark_subtype.hpp>
+#include <vortex_msgs/msg/landmark_type.hpp>
 #include "landmark_server/landmark_server_ros.hpp"
 #include "landmark_server/map_rules.hpp"
 
@@ -348,6 +350,59 @@ std_msgs::msg::ColorRGBA color_for(uint16_t type, float alpha) {
     return out;
 }
 
+/// Torpedo board parts: the openings (TORPEDO_TARGET_*) as yellow spheres,
+/// large or small, and the icons as flat magenta squares on the board face,
+/// so the two are not mixed up. Other landmarks are left as they are.
+void style_torpedo_part(const RetainedLandmark& lm,
+                        float alpha,
+                        const RetainedLandmark* board,
+                        visualization_msgs::msg::Marker& m) {
+    using visualization_msgs::msg::Marker;
+    using LS = vortex_msgs::msg::LandmarkSubtype;
+    if (lm.key.type != vortex_msgs::msg::LandmarkType::TORPEDO_BOARD) {
+        return;
+    }
+    switch (lm.key.subtype) {
+        case LS::TORPEDO_TARGET_LARGE_SEARCH_RESCUE:
+        case LS::TORPEDO_TARGET_LARGE_SURVEY_REPAIR:
+        case LS::TORPEDO_TARGET_SMALL_SEARCH_RESCUE:
+        case LS::TORPEDO_TARGET_SMALL_SURVEY_REPAIR: {
+            const bool large =
+                lm.key.subtype == LS::TORPEDO_TARGET_LARGE_SEARCH_RESCUE ||
+                lm.key.subtype == LS::TORPEDO_TARGET_LARGE_SURVEY_REPAIR;
+            m.type = Marker::SPHERE;
+            m.scale.x = m.scale.y = m.scale.z = large ? 0.2 : 0.12;
+            m.color.r = 1.0F;
+            m.color.g = 0.85F;
+            m.color.b = 0.0F;
+            m.color.a = alpha;
+            break;
+        }
+        case LS::TORPEDO_ICON_FIRE:
+        case LS::TORPEDO_ICON_BLOOD:
+        case LS::TORPEDO_ICON_FIRETRUCK:
+        case LS::TORPEDO_ICON_AMBULANCE:
+            // Thin along +X (out of the board face), turned with the board
+            // when its yaw is known.
+            m.type = Marker::CUBE;
+            m.scale.x = 0.02;
+            m.scale.y = m.scale.z = 0.15;
+            if (board != nullptr) {
+                m.pose.orientation.w = board->orientation.w();
+                m.pose.orientation.x = board->orientation.x();
+                m.pose.orientation.y = board->orientation.y();
+                m.pose.orientation.z = board->orientation.z();
+            }
+            m.color.r = 1.0F;
+            m.color.g = 0.2F;
+            m.color.b = 0.8F;
+            m.color.a = alpha;
+            break;
+        default:
+            break;
+    }
+}
+
 }  // namespace
 
 void LandmarkServerNode::publish_markers() {
@@ -376,6 +431,18 @@ void LandmarkServerNode::publish_markers() {
         return m;
     };
 
+    // The torpedo board with a known yaw: the icon squares lie on its face.
+    const RetainedLandmark* board = nullptr;
+    for (const auto& lm : map_->landmarks()) {
+        if (lm.absorbed_by < 0 && lm.has_orientation &&
+            lm.key.type == vortex_msgs::msg::LandmarkType::TORPEDO_BOARD &&
+            lm.key.subtype ==
+                vortex_msgs::msg::LandmarkSubtype::TORPEDO_BOARD_WHOLE) {
+            board = &lm;
+            break;
+        }
+    }
+
     for (const auto& lm : map_->landmarks()) {
         if (lm.absorbed_by >= 0) {
             continue;
@@ -392,6 +459,7 @@ void LandmarkServerNode::publish_markers() {
             point.type = Marker::CUBE;
             point.scale.x = point.scale.y = point.scale.z = 0.25;
             point.color = color;
+            style_torpedo_part(lm, alpha, board, point);
             array.markers.push_back(point);
         }
 
