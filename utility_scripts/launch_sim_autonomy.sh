@@ -101,11 +101,8 @@ if [[ -n "$TASKS" ]]; then
     DUMMY_CMD="$DUMMY_CMD -p tasks:=[$TASKS]"
 fi
 
-# Odometry is in world_ned and the reference filter's goals in odom, both the
-# same axes as nautilus/odom (the map frame); these let Foxglove show them.
-FRAMES_CMD="ros2 run tf2_ros static_transform_publisher --frame-id nautilus/odom --child-frame-id world_ned &
-ros2 run tf2_ros static_transform_publisher --frame-id nautilus/odom --child-frame-id odom &
-ros2 run robosub_dummy_publisher detections_markers_node --ros-args -r __ns:=/nautilus"
+# Frames and detection markers for Foxglove (see foxglove_helpers.launch.py).
+FRAMES_CMD="ros2 launch robosub_dummy_publisher foxglove_helpers.launch.py"
 
 # Once the vehicle publishes odometry: autonomous mode and the course frame.
 # The wait does not use the ros2 daemon, which can be stuck after a restart.
