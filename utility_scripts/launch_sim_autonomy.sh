@@ -32,7 +32,7 @@ Options:
   -h, --help            Show this help message
 
 Windows: sim (simulator, controller, landmark_server, waypoint_manager),
-perception (dummy perception and detection markers), tools (Foxglove
+perception (dummy perception, detection markers and frames), tools (Foxglove
 bridge, commands). Detach with Ctrl-b d; stop everything with
   tmux kill-session -t sim_autonomy
 EOF
@@ -105,7 +105,7 @@ if [[ -n "$TASKS" ]]; then
     DUMMY_CMD="$DUMMY_CMD -p tasks:=[$TASKS]"
 fi
 
-# Detection markers for Foxglove (see foxglove_helpers.launch.py).
+# Frames and detection markers for Foxglove (see foxglove_helpers.launch.py).
 FRAMES_CMD="ros2 launch robosub_dummy_publisher foxglove_helpers.launch.py"
 
 # Once the vehicle publishes odometry: autonomous mode and the course frame.
