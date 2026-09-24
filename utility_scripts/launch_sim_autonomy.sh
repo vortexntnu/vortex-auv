@@ -26,6 +26,8 @@ Options:
   --full-res            Render the sim at 1920x1080 high quality (default:
                         960x540 low; the full course can run out of memory)
   --mem-limit <GB>      Memory limit for the simulator, 0 for none (default: 5)
+  --keyboard-joy <bool> Drive with the keyboard (keyboard_joy) next to the
+                        joystick interface, which always runs (default: true)
   --no-autonomy         Do not turn on autonomous mode or set the course frame
   -h, --help            Show this help message
 
@@ -46,6 +48,7 @@ TASKS=""
 FULL_RES="false"
 MEM_LIMIT="5"
 AUTONOMY="true"
+KEYBOARD_JOY="true"
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --scenario)    SCENARIO="$2";  shift 2 ;;
@@ -58,6 +61,7 @@ while [[ $# -gt 0 ]]; do
         --full-res)    FULL_RES="true"; shift ;;
         --mem-limit)   MEM_LIMIT="$2"; shift 2 ;;
         --no-autonomy) AUTONOMY="false"; shift ;;
+        --keyboard-joy) KEYBOARD_JOY="$2"; shift 2 ;;
         -h|--help)     usage; exit 0 ;;
         *) echo "Unknown argument: $1"; usage; exit 1 ;;
     esac
@@ -80,7 +84,7 @@ S="cd $WS && source install/setup.bash && export ROS_DOMAIN_ID=$DOMAIN_ID"
 DUMMY_CONFIG="install/robosub_dummy_publisher/share/robosub_dummy_publisher/config"
 
 # Simulator: low resolution and a memory limit unless asked otherwise.
-SIM_ARGS="keyboard_joy:=false scenario:=$SCENARIO robosub_icon_seed:=$SEED"
+SIM_ARGS="keyboard_joy:=$KEYBOARD_JOY scenario:=$SCENARIO robosub_icon_seed:=$SEED"
 if [[ "$FULL_RES" != "true" ]]; then
     SIM_ARGS="$SIM_ARGS window_res_x:=960 window_res_y:=540 rendering_quality:=low"
 fi
