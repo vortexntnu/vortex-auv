@@ -129,8 +129,9 @@ struct Landmark {
     /// False when the detector gives position only (the orientation of `pose`
     /// is then a placeholder and must not be used).
     bool has_orientation{true};
-    /// Extra measurement variance [m^2] on top of the class sensor noise, for
-    /// instance growing with the distance to the object.
+    /// Extra position variance [m^2] on top of the class sensor noise. The
+    /// caller decides it (landmark_server: growing with the distance to the
+    /// object); the tracker only applies it. 0 = the class noise alone.
     double extra_variance{0.0};
 };
 

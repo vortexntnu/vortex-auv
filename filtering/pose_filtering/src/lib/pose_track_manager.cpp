@@ -1,6 +1,7 @@
 #include "pose_filtering/lib/pose_track_manager.hpp"
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <probability/multi_var_gauss.hpp>
 #include <ranges>
 #include <vortex/utils/math.hpp>
@@ -30,17 +31,27 @@ void PoseTrackManager::step(std::vector<Landmark>& measurements, double dt) {
         gate.mahalanobis_threshold = cfg.mahalanobis_threshold;
 
         DynMod dyn_mod(cfg.dyn_std_dev);
-        // Noisier measurements (for instance far away) weigh less: the extra
-        // variance of the candidate measurements adds to the sensor noise.
+        // Noisier measurements (for instance far away) weigh less. PDAF has
+        // one sensor model per track and step, so the extra variance of the
+        // candidate closest to the track is used. It is added to the position
+        // noise only; the orientation noise is the class value.
         double extra_variance = 0.0;
+        double closest = std::numeric_limits<double>::infinity();
         for (const Eigen::Index i : type_gate_indices) {
-            extra_variance += measurements[i].extra_variance;
+            const double d =
+                (measurements[i].pose.pos_vector() - track.nominal_state.pos)
+                    .norm();
+            if (d < closest) {
+                closest = d;
+                extra_variance = measurements[i].extra_variance;
+            }
         }
-        if (!type_gate_indices.empty()) {
-            extra_variance /= static_cast<double>(type_gate_indices.size());
-        }
-        SensorMod sensor_mod(
-            std::sqrt(cfg.sens_std_dev * cfg.sens_std_dev + extra_variance));
+        const double sens_var = cfg.sens_std_dev * cfg.sens_std_dev;
+        Eigen::Matrix<double, 6, 6> sensor_cov =
+            Eigen::Matrix<double, 6, 6>::Identity() * sens_var;
+        sensor_cov.topLeftCorner<3, 3>() +=
+            Eigen::Matrix3d::Identity() * extra_variance;
+        SensorMod sensor_mod(sensor_cov);
 
         PDAF::Config pdaf_cfg;
         pdaf_cfg.pdaf.mahalanobis_threshold = cfg.mahalanobis_threshold;

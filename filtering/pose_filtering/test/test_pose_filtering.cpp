@@ -150,6 +150,38 @@ TEST_F(PoseTrackManagerTests, noisy_measurements_move_the_track_less) {
     EXPECT_LT(distrusting, trusting);
 }
 
+TEST_F(PoseTrackManagerTests, extra_variance_does_not_slow_orientation) {
+    const Eigen::Quaterniond yawed(
+        Eigen::AngleAxisd(0.3, Eigen::Vector3d::UnitZ()));
+    const auto yaw_after = [&](double extra_variance) {
+        PoseTrackManager mgr(make_default_config());
+        std::vector<Landmark> first = {make_landmark({0.0, 0.0, 0.0})};
+        mgr.step(first, 0.1);
+        Landmark m = make_landmark({0.0, 0.0, 0.0}, yawed);
+        m.extra_variance = extra_variance;
+        std::vector<Landmark> second = {m};
+        mgr.step(second, 0.1);
+        return mgr.get_tracks().front().nominal_state.ori.angularDistance(
+            Eigen::Quaterniond::Identity());
+    };
+    EXPECT_NEAR(yaw_after(4.0), yaw_after(0.0), 1e-9);
+}
+
+TEST_F(PoseTrackManagerTests, far_detection_of_another_object_does_not_add_noise) {
+    const auto shift_after = [&](double other_extra_variance) {
+        PoseTrackManager mgr(make_default_config());
+        std::vector<Landmark> first = {make_landmark({0.0, 0.0, 0.0})};
+        mgr.step(first, 0.1);
+        Landmark near = make_landmark({0.3, 0.0, 0.0});
+        Landmark far = make_landmark({20.0, 0.0, 0.0});
+        far.extra_variance = other_extra_variance;
+        std::vector<Landmark> second = {near, far};
+        mgr.step(second, 0.1);
+        return mgr.get_tracks().front().nominal_state.pos.x();
+    };
+    EXPECT_NEAR(shift_after(4.0), shift_after(0.0), 1e-9);
+}
+
 TEST_F(PoseTrackManagerTests, measurement_without_orientation_keeps_yaw) {
     PoseTrackManager mgr(make_default_config());
     const Eigen::Quaterniond yawed(
