@@ -76,6 +76,42 @@ rules:
     EXPECT_FALSE(z.is_floor({LT::TABLE, LS::TABLE_ITEM_PILL}));
 }
 
+TEST(ClassConfig, ParsesMarkerBoxes) {
+    const auto cfg = parse_map_config(YAML::Load(R"(
+markers:
+  boxes:
+    GATE_WHOLE: {size: [0.08, 3.18, 1.36], offset: [0.0, 0.0, 0.48]}
+    TABLE: {size: [0.6, 1.1, 0.8]}
+)"));
+    const auto* gate = cfg.marker_box_for({LT::GATE, LS::GATE_WHOLE});
+    ASSERT_NE(gate, nullptr);
+    EXPECT_DOUBLE_EQ(gate->size.y(), 3.18);
+    EXPECT_DOUBLE_EQ(gate->offset.z(), 0.48);
+    EXPECT_EQ(cfg.marker_box_for({LT::GATE, LS::GATE_POLE_EDGE}), nullptr);
+    // A type entry covers every subtype; no offset means none.
+    const auto* item = cfg.marker_box_for({LT::TABLE, LS::TABLE_ITEM_PILL});
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->offset.isZero());
+    const auto pipes = parse_map_config(YAML::Load(R"(
+markers:
+  boxes:
+    SLALOM_PIPE_RED: {size: [0.03, 0.03, 0.94], solid: true, color: [1.0, 0.0, 0.0]}
+)"));
+    const auto* red = pipes.marker_box_for({LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED});
+    ASSERT_NE(red, nullptr);
+    EXPECT_TRUE(red->solid);
+    ASSERT_TRUE(red->color.has_value());
+    EXPECT_DOUBLE_EQ(red->color->x(), 1.0);
+    EXPECT_FALSE(gate->solid);
+    EXPECT_FALSE(gate->color.has_value());
+    EXPECT_THROW(parse_map_config(YAML::Load(R"(
+markers:
+  boxes:
+    GATE_WHOLE: {size: [1.0, 2.0]}
+)")),
+                 std::runtime_error);
+}
+
 TEST(ClassConfig, ZLockIsOffByDefault) {
     const auto cfg = parse_map_config(YAML::Load("{}"));
     EXPECT_FALSE(cfg.map_rules.z_lock.enable);

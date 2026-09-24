@@ -247,6 +247,18 @@ const ClassRule& LandmarkMapConfig::rule_for(
     return it == class_rules.end() ? default_rule : it->second;
 }
 
+const MarkerBox* LandmarkMapConfig::marker_box_for(
+    const LandmarkClassKey& key) const {
+    for (const auto& k : {std::make_pair(key.type, key.subtype),
+                          std::make_pair(key.type, uint16_t{0})}) {
+        const auto it = marker_boxes.find(k);
+        if (it != marker_boxes.end()) {
+            return &it->second;
+        }
+    }
+    return nullptr;
+}
+
 bool LandmarkMapConfig::is_large_structure(const LandmarkClassKey& key) const {
     return std::any_of(large_structures.begin(), large_structures.end(),
                        [&](const auto& s) {
@@ -414,6 +426,36 @@ LandmarkMapConfig parse_map_config(const YAML::Node& root) {
         }
     }
 
+    if (const auto markers = root["markers"]) {
+        for (const auto& kv : markers["boxes"]) {
+            const auto name = kv.first.as<std::string>();
+            const auto parsed = parse_class_name(name);
+            if (!parsed) {
+                throw std::runtime_error("Unknown class in markers.boxes: " +
+                                         name);
+            }
+            const auto vec3 = [&](const char* field) {
+                const auto n = kv.second[field];
+                if (!n) {
+                    return Eigen::Vector3d::Zero().eval();
+                }
+                if (!n.IsSequence() || n.size() != 3) {
+                    throw std::runtime_error("markers.boxes." + name + "." +
+                                             field + " must be [x, y, z]");
+                }
+                return Eigen::Vector3d(n[0].as<double>(), n[1].as<double>(),
+                                       n[2].as<double>());
+            };
+            MarkerBox box;
+            box.size = vec3("size");
+            box.offset = vec3("offset");
+            box.solid = get_or<bool>(kv.second, "solid", false);
+            if (kv.second["color"]) {
+                box.color = vec3("color");
+            }
+            cfg.marker_boxes[*parsed] = box;
+        }
+    }
     return cfg;
 }
 

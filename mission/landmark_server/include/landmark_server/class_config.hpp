@@ -117,6 +117,19 @@ struct MapRulesConfig {
     TorpedoIconOffsets torpedo_version_2;
 };
 
+/// A box drawn for a class in the markers: its size in the landmark frame
+/// (x out of the front, y right, z down) and the offset of its centre from
+/// the landmark position, in the same frame. A solid box is the object
+/// itself (a PVC pipe) and replaces the point; else it is a see-through
+/// outline of a large structure around the point.
+struct MarkerBox {
+    Eigen::Vector3d size{Eigen::Vector3d::Zero()};
+    Eigen::Vector3d offset{Eigen::Vector3d::Zero()};
+    bool solid{false};
+    /// RGB in [0, 1]; empty uses the colour of the type.
+    std::optional<Eigen::Vector3d> color;
+};
+
 struct LandmarkMapConfig {
     IntakeConfig intake;
     MapRulesConfig map_rules;
@@ -130,8 +143,14 @@ struct LandmarkMapConfig {
     /// stands for every subtype of the type.
     std::vector<std::pair<uint16_t, uint16_t>> large_structures;
 
+    /// Boxes for the markers, per (type, subtype); subtype 0 stands for
+    /// every subtype of the type.
+    std::map<std::pair<uint16_t, uint16_t>, MarkerBox> marker_boxes;
+
     const ClassRule& rule_for(const LandmarkClassKey& key) const;
     bool is_large_structure(const LandmarkClassKey& key) const;
+    /// The box for a class (the subtype entry wins over the type), or null.
+    const MarkerBox* marker_box_for(const LandmarkClassKey& key) const;
 };
 
 /**
@@ -158,7 +177,7 @@ std::vector<uint16_t> known_subtypes(uint16_t type);
 
 /**
  * @brief Parse the map configuration from a YAML tree with the keys `intake`,
- * `course_frame`, `classes` and `rules` (see
+ * `course_frame`, `classes`, `rules` and `markers` (see
  * config/landmark_server_config.yaml). Missing keys keep their defaults.
  * @throws std::runtime_error on unknown class or subtype names.
  */

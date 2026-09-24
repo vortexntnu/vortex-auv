@@ -104,6 +104,25 @@
         version_2: {fire: [0.0, 0.0, -0.218], blood: [0.0, 0.0, -0.168],
                     firetruck: [0.0, -0.1555, -0.15], ambulance: [0.0, 0.193, 0.0]}
 
+    # Boxes of the real size in the markers, from the simulator's meshes.
+    # size: [x out of the front, y right, z down] [m]; offset: box centre
+    # from where the map puts the landmark (the gate at its panel midpoint,
+    # the board at its icon centre, the bin rig locked to the floor), in the
+    # landmark frame. Turned with the yaw when known. solid: the box is the
+    # object itself (PVC pipes, drawn instead of the point); else a
+    # see-through outline around it. color: [r, g, b], else the type colour.
+    markers:
+      boxes:
+        GATE_POLE_EDGE: {size: [0.076, 0.076, 1.364], solid: true, color: [0.8, 0.1, 0.1]}
+        GATE_POLE_MIDDLE: {size: [0.051, 0.051, 0.61], solid: true, color: [1.0, 0.0, 0.0]}
+        SLALOM_PIPE_WHITE: {size: [0.03, 0.03, 1.272], solid: true, color: [1.0, 1.0, 1.0]}
+        SLALOM_PIPE_RED: {size: [0.03, 0.03, 0.938], solid: true, color: [1.0, 0.0, 0.0]}
+        GATE_WHOLE: {size: [0.08, 3.18, 1.36], offset: [0.0, 0.0, 0.48]}
+        TORPEDO_BOARD_WHOLE: {size: [0.49, 0.71, 1.21], offset: [0.0, 0.0, -0.12]}
+        BIN_STRUCTURE: {size: [1.40, 1.45, 0.69], offset: [0.0, 0.0, -0.28]}
+        TABLE_WHOLE: {size: [0.61, 1.12, 0.77], offset: [0.0, 0.0, 0.33]}
+        OCTAGON_WHOLE: {size: [2.73, 2.73, 0.44], offset: [0.0, 0.0, 0.20]}
+
     debug:
       enable: false
       topic_name: "landmark_server/debug/landmark_tracks"

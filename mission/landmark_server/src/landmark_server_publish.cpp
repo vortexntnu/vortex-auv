@@ -87,7 +87,7 @@ void LandmarkServerNode::create_map() {
     const auto overrides =
         this->get_node_parameters_interface()->get_parameter_overrides();
     const YAML::Node tree = overrides_to_yaml(
-        overrides, {"intake", "course_frame", "classes", "rules"});
+        overrides, {"intake", "course_frame", "classes", "rules", "markers"});
     map_config_ = parse_map_config(tree);
 
     // Per-class track configs (track_config.<CLASS>...) on top of the default.
@@ -384,12 +384,16 @@ void LandmarkServerNode::publish_markers() {
         const float alpha = lm.is_live() ? 0.9F : 0.4F;
         const auto color = color_for(lm.key.type, alpha);
 
-        // The point: a sphere when measured, a cube when derived by a rule.
-        Marker point = base(lm, "landmark");
-        point.type = lm.derived ? Marker::CUBE : Marker::SPHERE;
-        point.scale.x = point.scale.y = point.scale.z = 0.25;
-        point.color = color;
-        array.markers.push_back(point);
+        const auto* box = map_config_.marker_box_for(lm.key);
+
+        // The point, unless the class is drawn as a solid object below.
+        if (box == nullptr || !box->solid) {
+            Marker point = base(lm, "landmark");
+            point.type = Marker::CUBE;
+            point.scale.x = point.scale.y = point.scale.z = 0.25;
+            point.color = color;
+            array.markers.push_back(point);
+        }
 
         // The name, with id and age since the last measurement.
         Marker label = base(lm, "label");
@@ -402,8 +406,42 @@ void LandmarkServerNode::publish_markers() {
         std::snprintf(age, sizeof(age), "%.1f",
                       stamp.seconds() - lm.last_measurement);
         label.text = class_name(lm.key) + " #" + std::to_string(lm.id) + " (" +
-                     age + " s)";
+                     age + " s)" + (lm.derived ? " derived" : "");
         array.markers.push_back(label);
+
+        // The real size: a solid PVC pipe, or a see-through box around a
+        // large structure. Turned with the yaw when it is known (else along
+        // the odom axes).
+        if (box != nullptr) {
+            Marker m = base(lm, "structure");
+            m.type = Marker::CUBE;
+            const Eigen::Quaterniond q = lm.has_orientation
+                                             ? lm.orientation
+                                             : Eigen::Quaterniond::Identity();
+            const Eigen::Vector3d centre = lm.position + q * box->offset;
+            m.pose.position.x = centre.x();
+            m.pose.position.y = centre.y();
+            m.pose.position.z = centre.z();
+            m.pose.orientation.x = q.x();
+            m.pose.orientation.y = q.y();
+            m.pose.orientation.z = q.z();
+            m.pose.orientation.w = q.w();
+            m.scale.x = box->size.x();
+            m.scale.y = box->size.y();
+            m.scale.z = box->size.z();
+            m.color = color;
+            if (box->color) {
+                m.color.r = static_cast<float>(box->color->x());
+                m.color.g = static_cast<float>(box->color->y());
+                m.color.b = static_cast<float>(box->color->z());
+            }
+            if (box->solid) {
+                m.color.a = alpha;
+            } else {
+                m.color.a = lm.is_live() ? 0.25F : 0.1F;
+            }
+            array.markers.push_back(m);
+        }
 
         // +X out of the front, when the orientation is known.
         if (lm.has_orientation) {
