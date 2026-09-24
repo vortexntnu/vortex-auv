@@ -184,7 +184,10 @@ class TestLandmarkMap(unittest.TestCase):
         self.assertTrue(
             any(t.startswith('GATE_WHOLE #') for t in labels), f'labels: {labels}'
         )
-        self.assertTrue(any(m.ns == 'landmark' for m in latest_markers))
+        # The whole gate is drawn as its outline box, without a centre cube
+        # (only the poster plates are cubes).
+        self.assertTrue(any(m.ns == 'structure' for m in latest_markers))
+        self.assertFalse(any(m.ns == 'landmark' for m in latest_markers))
 
         # Not seen any more: the tracker deletes its track, the map keeps it.
         timer.cancel()

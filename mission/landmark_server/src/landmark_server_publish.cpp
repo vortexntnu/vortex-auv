@@ -453,8 +453,13 @@ void LandmarkServerNode::publish_markers() {
 
         const auto* box = map_config_.marker_box_for(lm.key);
 
-        // The point, unless the class is drawn as a solid object below.
-        if (box == nullptr || !box->solid) {
+        // The point, unless the class is drawn as a solid object below. The
+        // whole gate has its outline box, arrow and label; a cube in its
+        // middle would look like a third poster plate.
+        const bool gate_whole =
+            lm.key.type == vortex_msgs::msg::LandmarkType::GATE &&
+            lm.key.subtype == vortex_msgs::msg::LandmarkSubtype::GATE_WHOLE;
+        if ((box == nullptr || !box->solid) && !gate_whole) {
             Marker point = base(lm, "landmark");
             point.type = Marker::CUBE;
             point.scale.x = point.scale.y = point.scale.z = 0.25;
