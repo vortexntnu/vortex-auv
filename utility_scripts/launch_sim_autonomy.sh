@@ -106,8 +106,6 @@ if [[ -n "$TASKS" ]]; then
 fi
 
 # Frames and detection markers for Foxglove (see foxglove_helpers.launch.py).
-# In the 3D panel, use nautilus/odom_zup as the display frame: Foxglove draws
-# +Z up, so the NED frames (world_ned, nautilus/odom) look upside down.
 FRAMES_CMD="ros2 launch robosub_dummy_publisher foxglove_helpers.launch.py"
 
 # Once the vehicle publishes odometry: autonomous mode and the course frame.
@@ -118,7 +116,7 @@ ros2 service call /nautilus/set_killswitch vortex_msgs/srv/SetKillswitch '{kills
 ros2 service call /nautilus/set_operation_mode vortex_msgs/srv/SetOperationMode '{requested_operation_mode: {operation_mode: 1}}'
 ros2 service call /nautilus/landmark_server/set_course_frame vortex_msgs/srv/SetCourseFrame '{start_pose: {orientation: {w: 1.0}}, heading_offset_rad: 0.0}'
 clear
-echo 'Autonomous mode on, course frame set. Foxglove display frame: nautilus/odom_zup. Try:'
+echo 'Autonomous mode on, course frame set. Try:'
 echo '  ros2 run landmark_targets landmark_targets_scenario_node --ros-args -r __ns:=/nautilus -p scenario:=gate'
 echo '  ros2 service call /nautilus/landmark_server/clear std_srvs/srv/Empty'"
 HELP_CMD="clear && echo 'Turn on autonomous mode yourself:' && echo \"  ros2 service call /nautilus/set_killswitch vortex_msgs/srv/SetKillswitch '{killswitch_on: false}'\" && echo \"  ros2 service call /nautilus/set_operation_mode vortex_msgs/srv/SetOperationMode '{requested_operation_mode: {operation_mode: 1}}'\""
