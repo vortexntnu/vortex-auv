@@ -120,8 +120,22 @@ std::vector<Landmark> LandmarkServerNode::ros_msg_to_landmarks(
             const double d =
                 std::hypot(std::hypot(p.x - vehicle->x, p.y - vehicle->y),
                            p.z - vehicle->z);
-            lm.extra_variance = map_config_.intake.noise_base_variance +
-                                map_config_.intake.noise_variance_per_meter * d;
+            const auto& intake = map_config_.intake;
+            const double depth_var = intake.noise_base_variance +
+                                     intake.noise_variance_per_meter * d;
+            lm.extra_variance = depth_var;
+            if (d > 1e-6) {
+                // depth_var along the line of sight, a fraction across it.
+                const Eigen::Vector3d ray =
+                    Eigen::Vector3d(p.x - vehicle->x, p.y - vehicle->y,
+                                    p.z - vehicle->z) /
+                    d;
+                const double lateral_var =
+                    intake.noise_lateral_ratio * depth_var;
+                lm.extra_position_cov =
+                    Eigen::Matrix3d::Identity() * lateral_var +
+                    (depth_var - lateral_var) * ray * ray.transpose();
+            }
         }
         // A rotational variance >= the limit means "no orientation".
         const auto& cov = lm_msg.pose.covariance;

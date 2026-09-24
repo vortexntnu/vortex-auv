@@ -34,9 +34,14 @@ struct IntakeConfig {
     /// A rotational covariance diagonal >= this means "no orientation".
     double no_orientation_rot_variance{1000.0};
     /// Extra measurement variance [m^2] = base + per_meter * distance from
-    /// the vehicle. Far detections weigh less in the tracker.
+    /// the vehicle, along the line of sight (depth). Far detections weigh
+    /// less in the tracker.
     double noise_base_variance{0.0};
     double noise_variance_per_meter{0.0};
+    /// Across the line of sight the extra variance is this fraction of the
+    /// depth variance (a camera knows the direction much better than the
+    /// distance). 1 = the same in all directions.
+    double noise_lateral_ratio{1.0};
 };
 
 struct CourseFrameConfig {

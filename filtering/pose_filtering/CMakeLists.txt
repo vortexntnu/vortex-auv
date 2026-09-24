@@ -28,6 +28,7 @@ include_directories(include)
 set(CORE_LIB_NAME "${PROJECT_NAME}")
 
 add_library(${CORE_LIB_NAME} SHARED
+  src/lib/hungarian.cpp
   src/lib/pose_track_manager.cpp
 )
 

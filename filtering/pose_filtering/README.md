@@ -23,6 +23,26 @@ interpolation (slerp) to smoothly update the track orientation.
 - Supports several ROS message inputs (see below) and publishes a
   `geometry_msgs/PoseArray` containing the current tracked poses.
 
+## Association
+
+Per class, global nearest neighbour (`PoseTrackManager::update`):
+
+- cost: squared Mahalanobis distance between each track and measurement,
+  with the innovation covariance of that pair (measurement noise can differ
+  per measurement: `Landmark::extra_position_cov`, e.g. larger along the
+  line of sight);
+- gate: `max_pos_error` / `max_ori_error` and `mahalanobis_threshold`
+  (a limit on sqrt(d^2); 3.37 keeps 99 % of true 3D detections);
+- the Hungarian algorithm (`hungarian.hpp`) picks the one-to-one assignment
+  with the lowest total cost, so a track can no longer take the measurement
+  of a close neighbour;
+- each track is updated by PDAF with its own measurement only; unassigned
+  measurements start new tracks.
+
+`step()` is `update()` + `end_cycle()`. With several camera frames per
+cycle, call `update()` once per frame in time order and `end_cycle()` once:
+the frames are fused one after another and count as one hit or miss.
+
 ## Supported input messages
 
 The node accepts the following message types as input measurements:

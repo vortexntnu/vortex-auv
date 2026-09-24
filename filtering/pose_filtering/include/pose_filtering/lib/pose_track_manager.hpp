@@ -80,6 +80,26 @@ class PoseTrackManager {
     void step(std::vector<Landmark>& measurements, double dt);
 
     /**
+     * @brief Predict all tracks by dt and update them with one frame of
+     * measurements, without touching the N/M windows. Call once per camera
+     * frame (in time order), then end_cycle() once per cycle, so several
+     * frames in one cycle count as one hit or miss.
+     *
+     * Association is global nearest neighbour per class: squared Mahalanobis
+     * distance as the cost, the gate as the limit, and the Hungarian algorithm
+     * for the one-to-one assignment. Each track is then updated by PDAF with
+     * its own measurement. Unassigned measurements start new tracks.
+     * @param measurements One frame (consumed measurements are removed).
+     * @param dt Time since the previous update [s].
+     */
+    void update(std::vector<Landmark>& measurements, double dt);
+
+    /**
+     * @brief Record hit/miss for the cycle, then delete and confirm tracks.
+     */
+    void end_cycle();
+
+    /**
      * @brief Get the list of currently maintained tracks.
      * @return const reference to internal track vector
      */
@@ -127,16 +147,22 @@ class PoseTrackManager {
 
    private:
     /**
-     * @brief Gate measurements for a track based on class key and gating
-     * parameters.
-     * @param track Track for which to gate measurements
-     * @param measurements Vector of measurements to gate against
-     * @return Vector of indices of measurements that passed the gate
+     * @brief Global nearest neighbour association of one frame.
+     * @return For each track (current order), the measurement index or -1.
      */
-    std::vector<Eigen::Index> gate_measurements_by_class(
-        const Track& track,
-        const std::vector<Landmark>& measurements) const;
+    std::vector<int> associate(const std::vector<Landmark>& measurements,
+                               double dt) const;
 
+    /// The gate of a class.
+    PoseGate6D gate_for(const LandmarkClassConfig& cfg) const;
+
+    /// Class sensor noise, plus the extra position noise of the measurement
+    /// (none for nullptr).
+    SensorMod sensor_model_for(const LandmarkClassConfig& cfg,
+                               const Landmark* measurement) const;
+
+    /// Extra position covariance of a measurement [m^2].
+    static Eigen::Matrix3d extra_position_cov(const Landmark& m);
     /**
      * @brief Compute measurement residuals for a track against a set of
      * measurements.
@@ -210,16 +236,6 @@ class PoseTrackManager {
      * @brief Sort tracks by priority to determine processing / deletion order.
      */
     void sort_tracks_by_priority();
-
-    /**
-     * @brief Erase measurements which have been gated / consumed.
-     * @param measurements Measurements vector (modified in place)
-     * @param indices Indices of measurements to erase
-     */
-    void erase_gated_measurements(
-        std::vector<Landmark>& measurements,
-        const std::vector<Eigen::Index>& global_indices,
-        const Eigen::Array<bool, 1, Eigen::Dynamic>& mask) const;
 
     /**
      * @brief Get the configuration for a specific landmark class key.

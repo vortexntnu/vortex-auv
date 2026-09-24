@@ -285,6 +285,8 @@ LandmarkMapConfig parse_map_config(const YAML::Node& root) {
             cfg.intake.noise_variance_per_meter =
                 get_or<double>(noise, "variance_per_meter",
                                cfg.intake.noise_variance_per_meter);
+            cfg.intake.noise_lateral_ratio = get_or<double>(
+                noise, "lateral_ratio", cfg.intake.noise_lateral_ratio);
         }
     }
 

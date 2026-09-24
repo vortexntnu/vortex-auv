@@ -3,6 +3,7 @@
 #include <Eigen/Dense>
 
 #include <vortex/utils/types.hpp>
+#include "pose_filtering/lib/hungarian.hpp"
 #include "pose_filtering/lib/pose_track_manager.hpp"
 
 namespace vortex::filtering {
@@ -227,6 +228,110 @@ TEST_F(PoseTrackManagerTests, track_from_position_only_learns_orientation) {
     const auto& t = mgr.get_tracks().front();
     EXPECT_TRUE(t.has_orientation);
     EXPECT_NEAR(t.nominal_state.ori.angularDistance(yawed), 0.0, 1e-9);
+}
+
+TEST(Hungarian, finds_the_optimal_assignment) {
+    // Greedy (row by row) takes (0,0)=1 and then (1,1)=10: 11.
+    // The optimum is (0,1)=2 and (1,0)=2: 4.
+    Eigen::MatrixXd c(2, 2);
+    c << 1.0, 2.0, 2.0, 10.0;
+    const auto a = solve_assignment(c);
+    EXPECT_EQ(a[0], 1);
+    EXPECT_EQ(a[1], 0);
+}
+
+TEST(Hungarian, rectangular) {
+    Eigen::MatrixXd c(2, 3);
+    c << 5.0, 1.0, 9.0, 1.0, 5.0, 9.0;
+    const auto a = solve_assignment(c);
+    EXPECT_EQ(a[0], 1);
+    EXPECT_EQ(a[1], 0);
+}
+
+TEST(Hungarian, gnn_leaves_forbidden_and_expensive_pairs_unpaired) {
+    Eigen::MatrixXd cost(2, 2);
+    cost << 1.0, 0.0, 0.0, 20.0;
+    Eigen::Array<bool, Eigen::Dynamic, Eigen::Dynamic> allowed(2, 2);
+    allowed << true, false, false, true;
+    // Pair (1,1) costs more than leaving both unpaired (9).
+    const auto a = associate_gnn(cost, allowed, 9.0);
+    EXPECT_EQ(a[0], 0);
+    EXPECT_EQ(a[1], -1);
+}
+
+TEST_F(PoseTrackManagerTests, close_objects_keep_their_own_measurements) {
+    // Two objects of the same class 0.4 m apart, both inside each other's
+    // gate. The track seen most (processed first) used to take both
+    // measurements and starve its neighbour.
+    auto cfg = make_default_config();
+    cfg.default_class_config.max_pos_error = 1.0;
+    cfg.default_class_config.mahalanobis_threshold = 10.0;
+    PoseTrackManager mgr(cfg);
+
+    const Eigen::Vector3d a{0.0, 0.0, 0.0};
+    const Eigen::Vector3d b{0.4, 0.0, 0.0};
+    for (int i = 0; i < 8; ++i) {
+        std::vector<Landmark> z = {make_landmark(a), make_landmark(b)};
+        mgr.step(z, 0.1);
+    }
+
+    ASSERT_EQ(mgr.get_tracks().size(), 2);
+    for (const auto& t : mgr.get_tracks()) {
+        EXPECT_TRUE(t.confirmed);
+        EXPECT_EQ(t.misses(), 0);
+        const double to_a = (t.nominal_state.pos - a).norm();
+        const double to_b = (t.nominal_state.pos - b).norm();
+        EXPECT_LT(std::min(to_a, to_b), 1e-6);
+    }
+}
+
+TEST_F(PoseTrackManagerTests, several_frames_in_one_cycle_are_one_hit) {
+    PoseTrackManager mgr(make_default_config());
+    for (int cycle = 0; cycle < 3; ++cycle) {
+        for (int frame = 0; frame < 3; ++frame) {
+            std::vector<Landmark> z = {make_landmark({1.0, 0.0, 0.0})};
+            mgr.update(z, 0.03);
+        }
+        mgr.end_cycle();
+    }
+    // One track (the second frame did not start a new one) and one hit per
+    // cycle.
+    ASSERT_EQ(mgr.get_tracks().size(), 1);
+    EXPECT_EQ(mgr.get_tracks().front().hits(), 3);
+    EXPECT_EQ(mgr.get_tracks().front().misses(), 0);
+}
+
+TEST_F(PoseTrackManagerTests, position_only_does_not_shrink_orientation_cov) {
+    PoseTrackManager mgr(make_default_config());
+    std::vector<Landmark> z = {make_landmark({0, 0, 0})};
+    mgr.step(z, 0.1);
+    const double before =
+        mgr.get_tracks().front().error_state.cov()(5, 5);
+
+    Landmark m = make_landmark({0, 0, 0});
+    m.has_orientation = false;
+    std::vector<Landmark> zz = {m};
+    mgr.step(zz, 0.1);
+    // Only the prediction (process noise) acts on the orientation.
+    EXPECT_GT(mgr.get_tracks().front().error_state.cov()(5, 5), before);
+}
+
+TEST_F(PoseTrackManagerTests, line_of_sight_noise_moves_less_along_the_ray) {
+    // Depth (x) is uncertain, the side (y) is not: the same 0.3 m offset
+    // moves the track less along x than along y.
+    const auto moved = [&](const Eigen::Vector3d& offset) {
+        PoseTrackManager mgr(make_default_config());
+        std::vector<Landmark> z = {make_landmark({0, 0, 0})};
+        mgr.step(z, 0.1);
+        Landmark m = make_landmark(offset);
+        Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
+        cov.diagonal() << 1.0, 0.001, 0.001;
+        m.extra_position_cov = cov;
+        std::vector<Landmark> zz = {m};
+        mgr.step(zz, 0.1);
+        return (mgr.get_tracks().front().nominal_state.pos).norm();
+    };
+    EXPECT_LT(moved({0.3, 0.0, 0.0}), moved({0.0, 0.3, 0.0}));
 }
 
 }  // namespace vortex::filtering

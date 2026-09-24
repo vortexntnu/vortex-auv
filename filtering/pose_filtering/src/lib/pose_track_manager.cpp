@@ -5,6 +5,7 @@
 #include <probability/multi_var_gauss.hpp>
 #include <ranges>
 #include <vortex/utils/math.hpp>
+#include "pose_filtering/lib/hungarian.hpp"
 #include "pose_filtering/lib/typedefs.hpp"
 
 namespace vortex::filtering {
@@ -15,82 +16,197 @@ PoseTrackManager::PoseTrackManager(const TrackManagerConfig& config)
 }
 
 void PoseTrackManager::step(std::vector<Landmark>& measurements, double dt) {
-    sort_tracks_by_priority();
-    for (Track& track : tracks_) {
-        const auto& cfg = cfg_for(track);
-        auto type_gate_indices =
-            gate_measurements_by_class(track, measurements);
-        auto type_matched_measurements = compute_measurement_residuals(
-            track, measurements, type_gate_indices);
+    update(measurements, dt);
+    end_cycle();
+}
 
-        PoseGate6D gate;
-        gate.min_pos_error = cfg.min_pos_error;
-        gate.max_pos_error = cfg.max_pos_error;
-        gate.min_ori_error = cfg.min_ori_error;
-        gate.max_ori_error = cfg.max_ori_error;
-        gate.mahalanobis_threshold = cfg.mahalanobis_threshold;
+PoseGate6D PoseTrackManager::gate_for(const LandmarkClassConfig& cfg) const {
+    PoseGate6D gate;
+    gate.min_pos_error = cfg.min_pos_error;
+    gate.max_pos_error = cfg.max_pos_error;
+    gate.min_ori_error = cfg.min_ori_error;
+    gate.max_ori_error = cfg.max_ori_error;
+    gate.mahalanobis_threshold = cfg.mahalanobis_threshold;
+    return gate;
+}
 
-        DynMod dyn_mod(cfg.dyn_std_dev);
-        // Noisier measurements (for instance far away) weigh less. PDAF has
-        // one sensor model per track and step, so the extra variance of the
-        // candidate closest to the track is used. It is added to the position
-        // noise only; the orientation noise is the class value.
-        double extra_variance = 0.0;
-        double closest = std::numeric_limits<double>::infinity();
-        for (const Eigen::Index i : type_gate_indices) {
-            const double d =
-                (measurements[i].pose.pos_vector() - track.nominal_state.pos)
-                    .norm();
-            if (d < closest) {
-                closest = d;
-                extra_variance = measurements[i].extra_variance;
+SensorMod PoseTrackManager::sensor_model_for(
+    const LandmarkClassConfig& cfg,
+    const Landmark* measurement) const {
+    const double sens_var = cfg.sens_std_dev * cfg.sens_std_dev;
+    Eigen::Matrix<double, 6, 6> sensor_cov =
+        Eigen::Matrix<double, 6, 6>::Identity() * sens_var;
+    if (measurement != nullptr) {
+        // Noisier measurements (for instance far away) weigh less. Only the
+        // position noise; the orientation noise is the class value.
+        sensor_cov.topLeftCorner<3, 3>() += extra_position_cov(*measurement);
+    }
+    return SensorMod(sensor_cov);
+}
+
+Eigen::Matrix3d PoseTrackManager::extra_position_cov(const Landmark& m) {
+    if (m.extra_position_cov) {
+        return *m.extra_position_cov;
+    }
+    return Eigen::Matrix3d::Identity() * m.extra_variance;
+}
+
+std::vector<int> PoseTrackManager::associate(
+    const std::vector<Landmark>& measurements,
+    double dt) const {
+    std::vector<int> assignment(tracks_.size(), -1);
+
+    std::vector<LandmarkClassKey> classes;
+    for (const Landmark& m : measurements) {
+        if (std::ranges::find(classes, m.class_key) == classes.end()) {
+            classes.push_back(m.class_key);
+        }
+    }
+
+    for (const LandmarkClassKey& key : classes) {
+        std::vector<int> track_idx;
+        for (int t = 0; t < static_cast<int>(tracks_.size()); ++t) {
+            if (tracks_[t].class_key == key) {
+                track_idx.push_back(t);
             }
         }
-        const double sens_var = cfg.sens_std_dev * cfg.sens_std_dev;
-        Eigen::Matrix<double, 6, 6> sensor_cov =
-            Eigen::Matrix<double, 6, 6>::Identity() * sens_var;
-        sensor_cov.topLeftCorner<3, 3>() +=
-            Eigen::Matrix3d::Identity() * extra_variance;
-        SensorMod sensor_mod(sensor_cov);
+        std::vector<Eigen::Index> meas_idx;
+        for (Eigen::Index i = 0;
+             i < static_cast<Eigen::Index>(measurements.size()); ++i) {
+            if (measurements[i].class_key == key) {
+                meas_idx.push_back(i);
+            }
+        }
+        if (track_idx.empty()) {
+            continue;
+        }
+
+        const auto& cfg = cfg_for(key);
+        const PoseGate6D gate = gate_for(cfg);
+        const DynMod dyn_mod(cfg.dyn_std_dev);
+        const int n_t = static_cast<int>(track_idx.size());
+        const int n_m = static_cast<int>(meas_idx.size());
+        Eigen::MatrixXd cost = Eigen::MatrixXd::Zero(n_t, n_m);
+        Eigen::Array<bool, Eigen::Dynamic, Eigen::Dynamic> allowed =
+            Eigen::Array<bool, Eigen::Dynamic, Eigen::Dynamic>::Constant(
+                n_t, n_m, false);
+
+        // Squared Mahalanobis distance with the innovation covariance of
+        // each pair (the measurement noise depends on the measurement).
+        for (int a = 0; a < n_t; ++a) {
+            const Track& track = tracks_[track_idx[a]];
+            for (int b = 0; b < n_m; ++b) {
+                const Landmark& m = measurements[meas_idx[b]];
+                const auto z = compute_measurement_residuals(
+                                   track, measurements, {meas_idx[b]})
+                                   .matrix()
+                                   .col(0)
+                                   .eval();
+                const auto pred = PDAF::predict(
+                    dyn_mod, sensor_model_for(cfg, &m), dt, track.error_state);
+                if (gate(z, pred.z_pred)) {
+                    allowed(a, b) = true;
+                    const double d = pred.z_pred.mahalanobis_distance(z);
+                    cost(a, b) = d * d;
+                }
+            }
+        }
+
+        // With a gate on d <= gamma every allowed pair is cheaper than
+        // leaving both unpaired (gamma^2).
+        double unpaired = cfg.mahalanobis_threshold * cfg.mahalanobis_threshold;
+        if (!std::isfinite(unpaired)) {
+            unpaired =
+                allowed.any()
+                    ? 2.0 * (allowed.cast<double>() * cost.array()).maxCoeff() +
+                          1.0
+                    : 1.0;
+        }
+        const auto pairs = associate_gnn(cost, allowed, unpaired);
+        for (int a = 0; a < n_t; ++a) {
+            if (pairs[a] >= 0) {
+                assignment[track_idx[a]] = static_cast<int>(meas_idx[pairs[a]]);
+            }
+        }
+    }
+    return assignment;
+}
+
+void PoseTrackManager::update(std::vector<Landmark>& measurements, double dt) {
+    sort_tracks_by_priority();
+    const std::vector<int> assignment = associate(measurements, dt);
+
+    std::vector<Eigen::Index> used;
+    for (int t = 0; t < static_cast<int>(tracks_.size()); ++t) {
+        Track& track = tracks_[t];
+        const auto& cfg = cfg_for(track);
+        const DynMod dyn_mod(cfg.dyn_std_dev);
 
         PDAF::Config pdaf_cfg;
         pdaf_cfg.pdaf.mahalanobis_threshold = cfg.mahalanobis_threshold;
         pdaf_cfg.pdaf.prob_of_detection = cfg.prob_of_detection;
         pdaf_cfg.pdaf.clutter_intensity = cfg.clutter_intensity;
 
-        auto pdaf_output =
-            PDAF::step(dyn_mod, sensor_mod, dt, track.error_state,
-                       type_matched_measurements, pdaf_cfg, gate);
+        // The track gets its own measurement only (0 or 1 column), so PDAF
+        // no longer averages over measurements that belong to other tracks.
+        const int mi = assignment[t];
+        const Landmark* m = mi >= 0 ? &measurements[mi] : nullptr;
+        std::vector<Eigen::Index> idx;
+        if (m != nullptr) {
+            idx.push_back(mi);
+        }
+        const auto z = compute_measurement_residuals(track, measurements, idx);
 
-        bool hit = pdaf_output.gated_measurements.any();
-        adopt_orientation(track, measurements, type_gate_indices,
+        auto pdaf_output =
+            PDAF::step(dyn_mod, sensor_model_for(cfg, m), dt, track.error_state,
+                       z, pdaf_cfg, gate_for(cfg));
+        const bool hit = pdaf_output.gated_measurements.any();
+
+        // Without orientation in the measurement (or the track), the
+        // orientation residual is a placeholder zero. Keep the predicted
+        // orientation so it does not look measured. Position and
+        // orientation are uncorrelated here (block-diagonal models), so this
+        // equals a position-only update.
+        if (hit && !(m->has_orientation && track.has_orientation)) {
+            const auto& pred = pdaf_output.x_pred;
+            pdaf_output.x_post.mean().tail<3>() = pred.mean().tail<3>();
+            pdaf_output.x_post.cov().block<3, 3>(3, 3) =
+                pred.cov().block<3, 3>(3, 3);
+            pdaf_output.x_post.cov().block<3, 3>(0, 3) =
+                pred.cov().block<3, 3>(0, 3);
+            pdaf_output.x_post.cov().block<3, 3>(3, 0) =
+                pred.cov().block<3, 3>(3, 0);
+        }
+
+        adopt_orientation(track, measurements, idx,
                           pdaf_output.gated_measurements);
 
         track.error_state = pdaf_output.x_post;
         inject_and_reset(track);
-        record_hit_miss(track, hit);
-        erase_gated_measurements(measurements, type_gate_indices,
-                                 pdaf_output.gated_measurements);
-    }
-    delete_tracks();
-    create_tracks(measurements);
-    confirm_tracks();
-}
-
-std::vector<Eigen::Index> PoseTrackManager::gate_measurements_by_class(
-    const Track& track,
-    const std::vector<Landmark>& measurements) const {
-    std::vector<Eigen::Index> idx;
-    idx.reserve(measurements.size());
-
-    for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(measurements.size());
-         ++i) {
-        const auto& m = measurements[i];
-        if (m.class_key == track.class_key) {
-            idx.push_back(i);
+        track.hit_in_cycle = track.hit_in_cycle || hit;
+        if (hit) {
+            used.push_back(mi);
         }
     }
-    return idx;
+
+    std::ranges::sort(used, std::greater<Eigen::Index>());
+    for (Eigen::Index i : used) {
+        measurements.erase(measurements.begin() + i);
+    }
+    create_tracks(measurements);
+}
+
+void PoseTrackManager::end_cycle() {
+    for (Track& track : tracks_) {
+        // A track created in this cycle already has its first hit.
+        if (!track.created_in_cycle) {
+            record_hit_miss(track, track.hit_in_cycle);
+        }
+        track.hit_in_cycle = false;
+        track.created_in_cycle = false;
+    }
+    delete_tracks();
+    confirm_tracks();
 }
 
 Eigen::Array<double, 6, Eigen::Dynamic>
@@ -203,26 +319,6 @@ Eigen::Quaterniond PoseTrackManager::so3_exp_quat(
                               axis.z() * std::sin(half));
 }
 
-void PoseTrackManager::erase_gated_measurements(
-    std::vector<Landmark>& measurements,
-    const std::vector<Eigen::Index>& global_indices,
-    const Eigen::Array<bool, 1, Eigen::Dynamic>& mask) const {
-    std::vector<Eigen::Index> to_erase;
-    to_erase.reserve(global_indices.size());
-
-    for (Eigen::Index k = 0;
-         k < static_cast<Eigen::Index>(global_indices.size()); ++k) {
-        if (mask(k)) {  // <-- confirm semantics: true == "use/associated"
-            to_erase.push_back(global_indices[k]);
-        }
-    }
-
-    std::sort(to_erase.begin(), to_erase.end(), std::greater<Eigen::Index>());
-    for (Eigen::Index idx : to_erase) {
-        measurements.erase(measurements.begin() + idx);
-    }
-}
-
 void PoseTrackManager::create_tracks(
     const std::vector<Landmark>& measurements) {
     tracks_.reserve(tracks_.size() + measurements.size());
@@ -235,6 +331,9 @@ void PoseTrackManager::create_tracks(
         P0.block<3, 3>(3, 3).setIdentity();
 
         P0.block<3, 3>(0, 0) *= cfg.init_pos_std * cfg.init_pos_std;
+        // A new track is no surer than the measurement it comes from.
+        P0.block<3, 3>(0, 0) +=
+            sensor_model_for(cfg, &measurement).R().topLeftCorner<3, 3>();
         P0.block<3, 3>(3, 3) *= cfg.init_ori_std * cfg.init_ori_std;
 
         Track t{.id = track_id_counter_++,
@@ -247,6 +346,8 @@ void PoseTrackManager::create_tracks(
                 .confirmed = false};
         t.has_orientation = measurement.has_orientation;
         t.hit_history.push_back(true);
+        t.hit_in_cycle = true;
+        t.created_in_cycle = true;
         return t;
     };
 

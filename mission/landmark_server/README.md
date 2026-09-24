@@ -44,7 +44,8 @@ course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
 | Bins | The role icon seen by the down camera gives the role of the nearest bin; the roleless duplicate is hidden |
 | Octagon | `OCTAGON_WHOLE` over the table; with `z_lock` on it floats at `surface_z` |
 | Depth lock | `rules.z_lock`: floor classes get `floor_z`, surface classes `surface_z` (odom z, down positive). Entries can be a type (`OCTAGON`) or one subtype (`OCTAGON_WHOLE`). The table is not locked: its top is ~0.7 m above the floor. Off by default in code, on in the config with the simulator's pool depth: measure the real one |
-| Distance noise | `intake.distance_noise`: the tracker adds `base + per_meter * distance` to the sensor variance, so far detections weigh less. The covariance from perception is not used for the position |
+| Distance noise | `intake.distance_noise`: the tracker adds `base + per_meter * distance` to the position variance along the line of sight (depth) and `lateral_ratio` times that across it, so far detections weigh less and the depth, which a camera knows worst, weighs least. The covariance from perception is not used for the position |
+| Association | One tracker update per camera frame (same stamp), in time order; hits and misses are counted once per tick. Per class, global nearest neighbour: squared Mahalanobis distance as the cost, the gate (`gate.max_pos_error`, `mahalanobis_gate_threshold`) as the limit, the Hungarian algorithm for the one-to-one assignment. Each track is then updated by PDAF with its own measurement |
 
 ## Files
 

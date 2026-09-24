@@ -23,7 +23,8 @@
         init_pos_std_dev: 0.1
         init_ori_std_dev: 0.05
 
-        mahalanobis_gate_threshold: 2.5 # in std deviations
+        # sqrt(d^2) limit; 3.37 = 99 % of true detections in 3D (position only)
+        mahalanobis_gate_threshold: 3.4
         prob_of_detection: 0.5
         clutter_intensity: 0.01
 
@@ -37,7 +38,8 @@
       no_orientation_rot_variance: 1000.0  # rotation variance >= this = no orientation
       # Extra measurement variance [m^2] = base + per_meter * distance from the
       # vehicle: far detections weigh less in the tracker.
-      distance_noise: {base_variance: 0.0, variance_per_meter: 0.005}
+      # Along the line of sight (depth); across it: lateral_ratio * that.
+      distance_noise: {base_variance: 0.0, variance_per_meter: 0.005, lateral_ratio: 0.25}
 
     # Course frame: TF nautilus/course (child of target_frame).
     # x through the gate, y to the right, z down. Lane limits are in this frame

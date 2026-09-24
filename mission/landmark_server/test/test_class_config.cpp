@@ -41,7 +41,7 @@ TEST(ClassConfig, ParsesExampleYaml) {
 TEST(ClassConfig, ParsesZLockAndDistanceNoise) {
     const auto cfg = parse_map_config(YAML::Load(R"(
 intake:
-  distance_noise: {base_variance: 0.01, variance_per_meter: 0.005}
+  distance_noise: {base_variance: 0.01, variance_per_meter: 0.005, lateral_ratio: 0.25}
 rules:
   z_lock:
     enable: true
@@ -52,6 +52,7 @@ rules:
 )"));
     EXPECT_DOUBLE_EQ(cfg.intake.noise_base_variance, 0.01);
     EXPECT_DOUBLE_EQ(cfg.intake.noise_variance_per_meter, 0.005);
+    EXPECT_DOUBLE_EQ(cfg.intake.noise_lateral_ratio, 0.25);
     const auto& z = cfg.map_rules.z_lock;
     EXPECT_TRUE(z.enable);
     EXPECT_DOUBLE_EQ(z.floor_z, 3.4);

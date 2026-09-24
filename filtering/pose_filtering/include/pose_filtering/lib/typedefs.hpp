@@ -3,6 +3,7 @@
 
 #include <deque>
 #include <eigen3/Eigen/Dense>
+#include <optional>
 #include <utility>
 #include <vector>
 #include <vortex/utils/types.hpp>
@@ -133,6 +134,11 @@ struct Landmark {
     /// caller decides it (landmark_server: growing with the distance to the
     /// object); the tracker only applies it. 0 = the class noise alone.
     double extra_variance{0.0};
+    /// Extra position covariance [m^2] on top of the class sensor noise, for
+    /// noise that depends on the direction (a camera is much less sure about
+    /// the depth along the line of sight than across it). Used instead of
+    /// extra_variance when set.
+    std::optional<Eigen::Matrix3d> extra_position_cov{};
 };
 
 /**
@@ -164,6 +170,11 @@ struct Track {
     /// measurement with orientation has been associated (the orientation is
     /// then a placeholder).
     bool has_orientation{true};
+
+    /// Bookkeeping of the current cycle (see PoseTrackManager::update()):
+    /// a measurement was associated, or the track was created in it.
+    bool hit_in_cycle{false};
+    bool created_in_cycle{false};
 
     /// Number of hits in the current window
     int hits() const {

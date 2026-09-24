@@ -2,6 +2,7 @@
 #include <spdlog/spdlog.h>
 #include <algorithm>
 #include <iterator>
+#include <map>
 #include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp_action/create_client.hpp>
@@ -248,35 +249,45 @@ void LandmarkServerNode::timer_callback() {
         measurements_.clear();
     }
 
-    // The filters run on measurement time. Ticks without measurements
-    // advance it by the tick period (prediction). A measurement older than
+    // One tracker update per camera frame (same stamp), in time order, so
+    // two frames of the same object are fused one after the other instead
+    // of competing in one update. The filters run on measurement time; a
+    // tick without frames predicts by the tick period. A frame older than
     // the filter time (camera latency after such ticks) is applied without
     // predicting further; a jump larger than max_stamp_dt_seconds_ (clock
-    // change, bag loop) resynchronises the filter time.
-    double dt = filter_dt_seconds_;
-    if (!measurements_snapshot.empty()) {
-        double newest_stamp = measurements_snapshot.front().stamp_sec;
-        for (const auto& m : measurements_snapshot) {
-            newest_stamp = std::max(newest_stamp, m.stamp_sec);
+    // change, bag loop) resynchronises the filter time. Hits and misses are
+    // counted once per tick (end_cycle).
+    std::map<double, std::vector<Landmark>> frames;
+    for (auto& m : measurements_snapshot) {
+        frames[m.stamp_sec].push_back(std::move(m));
+    }
+    if (frames.empty()) {
+        if (filter_time_sec_) {
+            *filter_time_sec_ += filter_dt_seconds_;
         }
+        std::vector<Landmark> none;
+        track_manager_->update(none, filter_dt_seconds_);
+    }
+    for (auto& [stamp, frame] : frames) {
+        double dt = filter_dt_seconds_;
         if (!filter_time_sec_) {
-            filter_time_sec_ = newest_stamp;
+            filter_time_sec_ = stamp;
         } else {
-            const double stamp_dt = newest_stamp - *filter_time_sec_;
+            const double stamp_dt = stamp - *filter_time_sec_;
             if (std::abs(stamp_dt) > max_stamp_dt_seconds_) {
                 spdlog::warn(
                     "LandmarkServer: measurement time jumped {:.3f} s, "
                     "resynchronising",
                     stamp_dt);
-                filter_time_sec_ = newest_stamp;
+                filter_time_sec_ = stamp;
             } else {
                 dt = std::max(stamp_dt, min_step_dt_seconds_);
-                filter_time_sec_ = std::max(*filter_time_sec_, newest_stamp);
+                filter_time_sec_ = std::max(*filter_time_sec_, stamp);
             }
         }
-    } else if (filter_time_sec_) {
-        *filter_time_sec_ += dt;
+        track_manager_->update(frame, dt);
     }
+    track_manager_->end_cycle();
 
     const auto dropped = dropped_measurements_.load();
     if (dropped != reported_dropped_measurements_) {
@@ -285,8 +296,6 @@ void LandmarkServerNode::timer_callback() {
             dropped);
         reported_dropped_measurements_ = dropped;
     }
-
-    track_manager_->step(measurements_snapshot, dt);
 
     update_map();
     publish_map();
