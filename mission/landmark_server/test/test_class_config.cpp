@@ -44,6 +44,7 @@ intake:
   distance_noise: {base_variance: 0.01, variance_per_meter: 0.005, lateral_ratio: 0.25}
   measurement_covariance: {use: true, scale: 10.0, min_std_m: 0.05}
 rules:
+  adoption: {ambiguity_ratio: 3.0, wait_sec: 1.5}
   z_lock:
     enable: true
     floor_z: 3.4
@@ -58,6 +59,9 @@ rules:
     EXPECT_DOUBLE_EQ(cfg.intake.covariance_scale, 10.0);
     EXPECT_DOUBLE_EQ(cfg.intake.covariance_min_std_m, 0.05);
     EXPECT_FALSE(parse_map_config(YAML::Node()).intake.use_measurement_covariance);
+    EXPECT_DOUBLE_EQ(cfg.adoption_ambiguity_ratio, 3.0);
+    EXPECT_DOUBLE_EQ(cfg.adoption_wait_sec, 1.5);
+    EXPECT_DOUBLE_EQ(parse_map_config(YAML::Node()).adoption_ambiguity_ratio, 2.0);
     const auto& z = cfg.map_rules.z_lock;
     EXPECT_TRUE(z.enable);
     EXPECT_DOUBLE_EQ(z.floor_z, 3.4);

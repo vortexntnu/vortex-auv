@@ -37,7 +37,7 @@ course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
 
 | Rule | What it does |
 |---|---|
-| Stable ids | A new track within `instance_gate_m` of a remembered landmark of the same class takes over its id; classes with `max_instances: 1` accept `plausibility_radius_m`. A false gate 8 m away does not take over |
+| Stable ids | A new track within `instance_gate_m` of a remembered landmark of the same class takes over its id; classes with `max_instances: 1` accept `plausibility_radius_m`. A false gate 8 m away does not take over. Only a clear nearest takes over (`rules.adoption`): the next remembered landmark of the class must be `ambiguity_ratio` (2) times farther away; otherwise the track waits up to `wait_sec` (2 s) for a closer look and then counts as a new object. A wrong take-over would join two objects in the graph for the rest of the run |
 | Memory | `retain: forever` (gate, board, table, octagon) or `retain_sec`; pipes with `keep_after_observations` observations are kept for the rest of the run |
 | Limits | `max_instances` per (type, subtype); no pipes within `min_distance_to_large_structures_m` of a gate/table/board/bin structure; pipes farther than `max_pipe_distance_m` are discarded at intake |
 | Gate | Yaw from the panel line, gate pulled to the panel midpoint, synthetic `GATE_WHOLE` if only the panels were seen, panels inherit the yaw |
@@ -93,6 +93,15 @@ Result 2026-09-25 (0.5 deg/m, 32 m, 15.8 deg drift at the end): remembered landm
 | graph, detector covariance | **0.08 m** | **0.38 m** | 0.17 m |
 | graph, covariance x0.1 (overconfident) | 0.50 m | 0.60 m | 0.21 m |
 | graph, covariance x10 (underconfident) | 0.13 m | 0.38 m | 0.25 m |
+
+Two laps (`drift_route.py -p route:=long`, 63 m, 31.5 deg drift at the end) with camera noise and the unstable dummy profile (misses, occlusions, outliers, false detections), four servers, truth from the course layout (`graph_eval.py -p truth_seed:=7`). After the second lap:
+
+| Server | Remembered, mean/max | Landmarks (27 real) | Id swaps |
+|---|---|---|---|
+| no graph | 2.21 / 4.67 m | 34: 2 extra white pipes, 1 red, 1 gate post; the stale torpedo board (3.8 m off) blocks the real one (class full) | 0 |
+| graph | 0.06 / 0.16 m | 31: every pipe once | 0 |
+
+The take-over check (`rules.adoption`) changed nothing here, with or without the graph: with the graph the right landmark is clearly the nearest. It stays on as a safety net for dense objects before the first loop closure.
 
 A correct detector covariance helps, most of all its shape (range much less certain than bearing), which keeps a range bias from pulling the map. An overconfident one is worse than the own model and gave a duplicate slalom pipe (the tracker gate became too tight). Covariance without the graph does nothing against drift.
 

@@ -8,7 +8,11 @@ odom frame (drift_injector's /nautilus/drift): where it really is relative to
 the vehicle, in the frame the vehicle navigates in.
 
 Every second: mean/max error of remembered (not live) and all landmarks per
-map. Also written to csv (param csv, relative to the working directory).
+map, and id swaps: a map id that moves to another true object (a wrong
+take-over). With truth_seed >= 0 the truth is the dummy's course layout for
+that seed (use it with noisy or unstable dummy profiles, whose
+landmarks_true carry the noise). Also written to csv (param csv, relative to the working
+directory).
 """
 
 import csv
@@ -55,6 +59,7 @@ class GraphEval(Node):
         self.declare_parameter(
             "z_locked_types", [LandmarkType.PATH_MARKER, LandmarkType.OCTAGON]
         )
+        self.declare_parameter("truth_seed", -1)
         g = self.get_parameter
         self._labels = list(g("labels").value)
         self._maps = dict.fromkeys(self._labels)
@@ -62,6 +67,16 @@ class GraphEval(Node):
         self._c = np.eye(4)
         self._vehicle = None
         self._skip_z = set(g("z_locked_types").value)
+        self._fixed_truth = g("truth_seed").value >= 0
+        if self._fixed_truth:
+            from robosub_dummy_publisher import course_layout
+
+            picks, _ = course_layout.draw_role_picks(g("truth_seed").value)
+            for task in course_layout.TASKS.values():
+                for lm in task.landmarks(picks):
+                    key = (lm.landmark_type, lm.landmark_subtype)
+                    pos = np.array(task.base_pose) + np.array(lm.offset)
+                    self._truth.setdefault(key, []).append(pos)
         for topic, lab in zip(g("maps").value, self._labels):
             self.create_subscription(
                 LandmarkTrackArray,
@@ -93,8 +108,11 @@ class GraphEval(Node):
                 f"{lab}_retained_max",
                 f"{lab}_all_mean",
                 f"{lab}_n",
+                f"{lab}_swaps",
             ]
         self._w.writerow(header)
+        self._assign = {lab: {} for lab in self._labels}  # map id -> truth
+        self._swaps = dict.fromkeys(self._labels, 0)
         self._t0 = time.monotonic()
         self.create_timer(1.0, self._evaluate)
 
@@ -103,6 +121,8 @@ class GraphEval(Node):
         self._vehicle = (p.x, p.y)
 
     def _on_truth(self, msg):
+        if self._fixed_truth:
+            return
         for lm in msg.landmarks:
             key = (lm.type.value, lm.subtype.value)
             p = lm.pose.pose.position
@@ -126,8 +146,9 @@ class GraphEval(Node):
             d = [est - q for q in truth]
             if key[0] in self._skip_z:
                 d = [np.array([v[0], v[1], 0.0]) for v in d]
-            err = min(float(np.linalg.norm(v)) for v in d)
-            rows.append((t.landmark.id, key, t.retained, err))
+            norms = [float(np.linalg.norm(v)) for v in d]
+            idx = int(np.argmin(norms))
+            rows.append((t.landmark.id, key, t.retained, norms[idx], (key, idx)))
         return rows
 
     def _evaluate(self):
@@ -141,15 +162,23 @@ class GraphEval(Node):
         for lab in self._labels:
             msg = self._maps[lab]
             rows = self._errors(msg) if msg else []
+            # A swap: the id now sits on another true object (counted when it
+            # is within 0.3 m of it, so noise near the middle does not count).
+            for lid, _, _, err, truth in rows:
+                prev = self._assign[lab].get(lid)
+                if err < 0.3:
+                    if prev is not None and prev != truth:
+                        self._swaps[lab] += 1
+                    self._assign[lab][lid] = truth
             ret = [r[3] for r in rows if r[2]]
             allv = [r[3] for r in rows]
             rm = float(np.mean(ret)) if ret else float("nan")
             rx = float(np.max(ret)) if ret else float("nan")
             am = float(np.mean(allv)) if allv else float("nan")
             line.append(
-                f"{lab}: remembered {rm:4.2f}/{rx:4.2f} m (mean/max, n={len(ret)}) all {am:4.2f} m n={len(allv)}"
+                f"{lab}: remembered {rm:4.2f}/{rx:4.2f} m (mean/max, n={len(ret)}) all {am:4.2f} m n={len(allv)} swaps={self._swaps[lab]}"
             )
-            row += [rm, rx, am, len(allv)]
+            row += [rm, rx, am, len(allv), self._swaps[lab]]
         self.get_logger().info(" | ".join(line))
         self._w.writerow(row)
         self._csv.flush()
@@ -161,7 +190,7 @@ class GraphEval(Node):
             if not msg:
                 continue
             print(f"--- {lab}")
-            for lid, key, retained, err in sorted(
+            for lid, key, retained, err, _ in sorted(
                 self._errors(msg), key=lambda r: -r[3]
             ):
                 name = TYPE_NAMES.get(key[0], str(key[0]))

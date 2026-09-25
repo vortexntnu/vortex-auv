@@ -4,6 +4,7 @@
 #include <deque>
 #include <eigen3/Eigen/Dense>
 #include <functional>
+#include <map>
 #include <pose_filtering/lib/typedefs.hpp>
 #include <string>
 #include <vector>
@@ -68,7 +69,10 @@ struct RetainedLandmark {
  *  - a track that is already followed updates its landmark;
  *  - a new track takes over the nearest remembered landmark of the same class
  *    within the adoption radius (so the id survives a track being deleted and
- *    recreated);
+ *    recreated), but only when that landmark is clearly the nearest (the next
+ *    one of the class adoption_ambiguity_ratio times farther away). An
+ *    ambiguous track waits up to adoption_wait_sec for that; a wrong take-over
+ *    would join two objects in the smoothing graph for the rest of the run;
  *  - otherwise it becomes a new landmark, unless the class is full, it lies
  *    outside the lane bounds, or (for pipes) too close to a large structure.
  */
@@ -112,6 +116,10 @@ class RetainedLandmarks {
     /// too close to a large structure.
     int rejected_count() const { return rejected_; }
 
+    /// Number of ticks a track waited because two landmarks were about as
+    /// near (ambiguous take-over).
+    int ambiguous_count() const { return ambiguous_; }
+
    private:
     void update_from_track(RetainedLandmark& lm,
                            const vortex::filtering::Track& track,
@@ -124,6 +132,10 @@ class RetainedLandmarks {
     std::deque<RetainedLandmark> landmarks_;
     int next_id_{0};
     int rejected_{0};
+    int ambiguous_{0};
+    /// Tracks waiting for an ambiguous take-over to resolve: track id -> time
+    /// the wait started.
+    std::map<int, double> ambiguous_since_;
 };
 
 }  // namespace vortex::mission

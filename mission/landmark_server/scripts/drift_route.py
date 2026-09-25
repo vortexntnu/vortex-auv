@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Simulator tool: drive a loop past the RoboSub course with waypoint_manager.
 
-Out along y = -3 (beside the gate and the slalom, no collisions) to the
+route:=short (default): out along y = -3 (beside the gate and the slalom, no collisions) to the
 torpedo board, turn, back, and finally in front of the gate again: the gate
-seen at the start and at the end closes the loop. World frame (true odometry).
+seen at the start and at the end closes the loop.
+
+route:=long: two laps that also look at the bins and the table, so pipes,
+board and bins are seen again after a lot of drift.
+
+World frame (true odometry).
 """
 
 import math
@@ -16,7 +21,7 @@ from vortex_msgs.action import WaypointManager
 from vortex_msgs.msg import Waypoint, WaypointMode
 
 # x, y, yaw [deg], hold [s]
-ROUTE = [
+SHORT = [
     (0.0, 0.0, 0.0, 4.0),
     (2.0, -3.0, 0.0, 0.0),
     (13.0, -3.0, 0.0, 4.0),
@@ -25,6 +30,24 @@ ROUTE = [
     (-1.0, 0.0, 180.0, 0.0),
     (-1.0, 0.0, 0.0, 8.0),
 ]
+
+# Two laps, the bins and the table included: everything is seen again after a
+# lot of drift (take-over of remembered pipes, bins and the board).
+LONG = [
+    (0.0, 0.0, 0.0, 4.0),
+    (2.0, -3.0, 0.0, 0.0),
+    (13.0, -3.0, 0.0, 3.0),
+    (13.0, 2.5, 0.0, 4.0),
+    (13.0, 2.5, 180.0, 0.0),
+    (13.0, -3.0, 180.0, 0.0),
+    (2.0, -3.0, 180.0, 0.0),
+    (-1.0, 0.0, 180.0, 0.0),
+    (-1.0, 0.0, 0.0, 4.0),
+    (2.0, -3.0, 0.0, 0.0),
+    (13.0, -3.0, 0.0, 3.0),
+    (13.0, 2.5, 0.0, 6.0),
+]
+ROUTES = {"short": SHORT, "long": LONG}
 
 
 def waypoint(x, y, z, yaw_deg, hold):
@@ -44,13 +67,15 @@ class Route(Node):
         super().__init__("drift_route")
         self.declare_parameter("depth", 2.0)
         self.declare_parameter("action", "/nautilus/waypoint_manager")
+        self.declare_parameter("route", "short")
         z = self.get_parameter("depth").value
+        self._route = ROUTES[self.get_parameter("route").value]
         self._client = ActionClient(
             self, WaypointManager, self.get_parameter("action").value
         )
         self._goal = WaypointManager.Goal()
         self._goal.waypoints = [
-            waypoint(x, y, z, yaw, hold) for x, y, yaw, hold in ROUTE
+            waypoint(x, y, z, yaw, hold) for x, y, yaw, hold in self._route
         ]
         self._goal.convergence_threshold = 0.3
         self._goal.frame = WaypointManager.Goal.WORLD
@@ -77,7 +102,7 @@ class Route(Node):
         i = fb.feedback.current_index
         if getattr(self, "_last", None) != i:
             self._last = i
-            x, y, yaw, _ = ROUTE[i]
+            x, y, yaw, _ = self._route[i]
             self.get_logger().info(f"waypoint {i}: ({x}, {y}) yaw {yaw}")
 
 

@@ -16,7 +16,9 @@ RetainedLandmarks::RetainedLandmarks(LandmarkMapConfig config)
 
 void RetainedLandmarks::clear() {
     landmarks_.clear();
+    ambiguous_since_.clear();
     rejected_ = 0;
+    ambiguous_ = 0;
 }
 
 const RetainedLandmark* RetainedLandmarks::find(int id) const {
@@ -119,6 +121,14 @@ void RetainedLandmarks::update(
         }
     }
 
+    // Waits of tracks that are gone.
+    for (auto it = ambiguous_since_.begin(); it != ambiguous_since_.end();) {
+        const bool alive =
+            std::any_of(confirmed.begin(), confirmed.end(),
+                        [&](const auto& t) { return t.id == it->first; });
+        it = alive ? std::next(it) : ambiguous_since_.erase(it);
+    }
+
     // Lane bounds tighten when the gate locks: drop what is now outside.
     if (position_allowed) {
         landmarks_.erase(
@@ -180,8 +190,32 @@ void RetainedLandmarks::update(
             }
         }
         if (best != nullptr) {
-            update_from_track(*best, track, now);
-            continue;
+            // Only when it is clearly the nearest: the next remembered
+            // landmark of the class, in or out of the radius, must be ratio
+            // times farther away. Landmarks followed by other tracks are
+            // explained already and do not compete.
+            double second = std::numeric_limits<double>::infinity();
+            for (const auto& lm : landmarks_) {
+                if (&lm != best && lm.key == track.class_key && !lm.derived &&
+                    lm.live_track_id < 0) {
+                    second = std::min(second, (lm.position - position).norm());
+                }
+            }
+            const bool clear =
+                config_.adoption_ambiguity_ratio <= 1.0 ||
+                second >= config_.adoption_ambiguity_ratio * best_dist;
+            if (clear) {
+                ambiguous_since_.erase(track.id);
+                update_from_track(*best, track, now);
+                continue;
+            }
+            // Ambiguous: wait for a closer look, then treat it as new.
+            const double since =
+                ambiguous_since_.try_emplace(track.id, now).first->second;
+            if (now - since < config_.adoption_wait_sec) {
+                ++ambiguous_;
+                continue;
+            }
         }
         if (duplicate) {
             ++rejected_;

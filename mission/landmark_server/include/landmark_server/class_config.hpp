@@ -151,6 +151,14 @@ struct LandmarkMapConfig {
     /// A new track this close to a remembered landmark of a class with
     /// max_instances == 1 is the same object [m].
     double plausibility_radius_m{3.0};
+    /// A remembered landmark takes a new track over only when it is clearly
+    /// the nearest: the next landmark of the class must be at least this many
+    /// times farther away. <= 1 turns the check off.
+    double adoption_ambiguity_ratio{2.0};
+    /// How long an ambiguous track waits for the ambiguity to resolve before
+    /// it is treated as a new object (new landmark, or rejected when the
+    /// class is full) [s].
+    double adoption_wait_sec{2.0};
     /// Classes that count as large structures, as (type, subtype); subtype 0
     /// stands for every subtype of the type.
     std::vector<std::pair<uint16_t, uint16_t>> large_structures;

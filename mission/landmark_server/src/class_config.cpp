@@ -357,6 +357,12 @@ LandmarkMapConfig parse_map_config(const YAML::Node& root) {
     if (const auto rules = root["rules"]) {
         cfg.plausibility_radius_m = get_or<double>(
             rules, "plausibility_radius_m", cfg.plausibility_radius_m);
+        if (const auto adoption = rules["adoption"]) {
+            cfg.adoption_ambiguity_ratio = get_or<double>(
+                adoption, "ambiguity_ratio", cfg.adoption_ambiguity_ratio);
+            cfg.adoption_wait_sec =
+                get_or<double>(adoption, "wait_sec", cfg.adoption_wait_sec);
+        }
         MapRulesConfig& mr = cfg.map_rules;
         mr.gate_yaw_from_panels = get_or<bool>(rules, "gate_yaw_from_panels",
                                                mr.gate_yaw_from_panels);

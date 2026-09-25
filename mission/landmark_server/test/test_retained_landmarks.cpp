@@ -89,6 +89,121 @@ TEST(RetainedLandmarks, TwoBinsDoNotSwapIds) {
     EXPECT_NEAR(b->position.y(), 2.0, 1e-12);
 }
 
+namespace {
+
+/// Two remembered white pipes 0.8 m apart (A at y = 0, B at y = 0.8), no live
+/// tracks. Returns their ids.
+std::pair<int, int> two_remembered_pipes(RetainedLandmarks& map) {
+    map.update({make_track(1, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE, v(10, 0)),
+                make_track(2, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE, v(10, 0.8))},
+               0.0);
+    map.update({}, 1.0);
+    return {map.landmarks()[0].id, map.landmarks()[1].id};
+}
+
+}  // namespace
+
+TEST(RetainedLandmarks, AmbiguousTakeOverWaitsThenCountsAsNew) {
+    RetainedLandmarks map(example_config());
+    const auto [a, b] = two_remembered_pipes(map);
+
+    // 0.35 m from A, 0.45 m from B: either could be it.
+    const auto track = make_track(5, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE,
+                                  v(10, 0.35));
+    map.update({track}, 2.0);
+    EXPECT_EQ(map.find(a)->live_track_id, -1);
+    EXPECT_EQ(map.find(b)->live_track_id, -1);
+    EXPECT_EQ(map.landmarks().size(), 2u) << "no new landmark while waiting";
+    EXPECT_EQ(map.ambiguous_count(), 1);
+
+    // Still ambiguous after wait_sec (2 s): a new object, the old ones keep
+    // their ids and positions.
+    map.update({track}, 3.0);
+    EXPECT_EQ(map.landmarks().size(), 2u);
+    map.update({track}, 4.1);
+    ASSERT_EQ(map.landmarks().size(), 3u);
+    EXPECT_EQ(map.find(a)->live_track_id, -1);
+    EXPECT_EQ(map.find(b)->live_track_id, -1);
+    EXPECT_NEAR(map.find(a)->position.y(), 0.0, 1e-12);
+    EXPECT_NEAR(map.find(b)->position.y(), 0.8, 1e-12);
+}
+
+TEST(RetainedLandmarks, AmbiguityResolvedByACloserLookTakesOver) {
+    RetainedLandmarks map(example_config());
+    const auto [a, b] = two_remembered_pipes(map);
+
+    map.update({make_track(5, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE,
+                           v(10, 0.35))},
+               2.0);
+    EXPECT_EQ(map.find(a)->live_track_id, -1);
+
+    // The track settles 0.1 m from A (0.7 m from B): clearly A.
+    map.update({make_track(5, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE,
+                           v(10, 0.1))},
+               2.5);
+    EXPECT_EQ(map.find(a)->live_track_id, 5);
+    EXPECT_EQ(map.find(b)->live_track_id, -1);
+    EXPECT_EQ(map.landmarks().size(), 2u);
+}
+
+TEST(RetainedLandmarks, ClearlyNearestTakesOverAtOnce) {
+    RetainedLandmarks map(example_config());
+    const auto [a, b] = two_remembered_pipes(map);
+    // 0.2 m from A, 0.6 m from B: ratio 3.
+    map.update({make_track(5, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE,
+                           v(10, 0.2))},
+               2.0);
+    EXPECT_EQ(map.find(a)->live_track_id, 5);
+    EXPECT_EQ(map.ambiguous_count(), 0);
+    (void)b;
+}
+
+TEST(RetainedLandmarks, AFollowedLandmarkDoesNotMakeATakeOverAmbiguous) {
+    RetainedLandmarks map(example_config());
+    const auto [a, b] = two_remembered_pipes(map);
+    // Both pipes are seen again at once, shifted by drift (0.3 m for A, 0.2 m for B). The track
+    // on B is clear; once B is followed, the one near A is clear too.
+    const auto near_a = make_track(5, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE,
+                                   v(10, 0.3));
+    const auto near_b = make_track(6, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE,
+                                   v(10, 1.0));
+    map.update({near_a, near_b}, 2.0);
+    EXPECT_EQ(map.find(b)->live_track_id, 6);
+    map.update({near_a, near_b}, 2.2);
+    EXPECT_EQ(map.find(a)->live_track_id, 5);
+    EXPECT_EQ(map.landmarks().size(), 2u);
+}
+
+TEST(RetainedLandmarks, AmbiguousTrackInAFullClassIsRejectedAfterTheWait) {
+    auto cfg = example_config();
+    auto rule = cfg.rule_for({LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE});
+    rule.max_instances = 2;
+    cfg.class_rules[{LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE}] = rule;
+    RetainedLandmarks map(cfg);
+    two_remembered_pipes(map);
+    const auto track = make_track(5, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE,
+                                  v(10, 0.35));
+    map.update({track}, 2.0);
+    map.update({track}, 4.5);
+    EXPECT_EQ(map.landmarks().size(), 2u);
+    EXPECT_GE(map.rejected_count(), 1);
+    for (const auto& lm : map.landmarks()) {
+        EXPECT_EQ(lm.live_track_id, -1);
+    }
+}
+
+TEST(RetainedLandmarks, RatioOneTurnsTheCheckOff) {
+    auto cfg = example_config();
+    cfg.adoption_ambiguity_ratio = 1.0;
+    RetainedLandmarks map(cfg);
+    const auto [a, b] = two_remembered_pipes(map);
+    map.update({make_track(5, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE,
+                           v(10, 0.35))},
+               2.0);
+    EXPECT_EQ(map.find(a)->live_track_id, 5) << "nearest, as before";
+    (void)b;
+}
+
 TEST(RetainedLandmarks, ClassIsFullAtMaxInstances) {
     RetainedLandmarks map(example_config());
     std::vector<Track> tracks;

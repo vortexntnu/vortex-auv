@@ -99,6 +99,10 @@
 
     rules:
       plausibility_radius_m: 3.0
+      # A remembered landmark takes a new track over only when it is clearly
+      # the nearest (the next of the class ambiguity_ratio times farther);
+      # otherwise the track waits wait_sec, then counts as a new object.
+      adoption: {ambiguity_ratio: 2.0, wait_sec: 2.0}
       large_structures: [GATE, TABLE, TORPEDO_BOARD, BIN_STRUCTURE]
       gate_yaw_from_panels: true      # normal on the line between the panels
       board_yaw_from_icons: true      # normal on the icon pairs
