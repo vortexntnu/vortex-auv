@@ -68,6 +68,20 @@ vehicle keyframes (every `keyframe.distance_m` / `angle_deg` /
 - A log line every 10 s gives keyframes, landmarks and the correction (odom ← graph).
 - The noise values are guesses until the drift has been measured in the pool. The association itself does not get better: a remembered landmark must still be within the adoption radius when it is seen again.
 
+### Trying it in the simulator
+
+The simulator's odometry does not drift. `scripts/` has tools that add drift
+and compare the map with and without the graph (installed as
+`ros2 run landmark_server <script>`):
+
+- `drift_injector.py`: true odometry -> `/nautilus/odom_drift` (extra yaw per metre, `drift_yaw_deg_per_m`), true detections (`/nautilus/landmarks_true`) -> `/nautilus/landmarks_drift` in the drifted frame, the drift on `/nautilus/drift`.
+- `graph_eval.py`: error of two object_maps (`/nautilus/...` with the graph, `/nautilus_raw/...` without) against the truth in the drifted frame, per second and to csv.
+- `drift_route.py`: a loop with waypoint_manager: beside the gate and slalom along y = -3 to the torpedo board, back, and in front of the gate again.
+
+Headless sim (`simulation.launch.py rendering:=false scenario:=nautilus_no_gpu` + `drone_sim.launch.py`), `dp_quat.launch.py`, `waypoint_manager`, the dummy publisher with `-p seed:=7 -p topic:=landmarks_true -p use_field_of_view:=true`, the injector, and two landmark servers with `-p topics.landmarks:=/nautilus/landmarks_drift -p topics.odom:=/nautilus/odom_drift`, one in namespace `/nautilus_raw` with `-p graph.enable:=false`.
+
+Result 2026-09-25 (0.5 deg/m, 32 m, 15.8 deg drift at the end): remembered landmarks 0.12 m mean / 0.19 m max error with the graph, 1.37 / 1.97 m without (torpedo board 0.10 vs 1.62 m, table 0.12 vs 1.97 m).
+
 ## Files
 
 - ROS-free (gtest): `class_config`, `retained_landmarks`, `course_frame`, `map_rules`, `landmark_graph` (own library, the only one that includes GTSAM)

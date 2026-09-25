@@ -113,6 +113,14 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}/
 )
 
+# Simulator tools for the smoothing backend (drift injection, evaluation).
+install(PROGRAMS
+  scripts/drift_injector.py
+  scripts/graph_eval.py
+  scripts/drift_route.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 if(BUILD_TESTING)
   add_subdirectory(test)
 endif()
