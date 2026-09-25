@@ -7,6 +7,7 @@
 #include <eigen3/Eigen/Geometry>
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace vortex::mission {
 
@@ -122,6 +123,13 @@ class LandmarkGraph {
 
     /// Smoothed vehicle pose of the newest keyframe, graph frame.
     std::optional<Eigen::Isometry3d> latest_keyframe_estimate() const;
+
+    /// Every keyframe as the graph sees it now, in the current odom frame
+    /// (for display: the smoothed trajectory).
+    std::vector<Eigen::Isometry3d> keyframes_in_odom() const;
+
+    /// Every keyframe as the raw odometry gave it.
+    std::vector<Eigen::Isometry3d> keyframes_raw() const;
 
     /// Measurements of a landmark in the graph (0 if unknown).
     int observations(int landmark_id) const;

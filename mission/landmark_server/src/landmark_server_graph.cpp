@@ -1,5 +1,6 @@
 #include <spdlog/spdlog.h>
 #include <tf2/exceptions.h>
+#include <chrono>
 #include <cmath>
 #include <set>
 #include "landmark_server/landmark_server_ros.hpp"
@@ -148,7 +149,12 @@ void LandmarkServerNode::update_graph() {
         ++it;
     }
 
+    const auto t0 = std::chrono::steady_clock::now();
     graph_->optimize();
+    graph_update_ms_max_ = std::max(graph_update_ms_max_,
+                                    std::chrono::duration<double, std::milli>(
+                                        std::chrono::steady_clock::now() - t0)
+                                        .count());
 
     // The smoothed positions, in the current odom frame, replace the
     // tracker's (the orientation stays the tracker's and the rules').
@@ -169,6 +175,13 @@ void LandmarkServerNode::update_graph() {
         }
     }
 
+    // Once a second (at the default rate): trajectories and stats for
+    // Foxglove.
+    if (++graph_publish_ticks_ >= 5) {
+        graph_publish_ticks_ = 0;
+        publish_graph_state();
+    }
+
     // Every 10 s at the default rate: how much the graph has corrected.
     if (++graph_log_ticks_ >= 50) {
         graph_log_ticks_ = 0;
@@ -181,6 +194,43 @@ void LandmarkServerNode::update_graph() {
             graph_->keyframe_count(), graph_->landmark_count(),
             c.translation().x(), c.translation().y(), yaw_deg);
     }
+}
+
+void LandmarkServerNode::publish_graph_state() {
+    const auto stamp = this->now();
+    const auto to_path = [&](const std::vector<Eigen::Isometry3d>& poses) {
+        nav_msgs::msg::Path path;
+        path.header.stamp = stamp;
+        path.header.frame_id = target_frame_;
+        path.poses.reserve(poses.size());
+        for (const auto& T : poses) {
+            geometry_msgs::msg::PoseStamped p;
+            p.header = path.header;
+            p.pose.position.x = T.translation().x();
+            p.pose.position.y = T.translation().y();
+            p.pose.position.z = T.translation().z();
+            const Eigen::Quaterniond q(T.rotation());
+            p.pose.orientation.w = q.w();
+            p.pose.orientation.x = q.x();
+            p.pose.orientation.y = q.y();
+            p.pose.orientation.z = q.z();
+            path.poses.push_back(p);
+        }
+        return path;
+    };
+    graph_path_pub_->publish(to_path(graph_->keyframes_in_odom()));
+    graph_odom_path_pub_->publish(to_path(graph_->keyframes_raw()));
+
+    const Eigen::Isometry3d c = graph_->correction();
+    std_msgs::msg::Float64MultiArray stats;
+    stats.data = {static_cast<double>(graph_->keyframe_count()),
+                  static_cast<double>(graph_->landmark_count()),
+                  c.translation().x(),
+                  c.translation().y(),
+                  std::atan2(c.linear()(1, 0), c.linear()(0, 0)) * 180.0 / M_PI,
+                  graph_update_ms_max_};
+    graph_stats_pub_->publish(stats);
+    graph_update_ms_max_ = 0.0;
 }
 
 }  // namespace vortex::mission

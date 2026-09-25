@@ -15,8 +15,10 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/path.hpp>
 #include <rclcpp_action/server_goal_handle.hpp>
 #include <std_msgs/msg/empty.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_srvs/srv/empty.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <vortex_msgs/action/landmark_polling.hpp>
@@ -199,6 +201,16 @@ class LandmarkServerNode : public rclcpp::Node {
     /// Measurements of tracks that are not in the map yet, per track id.
     std::map<int, std::deque<Landmark>> pending_graph_;
     int graph_log_ticks_{0};
+    /// For display: the smoothed and the raw keyframe trajectories, and
+    /// [keyframes, landmarks, correction x, y [m], yaw [deg], slowest graph
+    /// update in the last second [ms]].
+    void publish_graph_state();
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr graph_path_pub_;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr graph_odom_path_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr
+        graph_stats_pub_;
+    double graph_update_ms_max_{0.0};
+    int graph_publish_ticks_{0};
     rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr
         object_map_pub_;
     rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr

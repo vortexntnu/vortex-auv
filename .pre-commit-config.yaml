@@ -76,6 +76,7 @@ repos:
     hooks:
       - id: clang-format
         args: [--style=file]
+        exclude: '\.json$'  # .clang-format has no JSON style (Foxglove layouts)
   - repo: local
     hooks:
       - id: ament_cppcheck

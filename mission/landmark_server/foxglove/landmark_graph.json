@@ -1,0 +1,633 @@
+{
+  "configById": {
+    "3D!kart": {
+      "cameraState": {
+        "perspective": true,
+        "distance": 30,
+        "phi": 50,
+        "thetaOffset": -90,
+        "targetOffset": [
+          8,
+          0,
+          0
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-position",
+      "followTf": "nautilus/odom_enu",
+      "scene": {
+        "enableStats": false,
+        "labelScaleFactor": 1,
+        "transforms": {
+          "showLabel": false,
+          "axisSize": 0.3
+        }
+      },
+      "transforms": {
+        "frame:nautilus/course": {
+          "visible": true
+        },
+        "frame:nautilus/odom": {
+          "visible": true
+        },
+        "frame:nautilus/base_link": {
+          "visible": true
+        },
+        "frame:nautilus/odom_enu": {
+          "visible": false
+        }
+      },
+      "topics": {
+        "/nautilus/landmark_server/markers": {
+          "visible": true,
+          "namespaces": {
+            "course_axis": {
+              "visible": true
+            },
+            "course_lane": {
+              "visible": true
+            },
+            "front": {
+              "visible": true
+            },
+            "label": {
+              "visible": false
+            },
+            "landmark": {
+              "visible": true
+            },
+            "structure": {
+              "visible": true
+            }
+          },
+          "ns:course_axis": {
+            "visible": true
+          },
+          "ns:course_lane": {
+            "visible": true
+          },
+          "ns:front": {
+            "visible": true
+          },
+          "ns:label": {
+            "visible": false
+          },
+          "ns:landmark": {
+            "visible": true
+          },
+          "ns:structure": {
+            "visible": true
+          }
+        },
+        "/nautilus_raw/landmark_server/markers": {
+          "visible": false,
+          "namespaces": {
+            "course_axis": {
+              "visible": true
+            },
+            "course_lane": {
+              "visible": true
+            },
+            "front": {
+              "visible": true
+            },
+            "label": {
+              "visible": false
+            },
+            "landmark": {
+              "visible": true
+            },
+            "structure": {
+              "visible": true
+            }
+          },
+          "ns:course_axis": {
+            "visible": true
+          },
+          "ns:course_lane": {
+            "visible": true
+          },
+          "ns:front": {
+            "visible": true
+          },
+          "ns:label": {
+            "visible": false
+          },
+          "ns:landmark": {
+            "visible": true
+          },
+          "ns:structure": {
+            "visible": true
+          }
+        },
+        "/landmark_eval/markers": {
+          "visible": true,
+          "namespaces": {
+            "truth": {
+              "visible": true
+            },
+            "error_graph": {
+              "visible": true
+            },
+            "error_raw": {
+              "visible": true
+            }
+          },
+          "ns:truth": {
+            "visible": true
+          },
+          "ns:error_graph": {
+            "visible": true
+          },
+          "ns:error_raw": {
+            "visible": true
+          }
+        },
+        "/nautilus/landmark_server/graph/path": {
+          "visible": true,
+          "type": "line",
+          "lineWidth": 0.06,
+          "gradient": [
+            "#2fbf5aff",
+            "#2fbf5aff"
+          ]
+        },
+        "/nautilus/landmark_server/graph/odom_path": {
+          "visible": true,
+          "type": "line",
+          "lineWidth": 0.06,
+          "gradient": [
+            "#ff9f1aff",
+            "#ff9f1aff"
+          ]
+        },
+        "/nautilus/odom": {
+          "visible": true,
+          "type": "arrow",
+          "arrowScale": [
+            1.0,
+            0.15,
+            0.15
+          ],
+          "color": "#9aa5b1ff"
+        },
+        "/nautilus/odom_drift": {
+          "visible": true,
+          "type": "arrow",
+          "arrowScale": [
+            1.0,
+            0.15,
+            0.15
+          ],
+          "color": "#e5484dff"
+        },
+        "/nautilus/guidance/dp_quat_target_pose": {
+          "visible": true,
+          "type": "arrow",
+          "arrowScale": [
+            0.8,
+            0.12,
+            0.12
+          ],
+          "color": "#00e5ffff"
+        },
+        "/nautilus/debug/raw_detections": {
+          "visible": true,
+          "namespaces": {
+            "raw_detections": {
+              "visible": true
+            }
+          },
+          "ns:raw_detections": {
+            "visible": true
+          }
+        }
+      },
+      "layers": {
+        "grid": {
+          "visible": true,
+          "frameId": "nautilus/odom",
+          "layerId": "foxglove.Grid",
+          "size": 60,
+          "divisions": 60,
+          "lineWidth": 1,
+          "color": "#248eff40",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        }
+      },
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "imageMode": {},
+      "synchronize": false
+    },
+    "Plot!kartfeil": {
+      "paths": [
+        {
+          "value": "/landmark_eval/graph/remembered_mean.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "med graf"
+        },
+        {
+          "value": "/landmark_eval/raw/remembered_mean.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "uten graf (--drift)"
+        },
+        {
+          "value": "/landmark_eval/graph/all_mean.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "med graf, totalt"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "followingViewWidth": 600,
+      "foxglovePanelTitle": "Kartfeil not fasit [m] (huskede landemerker)"
+    },
+    "Plot!drift": {
+      "paths": [
+        {
+          "value": "/landmark_eval/drift_yaw_deg.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "påført yaw-drift"
+        },
+        {
+          "value": "/nautilus/landmark_server/graph/stats.data[4]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "grafens korreksjon (yaw)"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "followingViewWidth": 600,
+      "foxglovePanelTitle": "Drift og korreksjon [grader]"
+    },
+    "Plot!antall": {
+      "paths": [
+        {
+          "value": "/landmark_eval/graph/count.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "med graf"
+        },
+        {
+          "value": "/landmark_eval/raw/count.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "uten graf"
+        },
+        {
+          "value": "/landmark_eval/graph/swaps.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "id-bytter, med graf"
+        },
+        {
+          "value": "/landmark_eval/raw/swaps.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "id-bytter, uten graf"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "followingViewWidth": 600,
+      "foxglovePanelTitle": "Antall landemerker og id-bytter"
+    },
+    "Plot!graf": {
+      "paths": [
+        {
+          "value": "/nautilus/landmark_server/graph/stats.data[0]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "keyframes"
+        },
+        {
+          "value": "/nautilus/landmark_server/graph/stats.data[1]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "landemerker i grafen"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "followingViewWidth": 600,
+      "foxglovePanelTitle": "Grafen: keyframes og landemerker"
+    },
+    "Plot!cpu": {
+      "paths": [
+        {
+          "value": "/nautilus/landmark_server/graph/stats.data[5]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ms"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "followingViewWidth": 600,
+      "foxglovePanelTitle": "Grafen: tregeste oppdatering siste sekund [ms]"
+    },
+    "Plot!korreksjon": {
+      "paths": [
+        {
+          "value": "/nautilus/landmark_server/graph/stats.data[2]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "x"
+        },
+        {
+          "value": "/nautilus/landmark_server/graph/stats.data[3]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "y"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "followingViewWidth": 600,
+      "foxglovePanelTitle": "Grafens korreksjon [m]"
+    },
+    "RawMessages!kart": {
+      "topicPath": "/nautilus/landmark_server/object_map.landmark_tracks",
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "fontSize": 12,
+      "defaultExpanded": false
+    },
+    "RawMessages!spor": {
+      "topicPath": "/nautilus/landmark_server/live_tracks.landmark_tracks",
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "fontSize": 12,
+      "defaultExpanded": false
+    },
+    "RawMessages!inn": {
+      "topicPath": "/nautilus/landmarks",
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "fontSize": 12,
+      "defaultExpanded": false
+    },
+    "RawMessages!bane": {
+      "topicPath": "/nautilus/landmark_server/course_frame_state",
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "fontSize": 12,
+      "defaultExpanded": false
+    },
+    "RosOut!logg": {
+      "searchTerms": [],
+      "minLogLevel": 1,
+      "nameFilter": {},
+      "fontSize": 12,
+      "showLevel": true,
+      "showDate": false,
+      "showTime": true,
+      "showTimezone": false,
+      "showName": true,
+      "showSourceLocation": false
+    },
+    "Image!front": {
+      "imageMode": {
+        "imageTopic": "/nautilus/front_camera",
+        "calibrationTopic": ""
+      },
+      "cameraState": {
+        "perspective": true,
+        "distance": 30,
+        "phi": 50,
+        "thetaOffset": -90,
+        "targetOffset": [
+          8,
+          0,
+          0
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false
+    },
+    "Image!down": {
+      "imageMode": {
+        "imageTopic": "/nautilus/down_camera",
+        "calibrationTopic": ""
+      },
+      "cameraState": {
+        "perspective": true,
+        "distance": 30,
+        "phi": 50,
+        "thetaOffset": -90,
+        "targetOffset": [
+          8,
+          0,
+          0
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false
+    },
+    "Tab!graf": {
+      "activeTabIdx": 0,
+      "tabs": [
+        {
+          "title": "Kart og graf",
+          "layout": {
+            "first": "3D!kart",
+            "second": {
+              "first": "Plot!kartfeil",
+              "second": {
+                "first": "Plot!drift",
+                "second": "Plot!antall",
+                "direction": "column",
+                "splitPercentage": 50
+              },
+              "direction": "column",
+              "splitPercentage": 34
+            },
+            "direction": "row",
+            "splitPercentage": 64
+          }
+        },
+        {
+          "title": "Grafen",
+          "layout": {
+            "first": {
+              "first": "Plot!graf",
+              "second": "Plot!korreksjon",
+              "direction": "column"
+            },
+            "second": {
+              "first": "Plot!cpu",
+              "second": "RosOut!logg",
+              "direction": "column"
+            },
+            "direction": "row"
+          }
+        },
+        {
+          "title": "Meldinger",
+          "layout": {
+            "first": {
+              "first": "RawMessages!inn",
+              "second": "RawMessages!spor",
+              "direction": "column"
+            },
+            "second": {
+              "first": "RawMessages!kart",
+              "second": "RawMessages!bane",
+              "direction": "column",
+              "splitPercentage": 75
+            },
+            "direction": "row"
+          }
+        },
+        {
+          "title": "Kamera (med rendering)",
+          "layout": {
+            "first": "Image!front",
+            "second": "Image!down",
+            "direction": "row"
+          }
+        }
+      ]
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": "Tab!graf"
+}

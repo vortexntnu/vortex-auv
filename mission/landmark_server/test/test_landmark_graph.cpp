@@ -126,6 +126,15 @@ TEST(LandmarkGraph, without_drift_the_graph_agrees_with_odometry) {
     }
     EXPECT_LT((graph.correction().translation()).norm(), 1e-3);
     EXPECT_GT(graph.keyframe_count(), 60u);
+    // Without drift the smoothed trajectory is the odometry.
+    const auto smoothed = graph.keyframes_in_odom();
+    const auto raw = graph.keyframes_raw();
+    ASSERT_EQ(smoothed.size(), graph.keyframe_count());
+    ASSERT_EQ(raw.size(), smoothed.size());
+    for (std::size_t i = 0; i < raw.size(); ++i) {
+        EXPECT_LT((smoothed[i].translation() - raw[i].translation()).norm(),
+                  1e-3);
+    }
 }
 
 TEST(LandmarkGraph, seeing_the_start_again_corrects_the_far_end) {
@@ -148,6 +157,19 @@ TEST(LandmarkGraph, seeing_the_start_again_corrects_the_far_end) {
     EXPECT_GT(raw_err, 0.5);
     EXPECT_LT(graph_err, 0.3 * raw_err)
         << "raw " << raw_err << " m, graph " << graph_err << " m";
+
+    // The smoothed trajectory differs from the drifted odometry back in
+    // time, and agrees with it at the newest keyframe.
+    const auto smoothed = graph.keyframes_in_odom();
+    const auto raw = graph.keyframes_raw();
+    EXPECT_LT((smoothed.back().translation() - raw.back().translation()).norm(),
+              1e-6);
+    double max_diff = 0.0;
+    for (std::size_t i = 0; i < raw.size(); ++i) {
+        max_diff = std::max(
+            max_diff, (smoothed[i].translation() - raw[i].translation()).norm());
+    }
+    EXPECT_GT(max_diff, 0.5);
 
     // A is being seen now: both are right.
     const auto a = graph.landmark_in_odom(0);

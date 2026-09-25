@@ -11,7 +11,12 @@ Every second: mean/max error of remembered (not live) and all landmarks per
 map, and id swaps: a map id that moves to another true object (a wrong
 take-over). With truth_seed >= 0 the truth is the dummy's course layout for
 that seed (use it with noisy or unstable dummy profiles, whose
-landmarks_true carry the noise). Also written to csv (param csv, relative to the working
+landmarks_true carry the noise).
+
+For Foxglove: /landmark_eval/markers (the truth as green spheres, a line from
+each map landmark to its true object, per map), and per map
+/landmark_eval/<label>/{remembered_mean,all_mean,count,swaps} plus
+/landmark_eval/drift_yaw_deg (std_msgs/Float64) for plots. Also written to csv (param csv, relative to the working
 directory).
 """
 
@@ -21,11 +26,23 @@ import time
 
 import numpy as np
 import rclpy
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Point, PoseStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
+from std_msgs.msg import Float64
+from visualization_msgs.msg import Marker, MarkerArray
 from vortex_msgs.msg import LandmarkArray, LandmarkTrackArray, LandmarkType
+
+# Line colours per map, in label order.
+COLOURS = [
+    (0.18, 0.5, 0.93),
+    (0.9, 0.2, 0.2),
+    (0.95, 0.65, 0.1),
+    (0.6, 0.3, 0.8),
+    (0.2, 0.7, 0.7),
+    (0.5, 0.5, 0.5),
+]
 
 TYPE_NAMES = {
     v: k for k, v in vars(LandmarkType).items() if k.isupper() and isinstance(v, int)
@@ -60,6 +77,7 @@ class GraphEval(Node):
             "z_locked_types", [LandmarkType.PATH_MARKER, LandmarkType.OCTAGON]
         )
         self.declare_parameter("truth_seed", -1)
+        self.declare_parameter("frame_id", "nautilus/odom")
         g = self.get_parameter
         self._labels = list(g("labels").value)
         self._maps = dict.fromkeys(self._labels)
@@ -111,6 +129,20 @@ class GraphEval(Node):
                 f"{lab}_swaps",
             ]
         self._w.writerow(header)
+        self._frame = g("frame_id").value
+        self._marker_pub = self.create_publisher(
+            MarkerArray, "/landmark_eval/markers", 1
+        )
+        self._drift_pub = self.create_publisher(
+            Float64, "/landmark_eval/drift_yaw_deg", 10
+        )
+        self._value_pubs = {
+            (lab, name): self.create_publisher(
+                Float64, f"/landmark_eval/{lab}/{name}", 10
+            )
+            for lab in self._labels
+            for name in ("remembered_mean", "all_mean", "count", "swaps")
+        }
         self._assign = {lab: {} for lab in self._labels}  # map id -> truth
         self._swaps = dict.fromkeys(self._labels, 0)
         self._t0 = time.monotonic()
@@ -148,7 +180,17 @@ class GraphEval(Node):
                 d = [np.array([v[0], v[1], 0.0]) for v in d]
             norms = [float(np.linalg.norm(v)) for v in d]
             idx = int(np.argmin(norms))
-            rows.append((t.landmark.id, key, t.retained, norms[idx], (key, idx)))
+            rows.append(
+                (
+                    t.landmark.id,
+                    key,
+                    t.retained,
+                    norms[idx],
+                    (key, idx),
+                    est,
+                    truth[idx],
+                )
+            )
         return rows
 
     def _evaluate(self):
@@ -159,12 +201,14 @@ class GraphEval(Node):
             f"t={time.monotonic() - self._t0:5.0f}s pos=({self._vehicle[0]:5.1f},{self._vehicle[1]:5.1f}) drift={yaw:5.1f}deg"
         ]
         row = [round(time.monotonic() - self._t0, 1), *self._vehicle, round(yaw, 2)]
+        self._drift_pub.publish(Float64(data=yaw))
+        per_map_rows = {}
         for lab in self._labels:
             msg = self._maps[lab]
             rows = self._errors(msg) if msg else []
             # A swap: the id now sits on another true object (counted when it
             # is within 0.3 m of it, so noise near the middle does not count).
-            for lid, _, _, err, truth in rows:
+            for lid, _, _, err, truth, *_ in rows:
                 prev = self._assign[lab].get(lid)
                 if err < 0.3:
                     if prev is not None and prev != truth:
@@ -179,9 +223,66 @@ class GraphEval(Node):
                 f"{lab}: remembered {rm:4.2f}/{rx:4.2f} m (mean/max, n={len(ret)}) all {am:4.2f} m n={len(allv)} swaps={self._swaps[lab]}"
             )
             row += [rm, rx, am, len(allv), self._swaps[lab]]
+            for name, value in (
+                ("remembered_mean", rm),
+                ("all_mean", am),
+                ("count", len(allv)),
+                ("swaps", self._swaps[lab]),
+            ):
+                self._value_pubs[(lab, name)].publish(Float64(data=float(value)))
+            per_map_rows[lab] = rows
         self.get_logger().info(" | ".join(line))
+        self._publish_markers(per_map_rows)
         self._w.writerow(row)
         self._csv.flush()
+
+    def _publish_markers(self, per_map_rows):
+        """Truth spheres and one line per map landmark to its true object."""
+        stamp = self.get_clock().now().to_msg()
+        out = MarkerArray()
+        clear = Marker()
+        clear.action = Marker.DELETEALL
+        out.markers.append(clear)
+
+        truth = Marker()
+        truth.header.frame_id = self._frame
+        truth.header.stamp = stamp
+        truth.ns = "truth"
+        truth.id = 0
+        truth.type = Marker.SPHERE_LIST
+        truth.pose.orientation.w = 1.0
+        truth.scale.x = truth.scale.y = truth.scale.z = 0.3
+        truth.color.r, truth.color.g, truth.color.b, truth.color.a = (
+            0.2,
+            0.85,
+            0.3,
+            0.45,
+        )
+        for positions in self._truth.values():
+            for q in positions:
+                p = (self._c @ np.append(q, 1.0))[:3]
+                truth.points.append(Point(x=float(p[0]), y=float(p[1]), z=float(p[2])))
+        out.markers.append(truth)
+
+        for i, lab in enumerate(self._labels):
+            lines = Marker()
+            lines.header = truth.header
+            lines.ns = f"error_{lab}"
+            lines.id = 0
+            lines.type = Marker.LINE_LIST
+            lines.pose.orientation.w = 1.0
+            lines.scale.x = 0.04
+            r, g, b = COLOURS[i % len(COLOURS)]
+            lines.color.r, lines.color.g, lines.color.b, lines.color.a = r, g, b, 0.9
+            for _, _, _, _, _, est, true in per_map_rows.get(lab, []):
+                lines.points.append(
+                    Point(x=float(est[0]), y=float(est[1]), z=float(est[2]))
+                )
+                lines.points.append(
+                    Point(x=float(true[0]), y=float(true[1]), z=float(true[2]))
+                )
+            out.markers.append(lines)
+        self._marker_pub.publish(out)
 
     def report(self):
         """Per-landmark table of the latest maps."""
@@ -190,7 +291,7 @@ class GraphEval(Node):
             if not msg:
                 continue
             print(f"--- {lab}")
-            for lid, key, retained, err, _ in sorted(
+            for lid, key, retained, err, *_ in sorted(
                 self._errors(msg), key=lambda r: -r[3]
             ):
                 name = TYPE_NAMES.get(key[0], str(key[0]))

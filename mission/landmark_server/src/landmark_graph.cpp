@@ -379,6 +379,26 @@ std::optional<Eigen::Vector3d> LandmarkGraph::landmark_in_odom(
     return correction() * p;
 }
 
+std::vector<Eigen::Isometry3d> LandmarkGraph::keyframes_in_odom() const {
+    std::vector<Eigen::Isometry3d> out;
+    out.reserve(impl_->keyframes.size());
+    const Eigen::Isometry3d corr = correction();
+    for (std::size_t i = 0; i < impl_->keyframes.size(); ++i) {
+        out.push_back(
+            corr * to_isometry(impl_->estimate.at<gtsam::Pose3>(pose_key(i))));
+    }
+    return out;
+}
+
+std::vector<Eigen::Isometry3d> LandmarkGraph::keyframes_raw() const {
+    std::vector<Eigen::Isometry3d> out;
+    out.reserve(impl_->keyframes.size());
+    for (const auto& kf : impl_->keyframes) {
+        out.push_back(kf.odom_T_body);
+    }
+    return out;
+}
+
 int LandmarkGraph::observations(int landmark_id) const {
     const auto it = impl_->observations.find(landmark_id);
     return it == impl_->observations.end() ? 0 : it->second;

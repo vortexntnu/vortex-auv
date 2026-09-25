@@ -115,11 +115,10 @@ class DriftInjector(Node):
         self._c = np.eye(4)  # odom_drift <- world
         self._travelled = 0.0
 
-        self._odom_pub = self.create_publisher(
-            Odometry, g("odom_out").value, qos_profile_sensor_data
-        )
+        # Reliable publishers reach both reliable and best-effort subscribers.
+        self._odom_pub = self.create_publisher(Odometry, g("odom_out").value, 10)
         self._lm_pub = self.create_publisher(
-            LandmarkArray, g("landmarks_out").value, qos_profile_sensor_data
+            LandmarkArray, g("landmarks_out").value, 10
         )
         self._drift_pub = self.create_publisher(PoseStamped, "/nautilus/drift", 10)
         self.create_subscription(

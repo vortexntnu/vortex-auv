@@ -96,6 +96,12 @@ void LandmarkServerNode::create_map() {
     if (graph_->config().enable) {
         spdlog::info("LandmarkServer: iSAM2 smoothing backend enabled");
     }
+    graph_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
+        "landmark_server/graph/path", rclcpp::QoS(1).reliable());
+    graph_odom_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
+        "landmark_server/graph/odom_path", rclcpp::QoS(1).reliable());
+    graph_stats_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>(
+        "landmark_server/graph/stats", rclcpp::QoS(10).reliable());
     // The values that differ between sim.yaml and pool.yaml, so the log
     // shows which environment is running.
     const auto& zl = map_config_.map_rules.z_lock;

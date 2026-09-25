@@ -71,6 +71,18 @@ vehicle keyframes (every `keyframe.distance_m` / `angle_deg` /
 
 ### Trying it in the simulator
 
+One command starts everything (tmux session `sim_autonomy`):
+
+```bash
+utility_scripts/launch_sim_autonomy.sh --headless --fov        # baseline, no drift
+utility_scripts/launch_sim_autonomy.sh --headless --drift 0.5  # drift + a server without graph
+ros2 run landmark_server drift_route.py                        # then drive a loop
+```
+
+Foxglove layout: `foxglove/landmark_graph.json` (Layout, Import from file). It shows the map, the truth from the course layout (green spheres), a line from each map landmark to its truth (blue with graph, red without), the raw odometry path (`landmark_server/graph/odom_path`, orange) and the graph's corrected path (`landmark_server/graph/path`, green), and plots of the map error, drift against correction and `landmark_server/graph/stats` (`[keyframes, landmarks, correction x, y, yaw deg, slowest update ms]`).
+
+The tools below are what the script starts:
+
 The simulator's odometry does not drift. `scripts/` has tools that add drift
 and compare the map with and without the graph (installed as
 `ros2 run landmark_server <script>`):
