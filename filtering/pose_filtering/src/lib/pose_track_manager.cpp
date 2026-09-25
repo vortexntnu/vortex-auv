@@ -134,6 +134,7 @@ std::vector<int> PoseTrackManager::associate(
 
 void PoseTrackManager::update(std::vector<Landmark>& measurements, double dt) {
     sort_tracks_by_priority();
+    associations_.clear();
     const std::vector<int> assignment = associate(measurements, dt);
 
     std::vector<Eigen::Index> used;
@@ -186,6 +187,7 @@ void PoseTrackManager::update(std::vector<Landmark>& measurements, double dt) {
         track.hit_in_cycle = track.hit_in_cycle || hit;
         if (hit) {
             used.push_back(mi);
+            associations_.push_back({track.id, measurements[mi]});
         }
     }
 
@@ -353,6 +355,7 @@ void PoseTrackManager::create_tracks(
 
     for (const Landmark& m : measurements) {
         tracks_.push_back(make_track(m));
+        associations_.push_back({tracks_.back().id, m});
     }
 }
 

@@ -110,8 +110,13 @@ void LandmarkServerNode::create_odom_subscription() {
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
         odom_topic, qos,
         [this](const nav_msgs::msg::Odometry::ConstSharedPtr msg) {
+            const auto pose = odom_in_target_frame(*msg);
             std::lock_guard<std::mutex> lock(odom_mtx_);
             last_odom_position_ = msg->pose.pose.position;
+            if (pose) {
+                last_odom_pose_.emplace(
+                    rclcpp::Time(msg->header.stamp).seconds(), *pose);
+            }
         });
 }
 
@@ -286,6 +291,9 @@ void LandmarkServerNode::timer_callback() {
             }
         }
         track_manager_->update(frame, dt);
+        const auto& assoc = track_manager_->last_associations();
+        tick_associations_.insert(tick_associations_.end(), assoc.begin(),
+                                  assoc.end());
     }
     track_manager_->end_cycle();
 

@@ -12,6 +12,7 @@ endfunction()
 
 add_ros_isolated_launch_test(test_intake_two_publishers.py TIMEOUT 300)
 add_ros_isolated_launch_test(test_map_retention.py TIMEOUT 300)
+add_ros_isolated_launch_test(test_graph_drift.py TIMEOUT 300)
 
 find_package(GTest REQUIRED)
 include(GoogleTest)
@@ -28,3 +29,11 @@ target_link_libraries(test_landmark_map PRIVATE
   GTest::Main
 )
 gtest_discover_tests(test_landmark_map)
+
+add_executable(test_landmark_graph test_landmark_graph.cpp)
+target_link_libraries(test_landmark_graph PRIVATE
+  landmark_server_graph
+  GTest::GTest
+  GTest::Main
+)
+gtest_discover_tests(test_landmark_graph)

@@ -41,6 +41,23 @@
       # Along the line of sight (depth); across it: lateral_ratio * that.
       distance_noise: {base_variance: 0.0, variance_per_meter: 0.005, lateral_ratio: 0.25}
 
+    # Smoothing backend (iSAM2): vehicle keyframes + landmark positions in one
+    # factor graph. When a remembered landmark is seen again after the
+    # odometry has drifted, the whole map is corrected. Positions are published
+    # in target_frame (the current odom frame), relative to the vehicle as the
+    # graph sees it. Noise values are guesses until the drift is measured.
+    graph:
+      enable: true
+      keyframe: {distance_m: 0.5, angle_deg: 10.0, interval_sec: 5.0}
+      # std of one keyframe step; a bias needs more than the drift per metre
+      odom_noise: {pos_std_per_m: 0.02, yaw_std_deg_per_m: 1.0,
+                   yaw_std_deg_per_sec: 0.01, min_pos_std_m: 0.01,
+                   min_rot_std_deg: 0.1}
+      # IMU roll/pitch and pressure depth do not drift
+      absolute: {roll_pitch_std_deg: 1.0, depth_std_m: 0.05}
+      measurements: {huber_k: 2.0, max_per_keyframe: 3, min_observations: 3,
+                     max_pending_per_track: 50}
+
     # Course frame: TF nautilus/course (child of target_frame).
     # x through the gate, y to the right, z down. Lane limits are in this frame
     # (estimates, to be measured in the pool).

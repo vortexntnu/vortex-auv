@@ -6,6 +6,7 @@ The **Landmark Server** is the map. It receives detections (`LandmarkArray`), tr
 perception (position without orientation) ─ LandmarkArray ─▶ intake
    ─▶ PoseTrackManager (live tracks, PDAF, N/M)
    ─▶ RetainedLandmarks (stable ids, memory, class rules)
+   ─▶ LandmarkGraph (iSAM2: keyframes + landmarks, corrects odometry drift)
    ─▶ map rules (yaw, openings, roles, octagon) ─▶ object_map
 course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
 ```
@@ -15,7 +16,7 @@ course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
 | Interface | Type | Purpose |
 |---|---|---|
 | `landmarks` | topic in (`LandmarkArray`) | Detections. `header.stamp` = image time, `frame_id` = camera frame (TF to `target_frame` at that time) |
-| `odom` | topic in (`Odometry`) | Vehicle position (pipe distance limit, which side of the gate is the front) |
+| `odom` | topic in (`Odometry`) | Vehicle pose: pipe distance limit, which side of the gate is the front, and the keyframes of the graph. Its frame must be `target_frame` or have a static TF to it |
 | `landmark_server/object_map` | topic out (`LandmarkTrackArray`) | The map: stable ids, `retained`, `has_orientation`, `derived`, `first_seen`, `last_measurement`, `observations` |
 | `landmark_server/markers` | topic out (`visualization_msgs/MarkerArray`) | The map for Foxglove/RViz: a cube per landmark (faded if only remembered), its name with id, age and `derived` when a rule made it, an arrow along +X when the yaw is known, and the course direction and lane bounds in force. Classes in `markers.boxes` get their real size: PVC pipes (gate posts, slalom pipes) as solid pipes instead of the cube, large structures (gate, torpedo board, bin rig, table, octagon) as a see-through box around it (the whole gate gets no cube: only its two poster plates do). Colour per type, except the torpedo board parts: openings (`TORPEDO_TARGET_*`) as yellow spheres (large or small), icons as flat magenta squares on the board face |
 | `landmark_server/live_tracks` | topic out (`LandmarkTrackArray`) | The live tracks of the tracker (always on) |
@@ -47,10 +48,31 @@ course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
 | Distance noise | `intake.distance_noise`: the tracker adds `base + per_meter * distance` to the position variance along the line of sight (depth) and `lateral_ratio` times that across it, so far detections weigh less and the depth, which a camera knows worst, weighs least. The covariance from perception is not used for the position |
 | Association | One tracker update per camera frame (same stamp), in time order; hits and misses are counted once per tick. Per class, global nearest neighbour: squared Mahalanobis distance as the cost, the gate (`gate.max_pos_error`, `mahalanobis_gate_threshold`) as the limit, the Hungarian algorithm for the one-to-one assignment. Each track is then updated by PDAF with its own measurement |
 
+## Smoothing backend (config `graph`)
+
+Odometry drifts in x, y and yaw; a landmark remembered from 10 m ago is then
+off by the drift since. `LandmarkGraph` (GTSAM iSAM2) keeps a factor graph of
+vehicle keyframes (every `keyframe.distance_m` / `angle_deg` /
+`interval_sec`) and landmark positions:
+
+| Factor | From | Noise |
+|---|---|---|
+| Between keyframes | Odometry | `odom_noise`: std of one step, `pos_std_per_m` and `yaw_std_deg_per_m` times the distance (+ `yaw_std_deg_per_sec`). A drift that is a bias needs a larger value than the drift per metre |
+| Roll, pitch, depth per keyframe | Odometry (IMU, pressure: no drift) | `absolute` |
+| Keyframe → landmark position | Each measurement the tracker associated, relative to the nearest keyframe | The tracker's (class sensor noise + line-of-sight noise), Huber `measurements.huber_k` |
+
+- Measurements go to the graph under the **map id**, not the track id. A track that takes over a remembered landmark (adoption) adds to the same graph landmark: that closes the loop and moves the keyframes and every landmark they saw.
+- Measurements of a track that is not in the map yet wait (`max_pending_per_track`) and are added when it is; at most `max_per_keyframe` per landmark and keyframe.
+- Output: once a landmark has `min_observations` in the graph, its map position is the graph's, **in the current odom frame**: where it is relative to the vehicle according to the graph, expressed with the vehicle's raw odometry pose. The controller keeps steering on odometry. Orientation, derived landmarks and the depth lock work as before, on top.
+- Not affected: `live_tracks` and `LandmarkPolling` (tracker), the course frame TF (follows the gate as the map gives it).
+- A log line every 10 s gives keyframes, landmarks and the correction (odom ← graph).
+- The noise values are guesses until the drift has been measured in the pool. The association itself does not get better: a remembered landmark must still be within the adoption radius when it is seen again.
+
 ## Files
 
-- ROS-free (gtest): `class_config`, `retained_landmarks`, `course_frame`, `map_rules`
-- ROS: `landmark_server_ros.cpp` (intake, tick, polling, reset), `landmark_server_publish.cpp` (map, live tracks, course frame, services)
+- ROS-free (gtest): `class_config`, `retained_landmarks`, `course_frame`, `map_rules`, `landmark_graph` (own library, the only one that includes GTSAM)
+- ROS: `landmark_server_ros.cpp` (intake, tick, polling, reset), `landmark_server_publish.cpp` (map, live tracks, course frame, services), `landmark_server_graph.cpp` (odometry, measurements to the graph, smoothed positions into the map)
+- Launch test `test_graph_drift.py`: drifting odometry, loop closure on a table, the far landmark corrected
 
 ```bash
 ros2 topic echo /nautilus/landmark_server/object_map

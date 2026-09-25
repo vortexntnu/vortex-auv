@@ -334,4 +334,35 @@ TEST_F(PoseTrackManagerTests, line_of_sight_noise_moves_less_along_the_ray) {
     EXPECT_LT(moved({0.3, 0.0, 0.0}), moved({0.0, 0.3, 0.0}));
 }
 
+TEST_F(PoseTrackManagerTests, last_associations_name_the_track_of_each_hit) {
+    auto cfg = make_default_config();
+    cfg.default_class_config.mahalanobis_threshold = 10.0;
+    PoseTrackManager mgr(cfg);
+    std::vector<Landmark> z = {make_landmark({0, 0, 0}),
+                               make_landmark({3, 0, 0})};
+    mgr.update(z, 0.1);
+    // Both started a track.
+    ASSERT_EQ(mgr.last_associations().size(), 2);
+    mgr.end_cycle();
+
+    const auto id_at = [&](const Eigen::Vector3d& p) {
+        for (const auto& t : mgr.get_tracks()) {
+            if ((t.nominal_state.pos - p).norm() < 0.5) {
+                return t.id;
+            }
+        }
+        return -1;
+    };
+    // One hit on the far track, one clutter far from both: a new track.
+    std::vector<Landmark> zz = {make_landmark({3.05, 0, 0}),
+                                make_landmark({0, 8, 0})};
+    mgr.update(zz, 0.1);
+    const auto& assoc = mgr.last_associations();
+    ASSERT_EQ(assoc.size(), 2);
+    EXPECT_EQ(assoc[0].track_id, id_at({3, 0, 0}));
+    EXPECT_NEAR(assoc[0].measurement.pose.x, 3.05, 1e-12);
+    EXPECT_EQ(assoc[1].track_id, id_at({0, 8, 0}));
+    EXPECT_NE(assoc[1].track_id, id_at({0, 0, 0}));
+}
+
 }  // namespace vortex::filtering

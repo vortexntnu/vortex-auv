@@ -89,8 +89,13 @@ void LandmarkServerNode::create_map() {
     const auto overrides =
         this->get_node_parameters_interface()->get_parameter_overrides();
     const YAML::Node tree = overrides_to_yaml(
-        overrides, {"intake", "course_frame", "classes", "rules", "markers"});
+        overrides,
+        {"intake", "course_frame", "classes", "rules", "markers", "graph"});
     map_config_ = parse_map_config(tree);
+    graph_ = std::make_unique<LandmarkGraph>(parse_graph_config(tree["graph"]));
+    if (graph_->config().enable) {
+        spdlog::info("LandmarkServer: iSAM2 smoothing backend enabled");
+    }
 
     // Per-class track configs (track_config.<CLASS>...) on top of the default.
     const YAML::Node track_tree =
@@ -175,6 +180,7 @@ void LandmarkServerNode::handle_clear(
     // The map and the live tracks: a track that is still confirmed would
     // otherwise put its landmark straight back.
     map_->clear();
+    clear_graph();
     track_manager_ = std::make_unique<vortex::filtering::PoseTrackManager>(
         track_manager_config_);
     filter_time_sec_.reset();
@@ -183,6 +189,7 @@ void LandmarkServerNode::handle_clear(
 
 void LandmarkServerNode::reset_map() {
     map_->clear();
+    clear_graph();
     course_->reset();
     publish_course_frame();
 }
@@ -203,6 +210,8 @@ void LandmarkServerNode::update_map() {
     }
     const double now = this->now().seconds();
     map_->update(confirmed, now, filter);
+    // Smoothed positions replace the tracker's before the rules use them.
+    update_graph();
 
     // Map rules need the vehicle position (which side of the gate is the
     // front). Without odometry they wait.

@@ -53,6 +53,15 @@ struct PoseGate6D {
 };
 
 /**
+ * @brief A measurement and the track it went to: associated to an existing
+ * track, or used to start a new one.
+ */
+struct Association {
+    int track_id{-1};
+    Landmark measurement;
+};
+
+/**
  * @brief Class responsible for maintaining a set of tracks based on
  * pose measurements.
  *
@@ -98,6 +107,14 @@ class PoseTrackManager {
      * @brief Record hit/miss for the cycle, then delete and confirm tracks.
      */
     void end_cycle();
+
+    /**
+     * @brief Which track each measurement of the last update() went to
+     * (a smoothing backend uses them as landmark observations).
+     */
+    const std::vector<Association>& last_associations() const {
+        return associations_;
+    }
 
     /**
      * @brief Get the list of currently maintained tracks.
@@ -298,6 +315,8 @@ class PoseTrackManager {
     int track_id_counter_{0};
 
     std::vector<Track> tracks_;
+
+    std::vector<Association> associations_;
 
     TrackManagerConfig config_;
 };

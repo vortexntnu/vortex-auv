@@ -28,12 +28,16 @@
 #include <pose_filtering/lib/pose_track_manager.hpp>
 #include "landmark_server/class_config.hpp"
 #include "landmark_server/course_frame.hpp"
+#include "landmark_server/landmark_graph.hpp"
 #include "landmark_server/retained_landmarks.hpp"
 
 #include <atomic>
 #include <cmath>
+#include <deque>
+#include <map>
 #include <mutex>
 #include <optional>
+#include <utility>
 #include <vortex/utils/ros/ros_conversions.hpp>
 
 namespace vortex::mission {
@@ -125,6 +129,19 @@ class LandmarkServerNode : public rclcpp::Node {
         const vortex::filtering::Track& track) const;
     vortex_msgs::msg::CourseFrameState course_frame_state_msg() const;
 
+    // --- Smoothing backend (iSAM2, landmark_server_graph.cpp) --------------
+    /// Odometry, the measurements of this tick (per map landmark) and one
+    /// iSAM2 update; then the smoothed positions go into the map.
+    void update_graph();
+    void clear_graph();
+    /// Position covariance of a measurement [m^2], odom frame: the same
+    /// noise the tracker uses (class sensor noise + line-of-sight noise).
+    Eigen::Matrix3d graph_measurement_cov(const Landmark& m) const;
+    /// The odometry pose in target_frame_ (none if the frames differ and
+    /// the TF between them is not there yet).
+    std::optional<Eigen::Isometry3d> odom_in_target_frame(
+        const nav_msgs::msg::Odometry& msg);
+
     std::shared_ptr<
         message_filters::Subscriber<vortex_msgs::msg::LandmarkArray>>
         landmark_sub_;
@@ -166,12 +183,22 @@ class LandmarkServerNode : public rclcpp::Node {
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     mutable std::mutex odom_mtx_;
     std::optional<geometry_msgs::msg::Point> last_odom_position_;
+    /// Latest odometry pose (stamp [s], pose in target_frame_) for the graph.
+    std::optional<std::pair<double, Eigen::Isometry3d>> last_odom_pose_;
+    /// target_frame_ <- odometry frame, when they differ (static).
+    std::optional<Eigen::Isometry3d> target_T_odom_;
 
     std::mutex measurements_mtx_;
 
     LandmarkMapConfig map_config_;
     std::unique_ptr<RetainedLandmarks> map_;
     std::unique_ptr<CourseFrameTracker> course_;
+    std::unique_ptr<LandmarkGraph> graph_;
+    /// Which track each measurement of this tick went to.
+    std::vector<vortex::filtering::Association> tick_associations_;
+    /// Measurements of tracks that are not in the map yet, per track id.
+    std::map<int, std::deque<Landmark>> pending_graph_;
+    int graph_log_ticks_{0};
     rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr
         object_map_pub_;
     rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr

@@ -28,6 +28,7 @@ find_package(visualization_msgs REQUIRED)
 find_package(pose_filtering REQUIRED)
 find_package(landmark_targets REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(GTSAM REQUIRED)
 
 include_directories(include)
 
@@ -49,13 +50,23 @@ ament_target_dependencies(${CORE_LIB_NAME} PUBLIC
 )
 target_link_libraries(${CORE_LIB_NAME} PUBLIC yaml-cpp)
 
+# Smoothing backend (iSAM2). Own library: GTSAM stays out of the other
+# translation units.
+set(GRAPH_LIB_NAME "${PROJECT_NAME}_graph")
+add_library(${GRAPH_LIB_NAME} SHARED src/landmark_graph.cpp)
+target_include_directories(${GRAPH_LIB_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_link_libraries(${GRAPH_LIB_NAME} PUBLIC yaml-cpp PRIVATE gtsam)
+
 add_library(${LIB_NAME} SHARED
   src/landmark_server_ros.cpp
   src/landmark_server_publish.cpp
   src/landmark_server_ros_debug.cpp
+  src/landmark_server_graph.cpp
   src/landmark_ros_conversion.cpp)
 
-target_link_libraries(${LIB_NAME} PUBLIC ${CORE_LIB_NAME})
+target_link_libraries(${LIB_NAME} PUBLIC ${CORE_LIB_NAME} ${GRAPH_LIB_NAME})
 
 ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp
@@ -84,7 +95,7 @@ rclcpp_components_register_node(
 
 ament_export_targets(export_${LIB_NAME})
 
-install(TARGETS ${LIB_NAME} ${CORE_LIB_NAME}
+install(TARGETS ${LIB_NAME} ${CORE_LIB_NAME} ${GRAPH_LIB_NAME}
   EXPORT export_${LIB_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
