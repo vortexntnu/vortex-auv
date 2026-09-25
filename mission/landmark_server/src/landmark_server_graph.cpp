@@ -86,6 +86,7 @@ void LandmarkServerNode::clear_graph() {
     }
     pending_graph_.clear();
     tick_associations_.clear();
+    previous_correction_.reset();
 }
 
 void LandmarkServerNode::update_graph() {
@@ -155,6 +156,23 @@ void LandmarkServerNode::update_graph() {
                                     std::chrono::duration<double, std::milli>(
                                         std::chrono::steady_clock::now() - t0)
                                         .count());
+
+    // The correction changed: what the map keeps in odom coordinates and does
+    // not get from the graph again (orientations, a locked yaw, landmarks the
+    // graph does not place yet, the course frame) moves with it, so the gate
+    // box turns with its posts.
+    const Eigen::Isometry3d correction = graph_->correction();
+    if (previous_correction_) {
+        const Eigen::Isometry3d delta =
+            correction * previous_correction_->inverse();
+        if (!delta.isApprox(Eigen::Isometry3d::Identity(), 1e-12)) {
+            map_->apply_correction(delta, [this](int id) {
+                return graph_->landmark_in_odom(id).has_value();
+            });
+            course_->apply_correction(delta);
+        }
+    }
+    previous_correction_ = correction;
 
     // The smoothed positions, in the current odom frame, replace the
     // tracker's (the orientation stays the tracker's and the rules').

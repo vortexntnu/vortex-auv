@@ -21,6 +21,28 @@ void RetainedLandmarks::clear() {
     ambiguous_ = 0;
 }
 
+void RetainedLandmarks::apply_correction(
+    const Eigen::Isometry3d& delta,
+    const std::function<bool(int)>& placed_by_graph) {
+    const Eigen::Quaterniond q_delta(delta.rotation());
+    const double dyaw = std::atan2(delta.linear()(1, 0), delta.linear()(0, 0));
+    const double c = std::cos(dyaw);
+    const double s = std::sin(dyaw);
+    for (auto& lm : landmarks_) {
+        if (lm.has_orientation) {
+            lm.orientation = (q_delta * lm.orientation).normalized();
+        }
+        // The running mean of yaw estimates turns with it.
+        const double sum_cos = lm.yaw_sum_cos;
+        lm.yaw_sum_cos = c * sum_cos - s * lm.yaw_sum_sin;
+        lm.yaw_sum_sin = s * sum_cos + c * lm.yaw_sum_sin;
+        if (lm.live_track_id < 0 &&
+            !(placed_by_graph && placed_by_graph(lm.id))) {
+            lm.position = delta * lm.position;
+        }
+    }
+}
+
 const RetainedLandmark* RetainedLandmarks::find(int id) const {
     const auto it = std::find_if(landmarks_.begin(), landmarks_.end(),
                                  [&](const auto& l) { return l.id == id; });

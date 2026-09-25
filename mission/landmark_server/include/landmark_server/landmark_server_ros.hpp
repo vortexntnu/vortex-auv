@@ -201,6 +201,9 @@ class LandmarkServerNode : public rclcpp::Node {
     /// Measurements of tracks that are not in the map yet, per track id.
     std::map<int, std::deque<Landmark>> pending_graph_;
     int graph_log_ticks_{0};
+    /// The graph's correction at the previous tick; its change moves what the
+    /// map keeps in odom coordinates (orientations, the course frame).
+    std::optional<Eigen::Isometry3d> previous_correction_;
     /// For display: the smoothed and the raw keyframe trajectories, and
     /// [keyframes, landmarks, correction x, y [m], yaw [deg], slowest graph
     /// update in the last second [ms]].

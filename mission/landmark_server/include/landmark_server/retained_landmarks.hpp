@@ -95,6 +95,17 @@ class RetainedLandmarks {
     /// Forget everything. Ids keep counting up.
     void clear();
 
+    /**
+     * @brief The odom frame moved under the map (the smoothing graph changed
+     * its correction by @p delta, new_odom <- old_odom). Everything kept in
+     * odom coordinates that is not set again this tick moves with it: every
+     * orientation (a locked yaw included) and the positions of remembered
+     * landmarks that the graph does not place (@p placed_by_graph false).
+     * Followed landmarks keep their fresh tracker position.
+     */
+    void apply_correction(const Eigen::Isometry3d& delta,
+                          const std::function<bool(int)>& placed_by_graph);
+
     const std::deque<RetainedLandmark>& landmarks() const { return landmarks_; }
     /// For the map rules, which may change orientation and add derived
     /// landmarks.

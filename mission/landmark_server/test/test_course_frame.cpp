@@ -81,6 +81,43 @@ TEST(CourseFrame, LocksToTheGateAfterConsistentEstimates) {
     EXPECT_TRUE(course.position_allowed({15.0, 1.0, 2.0}));
 }
 
+TEST(CourseFrame, ALockedFrameMovesWithTheGraphCorrection) {
+    CourseFrameTracker course(example_config().course_frame);
+    ASSERT_TRUE(course.set_coarse(start_pose(0, 0, 0), 0.0).success);
+    for (int i = 0; i < 10; ++i) {
+        course.add_gate_estimate({10.0, 1.0}, M_PI);
+    }
+    ASSERT_EQ(course.status(), CourseFrameStatus::GATE_LOCKED);
+
+    // The graph turns the map 15 deg about the vehicle at (2, 0).
+    const double a = 15.0 * M_PI / 180.0;
+    Eigen::Isometry3d delta = Eigen::Isometry3d::Identity();
+    delta.linear() = Eigen::AngleAxisd(a, Eigen::Vector3d::UnitZ()).matrix();
+    const Eigen::Vector3d pivot(2.0, 0.0, 0.0);
+    delta.translation() = pivot - delta.linear() * pivot;
+    course.apply_correction(delta);
+
+    const Eigen::Vector3d origin = delta * Eigen::Vector3d(10.0, 1.0, 0.0);
+    EXPECT_NEAR(course.origin().x(), origin.x(), 1e-9);
+    EXPECT_NEAR(course.origin().y(), origin.y(), 1e-9);
+    EXPECT_NEAR(course.through_yaw(), a, 1e-9);
+    // 5 m through the gate follows the turned direction.
+    const Eigen::Vector2d ahead = course.from_course({5.0, 0.0});
+    EXPECT_NEAR((ahead - course.origin()).norm(), 5.0, 1e-9);
+    EXPECT_NEAR(std::atan2(ahead.y() - course.origin().y(),
+                           ahead.x() - course.origin().x()),
+                a, 1e-9);
+}
+
+TEST(CourseFrame, UnsetFrameIgnoresTheCorrection) {
+    CourseFrameTracker course(example_config().course_frame);
+    Eigen::Isometry3d delta = Eigen::Isometry3d::Identity();
+    delta.translation() = Eigen::Vector3d(3.0, 0.0, 0.0);
+    course.apply_correction(delta);
+    EXPECT_EQ(course.status(), CourseFrameStatus::UNSET);
+    EXPECT_TRUE(course.position_allowed({1000.0, -1000.0, 0.0}));
+}
+
 TEST(CourseFrame, InconsistentEstimatesDoNotLock) {
     CourseFrameTracker course(example_config().course_frame);
     ASSERT_TRUE(course.set_coarse(start_pose(0, 0, 0), 0.0).success);

@@ -130,6 +130,23 @@ void CourseFrameTracker::add_gate_estimate(const Eigen::Vector2d& gate_center,
     status_ = CourseFrameStatus::GATE_LOCKED;
 }
 
+void CourseFrameTracker::apply_correction(const Eigen::Isometry3d& delta) {
+    if (status_ == CourseFrameStatus::UNSET) {
+        return;
+    }
+    const double dyaw = std::atan2(delta.linear()(1, 0), delta.linear()(0, 0));
+    const auto move = [&](const Eigen::Vector2d& p) {
+        return (delta * Eigen::Vector3d(p.x(), p.y(), 0.0)).head<2>().eval();
+    };
+    origin_ = move(origin_);
+    through_yaw_ = vortex::utils::math::ssa(through_yaw_ + dyaw);
+    start_yaw_ = vortex::utils::math::ssa(start_yaw_ + dyaw);
+    for (auto& e : estimates_) {
+        e.center = move(e.center);
+        e.yaw = vortex::utils::math::ssa(e.yaw + dyaw);
+    }
+}
+
 bool CourseFrameTracker::take_deviation_warning() {
     const bool pending = deviation_warning_pending_;
     deviation_warning_pending_ = false;

@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <vortex/utils/math.hpp>
 #include "landmark_server/course_frame.hpp"
 #include "landmark_server/retained_landmarks.hpp"
 #include "test_map_utils.hpp"
@@ -202,6 +203,49 @@ TEST(RetainedLandmarks, RatioOneTurnsTheCheckOff) {
                2.0);
     EXPECT_EQ(map.find(a)->live_track_id, 5) << "nearest, as before";
     (void)b;
+}
+
+TEST(RetainedLandmarks, GraphCorrectionTurnsLockedYawAndRememberedPositions) {
+    RetainedLandmarks map(example_config());
+    // A followed pipe, a remembered gate with a locked yaw, a remembered
+    // board the graph places itself.
+    map.update({make_track(1, LT::GATE, LS::GATE_WHOLE, v(10, 0)),
+                make_track(2, LT::TORPEDO_BOARD, LS::TORPEDO_BOARD_WHOLE,
+                           v(16, -5))},
+               0.0);
+    map.update({make_track(3, LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED, v(8, 0))},
+               1.0);
+    auto& lms = map.landmarks();
+    RetainedLandmark* gate = nullptr;
+    RetainedLandmark* board = nullptr;
+    RetainedLandmark* pipe = nullptr;
+    for (auto& lm : lms) {
+        if (lm.key.type == LT::GATE) gate = &lm;
+        if (lm.key.type == LT::TORPEDO_BOARD) board = &lm;
+        if (lm.key.type == LT::SLALOM_PIPE) pipe = &lm;
+    }
+    ASSERT_TRUE(gate && board && pipe);
+    gate->orientation = Eigen::Quaterniond(
+        Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()));
+    gate->has_orientation = true;
+    gate->yaw_locked = true;
+    const int board_id = board->id;
+
+    const double a = 15.0 * M_PI / 180.0;
+    Eigen::Isometry3d delta = Eigen::Isometry3d::Identity();
+    delta.linear() = Eigen::AngleAxisd(a, Eigen::Vector3d::UnitZ()).matrix();
+    map.apply_correction(delta, [&](int id) { return id == board_id; });
+
+    // The gate turns with the map: position and locked yaw.
+    const Eigen::Vector3d gate_pos = delta * v(10, 0);
+    EXPECT_NEAR((gate->position - gate_pos).norm(), 0.0, 1e-9);
+    EXPECT_NEAR(std::abs(vortex::utils::math::ssa(gate->yaw() - (M_PI + a))),
+                0.0, 1e-9);
+    EXPECT_TRUE(gate->yaw_locked);
+    // The board is placed by the graph: its position is left alone.
+    EXPECT_NEAR((board->position - v(16, -5)).norm(), 0.0, 1e-12);
+    // The followed pipe keeps its fresh tracker position.
+    EXPECT_NEAR((pipe->position - v(8, 0)).norm(), 0.0, 1e-12);
 }
 
 TEST(RetainedLandmarks, ClassIsFullAtMaxInstances) {

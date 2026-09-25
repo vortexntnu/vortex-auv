@@ -3,6 +3,7 @@
 
 #include <deque>
 #include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Geometry>
 #include <landmark_targets/geometry.hpp>
 #include <string>
 #include <vortex/utils/types.hpp>
@@ -55,6 +56,13 @@ class CourseFrameTracker {
      * gate_yaw + pi. Ignored unless the state is COARSE.
      */
     void add_gate_estimate(const Eigen::Vector2d& gate_center, double gate_yaw);
+
+    /**
+     * @brief The odom frame moved under the map (the smoothing graph changed
+     * its correction by @p delta, new_odom <- old_odom): move the frame, the
+     * start value and the pending gate estimates with it.
+     */
+    void apply_correction(const Eigen::Isometry3d& delta);
 
     CourseFrameStatus status() const { return status_; }
     Eigen::Vector2d origin() const { return origin_; }
