@@ -96,6 +96,20 @@ void LandmarkServerNode::create_map() {
     if (graph_->config().enable) {
         spdlog::info("LandmarkServer: iSAM2 smoothing backend enabled");
     }
+    // The values that differ between sim.yaml and pool.yaml, so the log
+    // shows which environment is running.
+    const auto& zl = map_config_.map_rules.z_lock;
+    const auto& lane = map_config_.course_frame.before_gate;
+    const auto& fire = map_config_.map_rules.torpedo_version_1.fire;
+    const auto& tc = track_manager_config_.default_class_config;
+    spdlog::info(
+        "LandmarkServer config: z_lock {} (floor {:.3f} m), lane before gate "
+        "x [{:.1f}, {:.1f}] y [{:.1f}, {:.1f}], torpedo v1 fire offset "
+        "({:.3f}, {:.3f}, {:.3f}), sensor std {:.2f} m, max_pos_error "
+        "{:.2f} m, graph yaw noise {:.2f} deg/m",
+        zl.enable ? "on" : "off", zl.floor_z, lane.x_min, lane.x_max,
+        lane.y_min, lane.y_max, fire.x(), fire.y(), fire.z(), tc.sens_std_dev,
+        tc.max_pos_error, graph_->config().odom_yaw_std_deg_per_m);
 
     // Per-class track configs (track_config.<CLASS>...) on top of the default.
     const YAML::Node track_tree =

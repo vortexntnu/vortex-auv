@@ -65,6 +65,9 @@ def launch_setup(context, *args, **kwargs):
         "config",
         "landmark_server_config.yaml",
     )
+    sim_config = os.path.join(
+        get_package_share_directory("landmark_server"), "config", "sim.yaml"
+    )
     drone_config = os.path.join(
         get_package_share_directory("auv_setup"),
         "config",
@@ -78,6 +81,7 @@ def launch_setup(context, *args, **kwargs):
         namespace=namespace,
         parameters=[
             landmark_config,
+            sim_config,
             drone_config,
             {
                 "use_sim_time": False,

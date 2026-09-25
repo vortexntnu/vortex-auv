@@ -1,3 +1,7 @@
+# Common landmark_server parameters. What differs between the simulator and a
+# real pool (depths, lane limits, torpedo board offsets, and the noise values
+# that must be measured) is in sim.yaml / pool.yaml, loaded after this file:
+#   ros2 launch landmark_server landmark_server.launch.py env:=sim|pool
 /**:
   ros__parameters:
     target_frame: "nautilus/odom"
@@ -62,16 +66,13 @@
                      max_pending_per_track: 50}
 
     # Course frame: TF nautilus/course (child of target_frame).
-    # x through the gate, y to the right, z down. Lane limits are in this frame
-    # (estimates, to be measured in the pool).
+    # x through the gate, y to the right, z down. Lane limits (course_frame.lane)
+    # are in this frame, per environment (sim.yaml / pool.yaml).
     course_frame:
       publish_tf: true
       frame_id: "nautilus/course"
       gate_lock: {consistent_estimates: 10, max_yaw_std_deg: 3.0}
       warn_start_vs_gate_deg: 30.0
-      lane:
-        before_gate: {x: [-10.0, 45.0], y: [-12.0, 12.0]}
-        after_gate: {x: [-5.0, 40.0], y: [-6.0, 6.0]}
 
     # Map rules per class.
     # max_instances is per (type, subtype). retain: forever, or retain_sec.
@@ -113,22 +114,12 @@
       # positive) instead of the measured one; the octagon floats at the
       # surface. Not the table: its top and the things on it are ~0.7 m above
       # the floor. Only the octagon itself: its image plates hang under the
-      # surface. The depths are the simulator's pool, measure them for the
-      # real pool.
+      # surface. enable, floor_z and surface_z are per environment.
       z_lock:
-        enable: true
-        floor_z: 3.432
-        surface_z: 0.0
         floor_classes: [PATH_MARKER, BIN_STRUCTURE]
         surface_classes: [OCTAGON_WHOLE]
-      # Board frame: +X out of the front, +Y right, +Z down. Offsets from an
-      # icon to its opening, per board version (fire above blood = version 1).
-      # Placeholder values, to be measured on our own board.
-      torpedo_targets_from_icons:
-        version_1: {fire: [0.0, 0.0, -0.169], blood: [0.0, 0.0, -0.169],
-                    firetruck: [0.0, 0.1888, 0.0], ambulance: [0.0, -0.192, 0.0]}
-        version_2: {fire: [0.0, 0.0, -0.218], blood: [0.0, 0.0, -0.168],
-                    firetruck: [0.0, -0.1555, -0.15], ambulance: [0.0, 0.193, 0.0]}
+      # rules.torpedo_targets_from_icons (icon -> opening offsets) is per
+      # environment.
 
     # Boxes of the real size in the markers, from the simulator's meshes.
     # size: [x out of the front, y right, z down] [m]; offset: box centre

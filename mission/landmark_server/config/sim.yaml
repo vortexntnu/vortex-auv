@@ -1,0 +1,27 @@
+# Simulator (Stonefish RoboSub course): loaded after landmark_server_config.yaml
+# with env:=sim (the default). The values come from the simulator's scene and
+# meshes; they are right for the simulator only.
+/**:
+  ros__parameters:
+    rules:
+      # The simulator's pool floor (odom z, down positive).
+      z_lock: {enable: true, floor_z: 3.432, surface_z: 0.0}
+      # Board frame: +X out of the front, +Y right, +Z down. Offsets from an
+      # icon to its opening, per board version (fire above blood = version 1),
+      # read from the simulator's board textures.
+      torpedo_targets_from_icons:
+        version_1: {fire: [0.0, 0.0, -0.169], blood: [0.0, 0.0, -0.169],
+                    firetruck: [0.0, 0.1888, 0.0], ambulance: [0.0, -0.192, 0.0]}
+        version_2: {fire: [0.0, 0.0, -0.218], blood: [0.0, 0.0, -0.168],
+                    firetruck: [0.0, -0.1555, -0.15], ambulance: [0.0, 0.193, 0.0]}
+
+    course_frame:
+      # Course frame (x through the gate, y right): generous before the gate
+      # is locked, tight after.
+      lane:
+        before_gate: {x: [-10.0, 45.0], y: [-12.0, 12.0]}
+        after_gate: {x: [-5.0, 40.0], y: [-6.0, 6.0]}
+
+    # The simulator's odometry does not drift and the dummy detections are
+    # clean: the common noise values are fine here. Do not tune them in the
+    # simulator (the numbers do not carry over to the pool).

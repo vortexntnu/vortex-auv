@@ -1,0 +1,50 @@
+# Real pool: loaded after landmark_server_config.yaml with env:=pool.
+# Everything here must be measured in the pool before the values mean
+# anything. Until then they are the simulator's values or guesses, marked
+# MEASURE. The tests (A-D) and how to turn them into numbers are in the tuning
+# guide (README, "Smoothing backend").
+/**:
+  ros__parameters:
+    rules:
+      # MEASURE: pool floor depth in odom z (down positive). Off until then:
+      # a wrong floor depth moves bins and path markers.
+      z_lock: {enable: false, floor_z: 3.432, surface_z: 0.0}
+      # MEASURE on the board in use: icon -> opening offsets, board frame
+      # (+X out of the front, +Y right, +Z down). These are the simulator's.
+      torpedo_targets_from_icons:
+        version_1: {fire: [0.0, 0.0, -0.169], blood: [0.0, 0.0, -0.169],
+                    firetruck: [0.0, 0.1888, 0.0], ambulance: [0.0, -0.192, 0.0]}
+        version_2: {fire: [0.0, 0.0, -0.218], blood: [0.0, 0.0, -0.168],
+                    firetruck: [0.0, -0.1555, -0.15], ambulance: [0.0, 0.193, 0.0]}
+      # Test A: about 1.5 x the typical error when the vehicle returns.
+      plausibility_radius_m: 3.0
+
+    course_frame:
+      # MEASURE: the course in this pool, in the course frame (x through the
+      # gate, y right), with some margin. Generous until measured.
+      lane:
+        before_gate: {x: [-10.0, 45.0], y: [-12.0, 12.0]}
+        after_gate: {x: [-5.0, 40.0], y: [-6.0, 6.0]}
+
+    graph:
+      # Test A (loops back to the gate) and B (hover). Std of one keyframe
+      # step: about 2 x the measured drift (the drift is a bias).
+      odom_noise:
+        yaw_std_deg_per_m: 1.0      # MEASURE: 2 x yaw drift per metre (test A)
+        pos_std_per_m: 0.02         # MEASURE: 2 x DVL scale error (test A)
+        yaw_std_deg_per_sec: 0.01   # MEASURE: yaw drift per second in hover (test B)
+
+    track_config:
+      default:
+        # MEASURE (test C): lateral std at short range, typically 0.03-0.08.
+        sens_mod_std_dev: 0.2
+        gate:
+          # At least 3-4 x the depth std at the longest working range (test C),
+          # probably 1.0-1.5 m for a camera.
+          max_pos_error: 0.5
+
+    intake:
+      # MEASURE (test C, plus the range bias from test D): variance along the
+      # line of sight = s^2 + base + per_meter * d, across it
+      # s^2 + lateral_ratio * (base + per_meter * d), s = sens_mod_std_dev.
+      distance_noise: {base_variance: 0.0, variance_per_meter: 0.005, lateral_ratio: 0.25}

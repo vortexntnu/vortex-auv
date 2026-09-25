@@ -105,6 +105,22 @@ The take-over check (`rules.adoption`) changed nothing here, with or without the
 
 A correct detector covariance helps, most of all its shape (range much less certain than bearing), which keeps a range bias from pulling the map. An overconfident one is worse than the own model and gave a duplicate slalom pipe (the tracker gate became too tight). Covariance without the graph does nothing against drift.
 
+## Configuration per environment
+
+`config/landmark_server_config.yaml` holds what is the same everywhere. What differs between the simulator and a real pool is in a second file, loaded after it (its values win):
+
+```bash
+ros2 launch landmark_server landmark_server.launch.py env:=sim    # default
+ros2 launch landmark_server landmark_server.launch.py env:=pool
+```
+
+| File | Contents |
+|---|---|
+| `config/sim.yaml` | The simulator's pool floor (`z_lock` on, 3.432 m), torpedo board offsets from its textures, lane limits. Noise values: the common ones (do not tune them in the simulator) |
+| `config/pool.yaml` | The tuning sheet for a real pool: every value that must be measured, marked `MEASURE`, with the test it comes from. `z_lock` is off until the floor depth is measured |
+
+Tests that start the node themselves load `landmark_server_config.yaml` and then `sim.yaml`.
+
 ## Files
 
 - ROS-free (gtest): `class_config`, `retained_landmarks`, `course_frame`, `map_rules`, `landmark_graph` (own library, the only one that includes GTSAM)

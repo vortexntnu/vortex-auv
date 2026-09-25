@@ -141,7 +141,7 @@ PANE_CTRL=$(tmux split-window -h -t "$PANE_SIM" -P -F '#{pane_id}')
 tmux send-keys -t "$PANE_CTRL" "clear && $S && ros2 launch auv_setup dp_quat.launch.py" Enter
 
 PANE_MAP=$(tmux split-window -v -t "$PANE_SIM" -P -F '#{pane_id}')
-tmux send-keys -t "$PANE_MAP" "clear && $S && ros2 launch landmark_server landmark_server.launch.py" Enter
+tmux send-keys -t "$PANE_MAP" "clear && $S && ros2 launch landmark_server landmark_server.launch.py env:=sim" Enter
 
 PANE_WM=$(tmux split-window -v -t "$PANE_CTRL" -P -F '#{pane_id}')
 tmux send-keys -t "$PANE_WM" "clear && $S && ros2 launch waypoint_manager waypoint_manager.launch.py" Enter
