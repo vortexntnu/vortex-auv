@@ -40,6 +40,9 @@
       # vehicle: far detections weigh less in the tracker.
       # Along the line of sight (depth); across it: lateral_ratio * that.
       distance_noise: {base_variance: 0.0, variance_per_meter: 0.005, lateral_ratio: 0.25}
+      # Use the detector's position covariance instead (when its diagonal is
+      # > 0): replaces the class noise and distance_noise. scale for testing.
+      measurement_covariance: {use: false, scale: 1.0, min_std_m: 0.02}
 
     # Smoothing backend (iSAM2): vehicle keyframes + landmark positions in one
     # factor graph. When a remembered landmark is seen again after the

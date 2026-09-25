@@ -137,8 +137,22 @@ std::vector<Landmark> LandmarkServerNode::ros_msg_to_landmarks(
                     (depth_var - lateral_var) * ray * ray.transpose();
             }
         }
-        // A rotational variance >= the limit means "no orientation".
         const auto& cov = lm_msg.pose.covariance;
+        if (map_config_.intake.use_measurement_covariance && cov[0] > 0.0 &&
+            cov[7] > 0.0 && cov[14] > 0.0) {
+            Eigen::Matrix3d pc;
+            for (int r = 0; r < 3; ++r) {
+                for (int c = 0; c < 3; ++c) {
+                    pc(r, c) = cov[r * 6 + c];
+                }
+            }
+            const double min_std = map_config_.intake.covariance_min_std_m;
+            pc = 0.5 * (pc + pc.transpose()).eval() *
+                     map_config_.intake.covariance_scale +
+                 Eigen::Matrix3d::Identity() * min_std * min_std;
+            lm.position_cov = pc;
+        }
+        // A rotational variance >= the limit means "no orientation".
         const double no_ori = map_config_.intake.no_orientation_rot_variance;
         lm.has_orientation =
             !(cov[3 * 6 + 3] >= no_ori || cov[4 * 6 + 4] >= no_ori ||

@@ -36,7 +36,10 @@ SensorMod PoseTrackManager::sensor_model_for(
     const double sens_var = cfg.sens_std_dev * cfg.sens_std_dev;
     Eigen::Matrix<double, 6, 6> sensor_cov =
         Eigen::Matrix<double, 6, 6>::Identity() * sens_var;
-    if (measurement != nullptr) {
+    if (measurement != nullptr && measurement->position_cov) {
+        // The detector knows its own noise: use it for the position.
+        sensor_cov.topLeftCorner<3, 3>() = *measurement->position_cov;
+    } else if (measurement != nullptr) {
         // Noisier measurements (for instance far away) weigh less. Only the
         // position noise; the orientation noise is the class value.
         sensor_cov.topLeftCorner<3, 3>() += extra_position_cov(*measurement);

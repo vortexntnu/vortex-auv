@@ -288,6 +288,14 @@ LandmarkMapConfig parse_map_config(const YAML::Node& root) {
             cfg.intake.noise_lateral_ratio = get_or<double>(
                 noise, "lateral_ratio", cfg.intake.noise_lateral_ratio);
         }
+        if (const auto mc = intake["measurement_covariance"]) {
+            cfg.intake.use_measurement_covariance =
+                get_or<bool>(mc, "use", cfg.intake.use_measurement_covariance);
+            cfg.intake.covariance_scale =
+                get_or<double>(mc, "scale", cfg.intake.covariance_scale);
+            cfg.intake.covariance_min_std_m = get_or<double>(
+                mc, "min_std_m", cfg.intake.covariance_min_std_m);
+        }
     }
 
     if (const auto cf = root["course_frame"]) {

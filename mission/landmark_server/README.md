@@ -45,6 +45,7 @@ course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
 | Bins | The role icon seen by the down camera gives the role of the nearest bin; the roleless duplicate is hidden |
 | Octagon | `OCTAGON_WHOLE` over the table; with `z_lock` on it floats at `surface_z` |
 | Depth lock | `rules.z_lock`: floor classes get `floor_z`, surface classes `surface_z` (odom z, down positive). Entries can be a type (`OCTAGON`) or one subtype (`OCTAGON_WHOLE`). The table is not locked: its top is ~0.7 m above the floor. Off by default in code, on in the config with the simulator's pool depth: measure the real one |
+| Detector covariance | `intake.measurement_covariance.use`: the position covariance of the detection (rotated into `target_frame`) replaces the class noise and the distance noise, in the tracker and the graph. `scale` multiplies it (testing), `min_std_m` is a floor. Off by default |
 | Distance noise | `intake.distance_noise`: the tracker adds `base + per_meter * distance` to the position variance along the line of sight (depth) and `lateral_ratio` times that across it, so far detections weigh less and the depth, which a camera knows worst, weighs least. The covariance from perception is not used for the position |
 | Association | One tracker update per camera frame (same stamp), in time order; hits and misses are counted once per tick. Per class, global nearest neighbour: squared Mahalanobis distance as the cost, the gate (`gate.max_pos_error`, `mahalanobis_gate_threshold`) as the limit, the Hungarian algorithm for the one-to-one assignment. Each track is then updated by PDAF with its own measurement |
 
@@ -81,6 +82,19 @@ and compare the map with and without the graph (installed as
 Headless sim (`simulation.launch.py rendering:=false scenario:=nautilus_no_gpu` + `drone_sim.launch.py`), `dp_quat.launch.py`, `waypoint_manager`, the dummy publisher with `-p seed:=7 -p topic:=landmarks_true -p use_field_of_view:=true`, the injector, and two landmark servers with `-p topics.landmarks:=/nautilus/landmarks_drift -p topics.odom:=/nautilus/odom_drift`, one in namespace `/nautilus_raw` with `-p graph.enable:=false`.
 
 Result 2026-09-25 (0.5 deg/m, 32 m, 15.8 deg drift at the end): remembered landmarks 0.12 m mean / 0.19 m max error with the graph, 1.37 / 1.97 m without (torpedo board 0.10 vs 1.62 m, table 0.12 vs 1.97 m).
+
+`drift_injector.py -p noise:=true` adds camera noise (depth std 0.05 + 0.03 d along the line of sight, lateral 0.02 + 0.005 d) and writes its covariance into the detections; `bias_frac_std` adds a constant range bias per landmark that the covariance does not contain. Mean error of the remembered landmarks after the loop, 90 s after the route (six servers on the same data):
+
+| Server | 0.5 deg/m, noise | + 5 % range bias | 1 deg/m, noise |
+|---|---|---|---|
+| no graph | 1.36 m | 1.38 m | 2.74 m |
+| no graph, detector covariance | 1.41 m | 1.38 m | 2.75 m |
+| graph, own noise model | 0.16 m | 0.90 m | 0.14 m |
+| graph, detector covariance | **0.08 m** | **0.38 m** | 0.17 m |
+| graph, covariance x0.1 (overconfident) | 0.50 m | 0.60 m | 0.21 m |
+| graph, covariance x10 (underconfident) | 0.13 m | 0.38 m | 0.25 m |
+
+A correct detector covariance helps, most of all its shape (range much less certain than bearing), which keeps a range bias from pulling the map. An overconfident one is worse than the own model and gave a duplicate slalom pipe (the tracker gate became too tight). Covariance without the graph does nothing against drift.
 
 ## Files
 

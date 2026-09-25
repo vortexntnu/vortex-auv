@@ -57,6 +57,9 @@ std::optional<Eigen::Isometry3d> LandmarkServerNode::odom_in_target_frame(
 
 Eigen::Matrix3d LandmarkServerNode::graph_measurement_cov(
     const Landmark& m) const {
+    if (m.position_cov) {
+        return *m.position_cov;
+    }
     const vortex::filtering::LandmarkClassConfig* cfg =
         &track_manager_config_.default_class_config;
     for (const auto& [key, class_cfg] :

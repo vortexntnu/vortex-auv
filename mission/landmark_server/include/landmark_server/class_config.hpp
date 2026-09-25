@@ -42,6 +42,13 @@ struct IntakeConfig {
     /// depth variance (a camera knows the direction much better than the
     /// distance). 1 = the same in all directions.
     double noise_lateral_ratio{1.0};
+    /// Use the position covariance of the detection (rotated into the target
+    /// frame) instead of the class noise and the distance model, when it
+    /// has a positive diagonal. Scaled by covariance_scale (to test an over-
+    /// or underconfident detector); each std at least covariance_min_std_m.
+    bool use_measurement_covariance{false};
+    double covariance_scale{1.0};
+    double covariance_min_std_m{0.02};
 };
 
 struct CourseFrameConfig {

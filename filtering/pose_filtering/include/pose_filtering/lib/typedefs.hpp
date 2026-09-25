@@ -139,6 +139,9 @@ struct Landmark {
     /// the depth along the line of sight than across it). Used instead of
     /// extra_variance when set.
     std::optional<Eigen::Matrix3d> extra_position_cov{};
+    /// Position covariance [m^2] given by the detector. When set it
+    /// replaces the class sensor noise and the extra noise above.
+    std::optional<Eigen::Matrix3d> position_cov{};
 };
 
 /**

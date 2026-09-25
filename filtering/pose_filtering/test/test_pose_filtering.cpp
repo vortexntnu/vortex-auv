@@ -334,6 +334,23 @@ TEST_F(PoseTrackManagerTests, line_of_sight_noise_moves_less_along_the_ray) {
     EXPECT_LT(moved({0.3, 0.0, 0.0}), moved({0.0, 0.3, 0.0}));
 }
 
+TEST_F(PoseTrackManagerTests, detector_covariance_replaces_the_class_noise) {
+    // Class noise 0.1 m. A detector that says 1 m moves the track less than
+    // one that says 0.01 m.
+    const auto moved = [&](double std) {
+        PoseTrackManager mgr(make_default_config());
+        std::vector<Landmark> z = {make_landmark({0, 0, 0})};
+        mgr.step(z, 0.1);
+        Landmark m = make_landmark({0.3, 0, 0});
+        m.position_cov = Eigen::Matrix3d::Identity() * std * std;
+        std::vector<Landmark> zz = {m};
+        mgr.step(zz, 0.1);
+        return mgr.get_tracks().front().nominal_state.pos.x();
+    };
+    EXPECT_LT(moved(1.0), 0.05);
+    EXPECT_GT(moved(0.01), 0.25);
+}
+
 TEST_F(PoseTrackManagerTests, last_associations_name_the_track_of_each_hit) {
     auto cfg = make_default_config();
     cfg.default_class_config.mahalanobis_threshold = 10.0;

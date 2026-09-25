@@ -11,6 +11,13 @@ correct. This node plays a drifting state estimator:
   landmarks_out: the same positions in the drifted odom frame, i.e. where a
   camera on the vehicle would put them with the drifted pose.
 - drift (PoseStamped): odom_drift <- world, for evaluation.
+- Optional camera noise on the detections (the dummy's are exact): along
+  the line of sight from the true vehicle position std = depth_std_base +
+  depth_std_per_m * d, across it lateral_std_base + lateral_std_per_m * d,
+  and a constant range bias per landmark (bias_frac_std * d, drawn once per
+  landmark: a detector that is consistently wrong about one object). The
+  position covariance of the random part is written into the message (the
+  bias is not in it, as a real detector would not know it).
 
 Run the dummy publisher with use_field_of_view on the true odometry and
 topic landmarks_true; landmark_server on odom_out and landmarks_out.
@@ -85,7 +92,20 @@ class DriftInjector(Node):
         self.declare_parameter("landmarks_in", "/nautilus/landmarks_true")
         self.declare_parameter("landmarks_out", "/nautilus/landmarks_drift")
         self.declare_parameter("frame_id", "nautilus/odom")
+        self.declare_parameter("noise", False)
+        self.declare_parameter("depth_std_base", 0.05)
+        self.declare_parameter("depth_std_per_m", 0.03)
+        self.declare_parameter("lateral_std_base", 0.02)
+        self.declare_parameter("lateral_std_per_m", 0.005)
+        self.declare_parameter("bias_frac_std", 0.0)
+        self.declare_parameter("noise_seed", 1)
         g = self.get_parameter
+        self._noise = g("noise").value
+        self._ds = (g("depth_std_base").value, g("depth_std_per_m").value)
+        self._ls = (g("lateral_std_base").value, g("lateral_std_per_m").value)
+        self._bias_std = g("bias_frac_std").value
+        self._rng = np.random.default_rng(g("noise_seed").value)
+        self._bias = {}
         self._drift = math.radians(g("drift_yaw_deg_per_m").value)
         self._scale = g("scale_error").value
         self._frame = g("frame_id").value
@@ -145,11 +165,38 @@ class DriftInjector(Node):
         out.header = msg.header
         out.header.frame_id = self._frame
         for lm in msg.landmarks:
-            t = self._c @ pose_to_mat(lm.pose.pose)
+            world = pose_to_mat(lm.pose.pose)
+            if self._noise and self._true_prev is not None:
+                self._add_noise(lm, world)
+            t = self._c @ world
             mat_to_pose(t, lm.pose.pose)
             lm.header.frame_id = self._frame
             out.landmarks.append(lm)
         self._lm_pub.publish(out)
+
+    def _add_noise(self, lm, world):
+        """Camera noise in the world frame; covariance into the drifted frame."""
+        p = world[:3, 3]
+        ray = p - self._true_prev[:3, 3]
+        d = float(np.linalg.norm(ray))
+        if d < 1e-6:
+            return
+        u = ray / d
+        key = (lm.type.value, lm.subtype.value, *np.round(p, 1))
+        if key not in self._bias:
+            self._bias[key] = (
+                self._rng.normal(0.0, self._bias_std) if self._bias_std > 0 else 0.0
+            )
+        sd = self._ds[0] + self._ds[1] * d
+        sl = self._ls[0] + self._ls[1] * d
+        cov = sl * sl * np.eye(3) + (sd * sd - sl * sl) * np.outer(u, u)
+        noise = self._rng.multivariate_normal(np.zeros(3), cov)
+        world[:3, 3] = p + noise + self._bias[key] * d * u
+        r = self._c[:3, :3]
+        cov_out = r @ cov @ r.T
+        for i in range(3):
+            for j in range(3):
+                lm.pose.covariance[6 * i + j] = float(cov_out[i, j])
 
     def _log(self):
         yaw = math.degrees(math.atan2(self._c[1, 0], self._c[0, 0]))
