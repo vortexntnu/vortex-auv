@@ -91,12 +91,13 @@ navigation sensors, what the live stack did, and a notes file, into
 second the servers. Checked on a simulator bag: the replayed map equals the
 map the live server built (21 landmarks, 0.000 m apart).
 
-One command starts everything (tmux session `sim_autonomy`):
+One command starts everything (tmux session `sim_autonomy`). The script is in
+vortex-cv, run from the workspace root:
 
 ```bash
-utility_scripts/launch_sim_autonomy.sh --headless --fov        # baseline, no drift
-utility_scripts/launch_sim_autonomy.sh --headless --drift 0.5  # drift + a server without graph
-ros2 run landmark_server drift_route.py                        # then drive a loop
+src/vortex-cv/perception_setup/scripts/launch_sim_autonomy.sh --headless --fov        # baseline, no drift
+src/vortex-cv/perception_setup/scripts/launch_sim_autonomy.sh --headless --drift 0.5  # drift + a server without graph
+ros2 run landmark_server drift_route.py                                                # then drive a loop
 ```
 
 Foxglove layout: `foxglove/landmark_graph.json` (Layout, Import from file). It shows the map, the truth from the course layout (green spheres), a line from each map landmark to its truth (blue with graph, red without), the raw odometry path (`landmark_server/graph/odom_path`, orange) and the graph's corrected path (`landmark_server/graph/path`, green), and plots of the map error, drift against correction and `landmark_server/graph/stats` (`[keyframes, landmarks, correction x, y, yaw deg, slowest update ms]`).

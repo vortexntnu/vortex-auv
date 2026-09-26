@@ -82,7 +82,7 @@ MAKEFLAGS="-j2" nice -n 19 colcon build --packages-select vortex_msgs vortex_uti
   --parallel-workers 2
 source install/setup.bash
 
-src/vortex-auv/utility_scripts/launch_sim_autonomy.sh --fov \
+src/vortex-cv/perception_setup/scripts/launch_sim_autonomy.sh --fov \
   --tasks gate,torpedo_board,bin,octagon,table
 ```
 
@@ -237,7 +237,7 @@ pulled the wrong way. The result says nothing about the detector.
 To see the drift correction work, run it with the dummy only (no `--tasks`):
 
 ```bash
-src/vortex-auv/utility_scripts/launch_sim_autonomy.sh --headless --drift 0.5
+src/vortex-cv/perception_setup/scripts/launch_sim_autonomy.sh --headless --drift 0.5
 ros2 run landmark_server drift_route.py
 ```
 
@@ -251,7 +251,7 @@ ones long.
 
 ```bash
 # start (rendering, dummy without slalom)
-src/vortex-auv/utility_scripts/launch_sim_autonomy.sh --fov --tasks gate,torpedo_board,bin,octagon,table
+src/vortex-cv/perception_setup/scripts/launch_sim_autonomy.sh --fov --tasks gate,torpedo_board,bin,octagon,table
 
 # checks
 ros2 topic info -v /nautilus/landmarks
