@@ -41,6 +41,9 @@ Geometry (`geometry.hpp`): `forward_distance`, `side_of`, `perpendicular_heading
 
 Slalom (`slalom.hpp`): `match_pipes` (nearest red pipe in front and not passed, best white pair with the red one on the line, gap on the gate side, heading perpendicular to the whites turned inward, one-white fallback with mirroring, shortcut with the previous offset) and `avoid_slalom_waypoints` (three waypoints in the course frame that take the vehicle out of the field, past it and back in front of the gate).
 
+Building the slalom target yourself and using it from the behavior tree:
+[docs/slalom_guide.md](docs/slalom_guide.md).
+
 ## Example
 
 `examples/scenario_node.cpp` runs a scenario the way BT nodes would, against `landmark_server` and `waypoint_manager`:
