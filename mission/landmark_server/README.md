@@ -74,6 +74,23 @@ vehicle keyframes (every `keyframe.distance_m` / `angle_deg` /
 Testing a real detector (for example the slalom detector) against the map in
 the simulator: [docs/sim_detector_test.md](docs/sim_detector_test.md).
 
+### Recording and replaying for offline tuning
+
+```bash
+utility_scripts/record_landmark_bag.sh A-loops [--images] [--extra '<regex>']
+utility_scripts/replay_landmark_bag.sh ~/bags/<bag> --env pool \
+    base "" nograph "-p graph.enable:=false" trial "-p graph.odom_noise.yaw_std_deg_per_m:=2.0"
+```
+
+`record_landmark_bag.sh` records the inputs (detections, odometry, TF), the raw
+navigation sensors, what the live stack did, and a notes file, into
+`~/bags/<date>_<test>` (mcap if the plugin is installed, else sqlite3).
+`replay_landmark_bag.sh` plays only the inputs into one server per label
+(`/tune_<label>/landmark_server/...`) with `use_sim_time`. Keep the rate at
+1.0: the servers tick on wall time. The first Ctrl-C stops playback, the
+second the servers. Checked on a simulator bag: the replayed map equals the
+map the live server built (21 landmarks, 0.000 m apart).
+
 One command starts everything (tmux session `sim_autonomy`):
 
 ```bash

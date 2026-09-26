@@ -205,9 +205,13 @@ values are measured in the pool (see the tuning guide).
 ## 8. Record a bag
 
 ```bash
-ros2 bag record -s mcap -o sim_slalom_detector \
-  /nautilus/landmarks /nautilus/odom /nautilus/pose /tf /tf_static /nautilus/front_camera
+src/vortex-auv/utility_scripts/record_landmark_bag.sh sim-slalom-detector \
+  --extra '^/nautilus/front_camera$'
 ```
+
+It records what landmark_server needs (detections, odometry, TF), the raw
+navigation sensors and what the live stack did, into `~/bags/<date>_<test>`,
+with a notes file next to it. `--extra` adds the simulator's camera image.
 
 With it, the detector's real noise and bias per distance can be measured, and
 settings can be tried by replaying the bag, without running the simulator
@@ -255,7 +259,7 @@ ros2 run landmark_server drift_route.py
 ros2 run landmark_targets landmark_targets_scenario_node --ros-args -r __ns:=/nautilus -p scenario:=slalom
 
 # record
-ros2 bag record -s mcap -o sim_slalom_detector /nautilus/landmarks /nautilus/odom /nautilus/pose /tf /tf_static /nautilus/front_camera
+src/vortex-auv/utility_scripts/record_landmark_bag.sh sim-slalom-detector --extra '^/nautilus/front_camera$'
 
 # stop
 tmux kill-session -t sim_autonomy
