@@ -71,9 +71,6 @@ vehicle keyframes (every `keyframe.distance_m` / `angle_deg` /
 
 ### Trying it in the simulator
 
-Testing a real detector (for example the slalom detector) against the map in
-the simulator: [docs/sim_detector_test.md](docs/sim_detector_test.md).
-
 ### Recording and replaying for offline tuning
 
 ```bash
