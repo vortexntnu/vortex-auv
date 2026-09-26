@@ -82,21 +82,25 @@ MAKEFLAGS="-j2" nice -n 19 colcon build --packages-select vortex_msgs vortex_uti
   --parallel-workers 2
 source install/setup.bash
 
-src/vortex-cv/perception_setup/scripts/launch_sim_autonomy.sh --fov \
+# 1. simulator, controller, Foxglove bridge (vortex-auv)
+src/vortex-auv/utility_scripts/launch_drone_sim.sh --scenario robosub --low-res --detach
+# 2. landmark_server, waypoint_manager, dummy perception, check (vortex-cv)
+src/vortex-cv/perception_setup/scripts/tmux_robosub_sim.sh --fov \
   --tasks gate,torpedo_board,bin,octagon,table
 ```
 
 - `--tasks` leaves `slalom` out of the dummy, so every pipe in the map comes
   from the real detector. For another detector, leave its task out instead.
 - `--fov` makes the dummy publish only what the cameras could see.
-- The script uses course seed 7 for both the simulator and the dummy, so the
-  roles agree.
+- Both scripts use course seed 7 by default (`--seed`), so the simulator's
+  role images and the dummy agree.
 
-tmux windows: **sim** (simulator, controller, landmark_server,
+tmux sessions: **drone_launch** (simulator, controller, Foxglove bridge) and
+**robosub_sim** with the windows **mission** (landmark_server,
 waypoint_manager), **perception** (dummy, frames), **check** (the map against
-the true course), **tools** (Foxglove bridge, commands). Switch with
-`Ctrl-b` and the window number. Stop everything with
-`tmux kill-session -t sim_autonomy`.
+the true course), **tools** (commands). Switch windows with `Ctrl-b` and the
+window number. Stop everything with
+`tmux kill-session -t robosub_sim; tmux kill-session -t drone_launch`.
 
 Then start the detector in its own terminal (`source install/setup.bash`
 first).
@@ -185,7 +189,7 @@ In the **tools** window:
 | Pipes swing when the vehicle turns | Stamp or camera TF | Fix in the detector or TF, not with parameters |
 
 **Restart landmark_server with a parameter:** in the landmark_server pane of
-the **sim** window, stop it with `Ctrl-c` and run:
+the **mission** window (session `robosub_sim`), stop it with `Ctrl-c` and run:
 
 ```bash
 C=install/landmark_server/share/landmark_server/config
@@ -237,7 +241,8 @@ pulled the wrong way. The result says nothing about the detector.
 To see the drift correction work, run it with the dummy only (no `--tasks`):
 
 ```bash
-src/vortex-cv/perception_setup/scripts/launch_sim_autonomy.sh --headless --drift 0.5
+src/vortex-auv/utility_scripts/launch_drone_sim.sh --headless --detach
+src/vortex-cv/perception_setup/scripts/tmux_robosub_sim.sh --drift 0.5
 ros2 run landmark_server drift_route.py
 ```
 
@@ -251,7 +256,8 @@ ones long.
 
 ```bash
 # start (rendering, dummy without slalom)
-src/vortex-cv/perception_setup/scripts/launch_sim_autonomy.sh --fov --tasks gate,torpedo_board,bin,octagon,table
+src/vortex-auv/utility_scripts/launch_drone_sim.sh --scenario robosub --low-res --detach
+src/vortex-cv/perception_setup/scripts/tmux_robosub_sim.sh --fov --tasks gate,torpedo_board,bin,octagon,table
 
 # checks
 ros2 topic info -v /nautilus/landmarks
@@ -267,7 +273,7 @@ ros2 run landmark_targets landmark_targets_scenario_node --ros-args -r __ns:=/na
 src/vortex-auv/utility_scripts/record_landmark_bag.sh sim-slalom
 
 # stop
-tmux kill-session -t sim_autonomy
+tmux kill-session -t robosub_sim; tmux kill-session -t drone_launch
 ```
 
 More background: `mission/landmark_server/README.md`, and the Landmark Server
