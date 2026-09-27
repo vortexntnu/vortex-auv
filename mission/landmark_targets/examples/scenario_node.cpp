@@ -4,12 +4,11 @@
 //   ros2 run landmark_targets landmark_targets_scenario_node
 //     --ros-args -r __ns:=/nautilus -p scenario:=gate
 //
-// scenario: gate | slalom | torpedo | bin | return_home
+// scenario: gate | torpedo | bin | return_home
 // Ends with SCENARIO SUCCESS or SCENARIO FAILURE in the log and the matching
 // exit code. The pieces map one to one to BT nodes:
 //   ApproachStep    -> ApproachLandmark (LandmarkTarget + WaypointManager goal)
 //   MoveRelativeStep-> MoveRelative (frame BODY_RELATIVE)
-//   SlalomStep      -> Slalom (match_pipes, layer by layer)
 //   ReturnHome      -> AvoidSlalom (course frame) + ApproachLandmark from
 //   behind
 
@@ -395,125 +394,6 @@ class GoToStep : public Step {
     bool sent_{false};
 };
 
-/// Slalom: layer by layer with match_pipes.
-class SlalomStep : public Step {
-   public:
-    SlalomStep(lt::Side gate_side, int layers, double z)
-        : gate_side_(gate_side), layers_(layers), z_(z) {}
-    std::string name() const override { return "slalom"; }
-
-    void start(Context& c) override {
-        passed_.clear();
-        offset_.reset();
-        layer_ = 0;
-        phase_ = Phase::MATCH;
-        c.cancel();
-        started_ = c.now();
-    }
-
-    Status tick(Context& c) override {
-        if (!c.odom()) {
-            return Status::RUNNING;
-        }
-        if (layer_ >= layers_) {
-            return Status::SUCCESS;
-        }
-        switch (phase_) {
-            case Phase::MATCH: {
-                std::vector<lt::Pipe> red, white;
-                for (const auto& l :
-                     c.landmarks(LType::SLALOM_PIPE, LSub::SLALOM_PIPE_RED)) {
-                    red.push_back({l.id, l.pose.pos_vector()});
-                }
-                for (const auto& l :
-                     c.landmarks(LType::SLALOM_PIPE, LSub::SLALOM_PIPE_WHITE)) {
-                    white.push_back({l.id, l.pose.pos_vector()});
-                }
-                const auto gap = lt::match_pipes(red, white, *c.odom(),
-                                                 gate_side_, passed_, offset_);
-                if (!gap) {
-                    // A layer with no pipes in sight: go blind, 2 m straight
-                    // ahead.
-                    if (c.now() - started_ > 10.0) {
-                        spdlog::warn("slalom: no pipes matched, blind layer");
-                        move_blind(c);
-                    }
-                    return Status::RUNNING;
-                }
-                current_gap_ = *gap;
-                const Eigen::Quaterniond q(
-                    Eigen::AngleAxisd(gap->heading, Eigen::Vector3d::UnitZ()));
-                c.send({Context::waypoint(
-                    Pose::from_eigen(Eigen::Vector3d(gap->position.x(),
-                                                     gap->position.y(), z_),
-                                     q),
-                    vortex_msgs::msg::WaypointMode::POSITION_AND_YAW)});
-                phase_ = Phase::GO_TO_GAP;
-                return Status::RUNNING;
-            }
-            case Phase::GO_TO_GAP:
-                if (c.nav_state() == Context::NavState::SUCCEEDED) {
-                    // Through the gap, then remember the layer.
-                    c.send({Context::waypoint(
-                               Pose::from_eigen(Eigen::Vector3d(1.0, 0.0, 0.0),
-                                                Eigen::Quaterniond::Identity()),
-                               vortex_msgs::msg::WaypointMode::ONLY_POSITION)},
-                           WM::Goal::BODY_RELATIVE);
-                    phase_ = Phase::PASS;
-                } else if (c.nav_state() == Context::NavState::FAILED) {
-                    return Status::FAILURE;
-                }
-                return Status::RUNNING;
-            case Phase::PASS:
-                if (c.nav_state() == Context::NavState::SUCCEEDED) {
-                    last_reference_ = c.odom()->pos_vector().head<2>();
-                    if (current_gap_.red_id >= 0) {
-                        // A matched layer: remember it for the next one. A
-                        // blind layer teaches nothing about the offset.
-                        passed_.push_back(current_gap_.red_id);
-                        offset_ = lt::SlalomOffset{current_gap_.offset_from_red,
-                                                   current_gap_.heading};
-                    }
-                    ++layer_;
-                    phase_ = Phase::MATCH;
-                    started_ = c.now();
-                } else if (c.nav_state() == Context::NavState::FAILED) {
-                    return Status::FAILURE;
-                }
-                return Status::RUNNING;
-        }
-        return Status::RUNNING;
-    }
-
-    std::optional<Eigen::Vector2d> last_reference() const {
-        return last_reference_;
-    }
-
-   private:
-    enum class Phase { MATCH, GO_TO_GAP, PASS };
-
-    void move_blind(Context& c) {
-        c.send(
-            {Context::waypoint(Pose::from_eigen(Eigen::Vector3d(2.0, 0.0, 0.0),
-                                                Eigen::Quaterniond::Identity()),
-                               vortex_msgs::msg::WaypointMode::ONLY_POSITION)},
-            WM::Goal::BODY_RELATIVE);
-        phase_ = Phase::PASS;
-        current_gap_.red_id = -1;
-    }
-
-    lt::Side gate_side_;
-    int layers_;
-    double z_;
-    int layer_{0};
-    Phase phase_{Phase::MATCH};
-    std::vector<int> passed_;
-    std::optional<lt::SlalomOffset> offset_;
-    lt::PipeGap current_gap_;
-    std::optional<Eigen::Vector2d> last_reference_;
-    double started_{0.0};
-};
-
 class ScenarioNode : public rclcpp::Node {
    public:
     ScenarioNode() : Node("landmark_targets_scenario_node"), ctx_(*this) {
@@ -522,11 +402,6 @@ class ScenarioNode : public rclcpp::Node {
         const auto role =
             declare_parameter<std::string>("role", "survey_repair");
         const bool survey = role == "survey_repair";
-        const double depth = declare_parameter<double>("depth", 2.0);
-        const auto gate_side =
-            declare_parameter<std::string>("gate_side", "left");
-        const auto side =
-            gate_side == "left" ? lt::Side::LEFT : lt::Side::RIGHT;
         // Lane limits in course y (y to the right).
         const double lane_y_min = declare_parameter<double>("lane_y_min", -6.0);
         const double lane_y_max = declare_parameter<double>("lane_y_max", 6.0);
@@ -571,8 +446,6 @@ class ScenarioNode : public rclcpp::Node {
                 survey ? LSub::BIN_SURVEY_REPAIR : LSub::BIN_SEARCH_RESCUE;
             steps_.push_back(std::make_unique<ApproachStep>(
                 "bin", LType::BIN, sub, spec, WMode::ONLY_POSITION));
-        } else if (scenario == "slalom") {
-            steps_.push_back(std::make_unique<SlalomStep>(side, 3, depth));
         } else if (scenario == "return_home") {
             // The course frame must be locked to the gate first.
             auto slalom_reference = declare_parameter<std::vector<double>>(

@@ -39,7 +39,7 @@ if (s.send_goal)            { /* send WaypointManager goal(s) with hold and tole
 
 Geometry (`geometry.hpp`): `forward_distance`, `side_of`, `perpendicular_heading`, `CourseFrame` with `to_course` / `from_course`. `course_frame_from_tf` reads TF `nautilus/course` and returns `nullopt` while the frame is `UNSET`, so no node computes in a frame that does not exist.
 
-Slalom (`slalom.hpp`): `match_pipes` (nearest red pipe in front and not passed, best white pair with the red one on the line, gap on the gate side, heading perpendicular to the whites turned inward, one-white fallback with mirroring, shortcut with the previous offset) and `avoid_slalom_waypoints` (three waypoints in the course frame that take the vehicle out of the field, past it and back in front of the gate).
+Slalom (`slalom.hpp`): `avoid_slalom_waypoints` (three waypoints in the course frame that take the vehicle out of the field, past it and back in front of the gate).
 
 ## Example
 
@@ -47,7 +47,7 @@ Slalom (`slalom.hpp`): `match_pipes` (nearest red pipe in front and not passed, 
 
 ```bash
 ros2 run landmark_targets landmark_targets_scenario_node \
-  --ros-args -r __ns:=/nautilus -p scenario:=gate      # gate | torpedo | bin | slalom | return_home
+  --ros-args -r __ns:=/nautilus -p scenario:=gate      # gate | torpedo | bin | return_home
 ```
 
-It ends with `SCENARIO SUCCESS` / `SCENARIO FAILURE` and the matching exit code. `ApproachStep` corresponds to `ApproachLandmark`, `MoveRelativeStep` to `MoveRelative`, `SlalomStep` to the slalom layers and `return_home` to `AvoidSlalom` + approach from behind.
+It ends with `SCENARIO SUCCESS` / `SCENARIO FAILURE` and the matching exit code. `ApproachStep` corresponds to `ApproachLandmark`, `MoveRelativeStep` to `MoveRelative` and `return_home` to `AvoidSlalom` + approach from behind.
