@@ -7,9 +7,11 @@ correct. This node plays a drifting state estimator:
 - odom_in (true) -> odom_out: every step of the true motion is replayed with
   an extra yaw of drift_yaw_deg_per_m per metre and the distance scaled by
   (1 + scale_error).
-- landmarks_in (true world positions, e.g. the dummy publisher) ->
-  landmarks_out: the same positions in the drifted odom frame, i.e. where a
-  camera on the vehicle would put them with the drifted pose.
+- landmarks_in -> landmarks_out: the same positions in the drifted odom
+  frame, i.e. where a camera on the vehicle would put them with the drifted
+  pose. Input in world_frame is used as is (the dummy publisher); input in
+  another frame (a real detector in the camera frame) is first put in
+  world_frame with the true TF at its stamp.
 - drift (PoseStamped): odom_drift <- world, for evaluation.
 - Optional camera noise on the detections (the dummy's are exact): along
   the line of sight from the true vehicle position std = depth_std_base +
@@ -17,7 +19,8 @@ correct. This node plays a drifting state estimator:
   and a constant range bias per landmark (bias_frac_std * d, drawn once per
   landmark: a detector that is consistently wrong about one object). The
   position covariance of the random part is written into the message (the
-  bias is not in it, as a real detector would not know it).
+  bias is not in it, as a real detector would not know it). Only input in
+  world_frame gets noise: a real detector has its own.
 
 Run the dummy publisher with use_field_of_view on the true odometry and
 topic landmarks_true; landmark_server on odom_out and landmarks_out.
@@ -29,8 +32,11 @@ import numpy as np
 import rclpy
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
+from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
+from rclpy.time import Time
+from tf2_ros import Buffer, TransformException, TransformListener
 from vortex_msgs.msg import LandmarkArray
 
 
@@ -92,6 +98,8 @@ class DriftInjector(Node):
         self.declare_parameter("landmarks_in", "/nautilus/landmarks_true")
         self.declare_parameter("landmarks_out", "/nautilus/landmarks_drift")
         self.declare_parameter("frame_id", "nautilus/odom")
+        # The simulator's true odom frame (TF), for detections in other frames.
+        self.declare_parameter("world_frame", "nautilus/odom")
         self.declare_parameter("noise", False)
         self.declare_parameter("depth_std_base", 0.05)
         self.declare_parameter("depth_std_per_m", 0.03)
@@ -109,6 +117,9 @@ class DriftInjector(Node):
         self._drift = math.radians(g("drift_yaw_deg_per_m").value)
         self._scale = g("scale_error").value
         self._frame = g("frame_id").value
+        self._world_frame = g("world_frame").value
+        self._tf = Buffer()
+        self._tf_listener = TransformListener(self._tf, self, spin_thread=True)
 
         self._true_prev = None
         self._odom = None  # drifted pose (4x4)
@@ -160,12 +171,32 @@ class DriftInjector(Node):
         self._drift_pub.publish(d)
 
     def _on_landmarks(self, msg):
+        in_world = msg.header.frame_id in ("", self._world_frame)
+        world_from_msg = np.eye(4)
+        if not in_world:
+            try:
+                tf = self._tf.lookup_transform(
+                    self._world_frame,
+                    msg.header.frame_id,
+                    Time.from_msg(msg.header.stamp),
+                    timeout=Duration(seconds=0.1),
+                )
+            except TransformException as ex:
+                self.get_logger().warn(
+                    f"No TF {self._world_frame} <- {msg.header.frame_id}: {ex}",
+                    throttle_duration_sec=2.0,
+                )
+                return
+            r = tf.transform.rotation
+            t = tf.transform.translation
+            world_from_msg[:3, :3] = quat_to_rot((r.w, r.x, r.y, r.z))
+            world_from_msg[:3, 3] = (t.x, t.y, t.z)
         out = LandmarkArray()
         out.header = msg.header
         out.header.frame_id = self._frame
         for lm in msg.landmarks:
-            world = pose_to_mat(lm.pose.pose)
-            if self._noise and self._true_prev is not None:
+            world = world_from_msg @ pose_to_mat(lm.pose.pose)
+            if in_world and self._noise and self._true_prev is not None:
                 self._add_noise(lm, world)
             t = self._c @ world
             mat_to_pose(t, lm.pose.pose)
