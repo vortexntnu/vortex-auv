@@ -154,13 +154,10 @@ ros2 launch landmark_server landmark_server.launch.py env:=pool
 | `config/sim.yaml` | The simulator's pool floor (`z_lock` on, 3.432 m), torpedo board offsets from its textures, lane limits. Noise values: the common ones (do not tune them in the simulator) |
 | `config/pool.yaml` | The tuning sheet for a real pool: every value that must be measured, marked `MEASURE`, with the test it comes from. `z_lock` is off until the floor depth is measured |
 
-Tests that start the node themselves load `landmark_server_config.yaml` and then `sim.yaml`.
-
 ## Files
 
 - ROS-free (gtest): `class_config`, `retained_landmarks`, `course_frame`, `map_rules`, `landmark_graph` (own library, the only one that includes GTSAM)
 - ROS: `landmark_server_ros.cpp` (intake, tick, polling, reset), `landmark_server_publish.cpp` (map, live tracks, course frame, services), `landmark_server_graph.cpp` (odometry, measurements to the graph, smoothed positions into the map)
-- Launch test `test_graph_drift.py`: drifting odometry, loop closure on a table, the far landmark corrected
 
 ```bash
 ros2 topic echo /nautilus/landmark_server/object_map
