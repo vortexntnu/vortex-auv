@@ -1,0 +1,14 @@
+# drift_injector: worst realistic case for a STIM300 + DVL estimator.
+# About 6 deg of yaw and 5-10 % of the distance in position over a 15 min run.
+drift_injector:
+  ros__parameters:
+    drift_yaw_deg_per_m: 0.0
+    gyro_bias_deg_per_h: 10.0        # bias not estimated (turn-on, temperature)
+    earth_rate_deg_per_h: 13.4       # not compensated, at 63 deg N (Trondheim)
+    gyro_gm_std_deg_per_h: 2.0       # bias wanders
+    gyro_gm_tau_s: 300.0
+    gyro_arw_deg_per_sqrt_h: 0.3     # twice the datasheet
+    scale_error: 0.02                # DVL scale 2 %
+    dvl_misalignment_deg: 2.0        # DVL-IMU mounting yaw
+    dvl_pos_rw_m_per_sqrt_s: 0.02    # noisy DVL
+    noise: true

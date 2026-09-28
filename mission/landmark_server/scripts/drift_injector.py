@@ -4,9 +4,17 @@
 The simulator's odometry is perfect, so the smoothing backend has nothing to
 correct. This node plays a drifting state estimator:
 
-- odom_in (true) -> odom_out: every step of the true motion is replayed with
-  an extra yaw of drift_yaw_deg_per_m per metre and the distance scaled by
-  (1 + scale_error).
+- odom_in (true) -> odom_out: every step of the true motion is replayed
+  with the errors of an IMU + DVL estimator:
+  - yaw, per metre: drift_yaw_deg_per_m (a simple distance-based drift);
+  - yaw, over time (gyro): a constant bias gyro_bias_deg_per_h, the Earth
+    rate earth_rate_deg_per_h (a filter that does not compensate it), a
+    wandering bias (first-order Gauss-Markov, std gyro_gm_std_deg_per_h,
+    correlation time gyro_gm_tau_s) and angle random walk gyro_arw_deg_per_sqrt_h;
+  - horizontal steps (DVL): scaled by (1 + scale_error), rotated by
+    dvl_misalignment_deg, plus a position random walk dvl_pos_rw_m_per_sqrt_s.
+  Depth, roll and pitch stay true (pressure sensor and gravity).
+  The random parts use odom_seed, so a run can be repeated.
 - landmarks_in -> landmarks_out: the same positions in the drifted odom
   frame, i.e. where a camera on the vehicle would put them with the drifted
   pose. Input in world_frame is used as is (the dummy publisher); input in
@@ -93,6 +101,14 @@ class DriftInjector(Node):
         super().__init__("drift_injector")
         self.declare_parameter("drift_yaw_deg_per_m", 0.5)
         self.declare_parameter("scale_error", 0.0)
+        self.declare_parameter("gyro_bias_deg_per_h", 0.0)
+        self.declare_parameter("earth_rate_deg_per_h", 0.0)
+        self.declare_parameter("gyro_gm_std_deg_per_h", 0.0)
+        self.declare_parameter("gyro_gm_tau_s", 600.0)
+        self.declare_parameter("gyro_arw_deg_per_sqrt_h", 0.0)
+        self.declare_parameter("dvl_misalignment_deg", 0.0)
+        self.declare_parameter("dvl_pos_rw_m_per_sqrt_s", 0.0)
+        self.declare_parameter("odom_seed", 1)
         self.declare_parameter("odom_in", "/nautilus/odom")
         self.declare_parameter("odom_out", "/nautilus/odom_drift")
         self.declare_parameter("landmarks_in", "/nautilus/landmarks_true")
@@ -116,6 +132,20 @@ class DriftInjector(Node):
         self._bias = {}
         self._drift = math.radians(g("drift_yaw_deg_per_m").value)
         self._scale = g("scale_error").value
+        deg_per_h = math.radians(1.0) / 3600.0  # [rad/s]
+        self._gyro_bias = (
+            g("gyro_bias_deg_per_h").value + g("earth_rate_deg_per_h").value
+        ) * deg_per_h
+        self._gm_std = g("gyro_gm_std_deg_per_h").value * deg_per_h
+        self._gm_tau = max(g("gyro_gm_tau_s").value, 1e-3)
+        # ARW [deg/sqrt(h)] -> [rad/sqrt(s)]
+        self._arw = math.radians(g("gyro_arw_deg_per_sqrt_h").value) / 60.0
+        self._misalign = math.radians(g("dvl_misalignment_deg").value)
+        self._pos_rw = g("dvl_pos_rw_m_per_sqrt_s").value
+        self._odom_rng = np.random.default_rng(g("odom_seed").value)
+        self._gm_bias = 0.0  # [rad/s]
+        self._stamp_prev = None
+        self._elapsed = 0.0
         self._frame = g("frame_id").value
         self._world_frame = g("world_frame").value
         self._tf = Buffer()
@@ -145,15 +175,22 @@ class DriftInjector(Node):
 
     def _on_odom(self, msg):
         true = pose_to_mat(msg.pose.pose)
+        stamp = Time.from_msg(msg.header.stamp).nanoseconds * 1e-9
         if self._true_prev is None:
             self._odom = true.copy()
         else:
+            dt = min(max(stamp - self._stamp_prev, 0.0), 1.0)
             rel = np.linalg.inv(self._true_prev) @ true
             dist = float(np.linalg.norm(rel[:3, 3]))
-            rel[:3, 3] *= 1.0 + self._scale
-            self._odom = self._odom @ rel @ rot_z(self._drift * dist)
+            rel[:2, 3] = self._dvl_step(rel[:2, 3], dt)
+            yaw = self._drift * dist + self._gyro_step(dt)
+            self._odom = self._odom @ rel @ rot_z(yaw)
+            # Depth comes from the pressure sensor: it does not drift.
+            self._odom[2, 3] = true[2, 3]
             self._travelled += dist
+            self._elapsed += dt
         self._true_prev = true
+        self._stamp_prev = stamp
         self._c = self._odom @ np.linalg.inv(true)
 
         out = Odometry()
@@ -169,6 +206,28 @@ class DriftInjector(Node):
         d.header = out.header
         mat_to_pose(self._c, d.pose)
         self._drift_pub.publish(d)
+
+    def _gyro_step(self, dt):
+        """Heading error [rad] over dt: bias, Gauss-Markov bias, ARW."""
+        if dt <= 0.0:
+            return 0.0
+        a = math.exp(-dt / self._gm_tau)
+        self._gm_bias = (
+            a * self._gm_bias
+            + self._gm_std * math.sqrt(1.0 - a * a) * self._odom_rng.standard_normal()
+        )
+        arw = self._arw * math.sqrt(dt) * self._odom_rng.standard_normal()
+        return (self._gyro_bias + self._gm_bias) * dt + arw
+
+    def _dvl_step(self, xy, dt):
+        """Horizontal step in the body frame: scale, misalignment, noise."""
+        c, s = math.cos(self._misalign), math.sin(self._misalign)
+        out = (1.0 + self._scale) * np.array(
+            [c * xy[0] - s * xy[1], s * xy[0] + c * xy[1]]
+        )
+        if self._pos_rw > 0.0 and dt > 0.0:
+            out += self._pos_rw * math.sqrt(dt) * self._odom_rng.standard_normal(2)
+        return out
 
     def _on_landmarks(self, msg):
         in_world = msg.header.frame_id in ("", self._world_frame)
@@ -230,9 +289,12 @@ class DriftInjector(Node):
 
     def _log(self):
         yaw = math.degrees(math.atan2(self._c[1, 0], self._c[0, 0]))
+        pos_err = 0.0
+        if self._odom is not None and self._true_prev is not None:
+            pos_err = float(np.linalg.norm(self._odom[:2, 3] - self._true_prev[:2, 3]))
         self.get_logger().info(
-            f"travelled {self._travelled:.1f} m, drift: yaw {yaw:.1f} deg, "
-            f"offset ({self._c[0, 3]:.2f}, {self._c[1, 3]:.2f}) m"
+            f"{self._elapsed:.0f} s, travelled {self._travelled:.1f} m, "
+            f"drift: yaw {yaw:.1f} deg, position {pos_err:.2f} m"
         )
 
 
