@@ -1,0 +1,15 @@
+# drift_injector: between realistic and worst. A filter that does not
+# compensate Earth rotation (at the competition, 34 deg N), a mount that was
+# not calibrated, and a DVL that sometimes struggles.
+drift_injector:
+  ros__parameters:
+    drift_yaw_deg_per_m: 0.0
+    gyro_bias_deg_per_h: 7.0         # bias only partly estimated
+    earth_rate_deg_per_h: 8.3        # not compensated, at 34 deg N (Irvine)
+    gyro_gm_std_deg_per_h: 1.0       # bias wanders
+    gyro_gm_tau_s: 450.0
+    gyro_arw_deg_per_sqrt_h: 0.2
+    scale_error: 0.015               # DVL scale 1.5 %
+    dvl_misalignment_deg: 1.5        # DVL-IMU mounting yaw, not calibrated
+    dvl_pos_rw_m_per_sqrt_s: 0.015
+    noise: true

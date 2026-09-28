@@ -1,14 +1,14 @@
-# drift_injector: a STIM300 + DVL estimator working as it should (best case).
-# Gyro numbers from the STIM300 datasheet; DVL numbers are typical values.
+# drift_injector: a STIM300 + DVL estimator that works but is not perfectly
+# tuned. Earth rate assumed compensated by the filter.
 drift_injector:
   ros__parameters:
     drift_yaw_deg_per_m: 0.0
-    gyro_bias_deg_per_h: 3.0         # bias left after the filter's estimate
+    gyro_bias_deg_per_h: 5.0         # bias left after the filter's estimate
     earth_rate_deg_per_h: 0.0        # the filter compensates Earth rotation
     gyro_gm_std_deg_per_h: 0.5       # bias instability
     gyro_gm_tau_s: 600.0
     gyro_arw_deg_per_sqrt_h: 0.15    # angle random walk
-    scale_error: 0.005               # DVL scale
-    dvl_misalignment_deg: 0.5        # DVL-IMU mounting yaw
+    scale_error: 0.01                # DVL scale 1 %
+    dvl_misalignment_deg: 1.0        # DVL-IMU mounting yaw, roughly measured
     dvl_pos_rw_m_per_sqrt_s: 0.01    # DVL velocity noise
     noise: true
