@@ -156,13 +156,31 @@
             "visible": true
           }
         },
-        "/nautilus/landmark_server/graph/path": {
+        "/nautilus/landmark_server/graph/start_frame_path": {
           "visible": true,
           "type": "line",
           "lineWidth": 0.06,
           "gradient": [
             "#2fbf5aff",
             "#2fbf5aff"
+          ]
+        },
+        "/nautilus/landmark_server/graph/path": {
+          "visible": false,
+          "type": "line",
+          "lineWidth": 0.06,
+          "gradient": [
+            "#2fbf5aff",
+            "#2fbf5aff"
+          ]
+        },
+        "/landmark_eval/true_path": {
+          "visible": true,
+          "type": "line",
+          "lineWidth": 0.1,
+          "gradient": [
+            "#f2f2f2b0",
+            "#f2f2f2b0"
           ]
         },
         "/nautilus/landmark_server/graph/odom_path": {
@@ -566,7 +584,12 @@
           "layout": {
             "first": "3D!kart",
             "second": {
-              "first": "Plot!kartfeil",
+              "first": {
+                "first": "Plot!kartfeil",
+                "second": "Plot!banefeil",
+                "direction": "column",
+                "splitPercentage": 50
+              },
               "second": {
                 "first": "Plot!drift",
                 "second": "Plot!antall",
@@ -574,7 +597,7 @@
                 "splitPercentage": 50
               },
               "direction": "column",
-              "splitPercentage": 34
+              "splitPercentage": 50
             },
             "direction": "row",
             "splitPercentage": 64
@@ -622,6 +645,38 @@
           }
         }
       ]
+    },
+    "Plot!banefeil": {
+      "paths": [
+        {
+          "value": "/landmark_eval/traj/graph_mean.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "grafen (grønn)"
+        },
+        {
+          "value": "/landmark_eval/traj/odom_mean.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "odometri (oransje)"
+        },
+        {
+          "value": "/landmark_eval/traj/graph_max.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "grafen, maks"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "followingViewWidth": 600,
+      "foxglovePanelTitle": "Banefeil mot fasit [m] (snitt over keyframes, horisontalt)"
     }
   },
   "globalVariables": {},

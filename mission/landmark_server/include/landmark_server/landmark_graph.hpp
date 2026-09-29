@@ -128,8 +128,17 @@ class LandmarkGraph {
     /// (for display: the smoothed trajectory).
     std::vector<Eigen::Isometry3d> keyframes_in_odom() const;
 
+    /// Every keyframe as the graph sees it now, in the graph frame (odom at
+    /// the first keyframe): the smoothed trajectory from the start, not
+    /// moved to the current odom pose. In the simulator with drift_injector
+    /// this frame is the true world, so it can be compared with the truth.
+    std::vector<Eigen::Isometry3d> keyframes_in_graph() const;
+
     /// Every keyframe as the raw odometry gave it.
     std::vector<Eigen::Isometry3d> keyframes_raw() const;
+
+    /// Stamp of every keyframe [s], in the order of the two above.
+    std::vector<double> keyframe_stamps() const;
 
     /// Measurements of a landmark in the graph (0 if unknown).
     int observations(int landmark_id) const;

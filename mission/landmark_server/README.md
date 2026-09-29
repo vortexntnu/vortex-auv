@@ -102,7 +102,7 @@ ros2 run landmark_server drift_route.py                                    # the
 For the RoboSub course with rendering, start the simulator with
 `launch_drone_sim.sh --scenario robosub --low-res --detach` instead.
 
-Foxglove layout: `foxglove/landmark_graph.json` (Layout, Import from file). It shows the map, the truth from the course layout (green spheres), a line from each map landmark to its truth (blue with graph, red without), the raw odometry path (`landmark_server/graph/odom_path`, orange) and the graph's corrected path (`landmark_server/graph/path`, green), and plots of the map error, drift against correction and `landmark_server/graph/stats` (`[keyframes, landmarks, correction x, y, yaw deg, slowest update ms]`).
+Foxglove layout: `foxglove/landmark_graph.json` (Layout, Import from file). It shows the map, the truth from the course layout (green spheres), a line from each map landmark to its truth (blue with graph, red without), the true path (`/landmark_eval/true_path`, white, from graph_eval), the raw odometry path (`landmark_server/graph/odom_path`, orange) and the graph's corrected path in the graph frame (`landmark_server/graph/start_frame_path`, green: it should lie on the white one; `landmark_server/graph/path` is the same moved to the current odom pose, hidden), a plot of the path error of both against the truth, and plots of the map error, drift against correction and `landmark_server/graph/stats` (`[keyframes, landmarks, correction x, y, yaw deg, slowest update ms]`).
 
 The tools below are what the script starts:
 

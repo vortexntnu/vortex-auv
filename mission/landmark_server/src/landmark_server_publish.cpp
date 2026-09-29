@@ -98,6 +98,8 @@ void LandmarkServerNode::create_map() {
     }
     graph_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
         "landmark_server/graph/path", rclcpp::QoS(1).reliable());
+    graph_start_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
+        "landmark_server/graph/start_frame_path", rclcpp::QoS(1).reliable());
     graph_odom_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
         "landmark_server/graph/odom_path", rclcpp::QoS(1).reliable());
     graph_stats_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>(

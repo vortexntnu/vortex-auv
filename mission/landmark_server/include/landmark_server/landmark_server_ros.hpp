@@ -209,6 +209,7 @@ class LandmarkServerNode : public rclcpp::Node {
     /// update in the last second [ms]].
     void publish_graph_state();
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr graph_path_pub_;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr graph_start_path_pub_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr graph_odom_path_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr
         graph_stats_pub_;

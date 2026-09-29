@@ -216,14 +216,20 @@ void LandmarkServerNode::update_graph() {
 
 void LandmarkServerNode::publish_graph_state() {
     const auto stamp = this->now();
+    // Each pose carries its keyframe's stamp, so it can be compared with the
+    // true pose at that time (graph_eval.py).
+    const std::vector<double> stamps = graph_->keyframe_stamps();
     const auto to_path = [&](const std::vector<Eigen::Isometry3d>& poses) {
         nav_msgs::msg::Path path;
         path.header.stamp = stamp;
         path.header.frame_id = target_frame_;
         path.poses.reserve(poses.size());
-        for (const auto& T : poses) {
+        for (std::size_t i = 0; i < poses.size(); ++i) {
+            const auto& T = poses[i];
             geometry_msgs::msg::PoseStamped p;
-            p.header = path.header;
+            p.header.frame_id = target_frame_;
+            p.header.stamp = rclcpp::Time(
+                static_cast<int64_t>(stamps[i] * 1e9), RCL_ROS_TIME);
             p.pose.position.x = T.translation().x();
             p.pose.position.y = T.translation().y();
             p.pose.position.z = T.translation().z();
@@ -237,6 +243,7 @@ void LandmarkServerNode::publish_graph_state() {
         return path;
     };
     graph_path_pub_->publish(to_path(graph_->keyframes_in_odom()));
+    graph_start_path_pub_->publish(to_path(graph_->keyframes_in_graph()));
     graph_odom_path_pub_->publish(to_path(graph_->keyframes_raw()));
 
     const Eigen::Isometry3d c = graph_->correction();

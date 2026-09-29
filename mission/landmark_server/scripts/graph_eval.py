@@ -13,10 +13,21 @@ take-over). With truth_seed >= 0 the truth is the dummy's course layout for
 that seed (use it with noisy or unstable dummy profiles, whose
 landmarks_true carry the noise).
 
+Trajectory: the true path (/nautilus/odom, published as
+/landmark_eval/true_path), the graph's smoothed keyframes in the graph frame
+(graph/start_frame_path, green in the Foxglove layout) and the raw drifting
+odometry keyframes (graph/odom_path, orange), compared at each keyframe's
+stamp. The graph frame is odom at the first keyframe; the drift injector
+starts on the truth, so it is the true world (the truth is put through the
+drift at the first keyframe in case the graph started later). The graph path
+should lie on the true path, while the odometry drifts away from it over
+time. Errors are horizontal (depth does not drift).
+
 For Foxglove: /landmark_eval/markers (the truth as green spheres, a line from
 each map landmark to its true object, per map), and per map
 /landmark_eval/<label>/{remembered_mean,all_mean,count,swaps} plus
-/landmark_eval/drift_yaw_deg (std_msgs/Float64) for plots. Also written to csv (param csv, relative to the working
+/landmark_eval/drift_yaw_deg and /landmark_eval/traj/{graph,odom}_{mean,max}
+(std_msgs/Float64) for plots. Also written to csv (param csv, relative to the working
 directory).
 """
 
@@ -27,9 +38,10 @@ import time
 import numpy as np
 import rclpy
 from geometry_msgs.msg import Point, PoseStamped
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry, Path
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
+from rclpy.time import Time
 from std_msgs.msg import Float64
 from visualization_msgs.msg import Marker, MarkerArray
 from vortex_msgs.msg import LandmarkArray, LandmarkTrackArray, LandmarkType
@@ -78,12 +90,25 @@ class GraphEval(Node):
         )
         self.declare_parameter("truth_seed", -1)
         self.declare_parameter("frame_id", "nautilus/odom")
+        self.declare_parameter(
+            "graph_path", "/nautilus/landmark_server/graph/start_frame_path"
+        )
+        self.declare_parameter(
+            "odom_path", "/nautilus/landmark_server/graph/odom_path"
+        )
         g = self.get_parameter
         self._labels = list(g("labels").value)
         self._maps = dict.fromkeys(self._labels)
         self._truth = {}  # (type, subtype) -> list of world positions
         self._c = np.eye(4)
         self._vehicle = None
+        # True trajectory: stamps [s] and world positions.
+        self._true_t = []
+        self._true_p = []
+        self._paths = {"graph": None, "odom": None}
+        # Drift (odom_drift <- world) over time, for the graph frame.
+        self._drift_t = []
+        self._drift_c = []
         self._skip_z = set(g("z_locked_types").value)
         self._fixed_truth = g("truth_seed").value >= 0
         if self._fixed_truth:
@@ -108,15 +133,17 @@ class GraphEval(Node):
             self._on_truth,
             qos_profile_sensor_data,
         )
-        self.create_subscription(
-            PoseStamped,
-            "/nautilus/drift",
-            lambda m: setattr(self, "_c", pose_to_mat(m.pose)),
-            10,
-        )
+        self.create_subscription(PoseStamped, "/nautilus/drift", self._on_drift, 10)
         self.create_subscription(
             Odometry, "/nautilus/odom", self._on_odom, qos_profile_sensor_data
         )
+        for name, param in (("graph", "graph_path"), ("odom", "odom_path")):
+            self.create_subscription(
+                Path,
+                g(param).value,
+                lambda m, name=name: self._paths.__setitem__(name, m),
+                QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE),
+            )
         self._csv = open(g("csv").value, "w", newline="")
         self._w = csv.writer(self._csv)
         header = ["t", "x", "y", "drift_yaw_deg"]
@@ -128,6 +155,7 @@ class GraphEval(Node):
                 f"{lab}_n",
                 f"{lab}_swaps",
             ]
+        header += ["traj_graph_mean", "traj_graph_max", "traj_odom_mean", "traj_odom_max"]
         self._w.writerow(header)
         self._frame = g("frame_id").value
         self._marker_pub = self.create_publisher(
@@ -136,6 +164,16 @@ class GraphEval(Node):
         self._drift_pub = self.create_publisher(
             Float64, "/landmark_eval/drift_yaw_deg", 10
         )
+        self._true_path_pub = self.create_publisher(
+            Path, "/landmark_eval/true_path", 1
+        )
+        self._traj_pubs = {
+            (name, stat): self.create_publisher(
+                Float64, f"/landmark_eval/traj/{name}_{stat}", 10
+            )
+            for name in ("graph", "odom")
+            for stat in ("mean", "max")
+        }
         self._value_pubs = {
             (lab, name): self.create_publisher(
                 Float64, f"/landmark_eval/{lab}/{name}", 10
@@ -151,6 +189,77 @@ class GraphEval(Node):
     def _on_odom(self, m):
         p = m.pose.pose.position
         self._vehicle = (p.x, p.y)
+        t = Time.from_msg(m.header.stamp).nanoseconds * 1e-9
+        if not self._true_t or t > self._true_t[-1]:
+            self._true_t.append(t)
+            self._true_p.append((p.x, p.y, p.z))
+
+    def _on_drift(self, m):
+        self._c = pose_to_mat(m.pose)
+        t = Time.from_msg(m.header.stamp).nanoseconds * 1e-9
+        if not self._drift_t or t > self._drift_t[-1]:
+            self._drift_t.append(t)
+            self._drift_c.append(self._c)
+
+    def _true_in_graph(self, positions):
+        """World positions in the graph frame: through the drift at the
+        first keyframe (identity when the graph started with the drift)."""
+        c = np.eye(4)
+        odom = self._paths["odom"]
+        if odom is not None and odom.poses and self._drift_t:
+            t0 = Time.from_msg(odom.poses[0].header.stamp).nanoseconds * 1e-9
+            i = int(np.searchsorted(self._drift_t, t0))
+            c = self._drift_c[min(i, len(self._drift_c) - 1)]
+        pts = np.c_[positions, np.ones(len(positions))]
+        return (c @ pts.T).T[:, :3]
+
+    def _publish_true_path(self):
+        """The true trajectory in the graph frame, every 10 cm."""
+        path = Path()
+        path.header.frame_id = self._frame
+        path.header.stamp = self.get_clock().now().to_msg()
+        if len(self._true_p) < 2:
+            self._true_path_pub.publish(path)
+            return
+        pts = np.asarray(self._true_p)
+        keep = [0]
+        for i in range(1, len(pts)):
+            if np.linalg.norm(pts[i] - pts[keep[-1]]) > 0.1:
+                keep.append(i)
+        keep.append(len(pts) - 1)
+        for i, q in zip(keep, self._true_in_graph(pts[keep])):
+            ps = PoseStamped()
+            ps.header.frame_id = self._frame
+            ps.header.stamp = Time(seconds=self._true_t[i]).to_msg()
+            ps.pose.position.x, ps.pose.position.y, ps.pose.position.z = (
+                float(v) for v in q
+            )
+            ps.pose.orientation.w = 1.0
+            path.poses.append(ps)
+        self._true_path_pub.publish(path)
+
+    def _trajectory_errors(self, name):
+        """Mean and max horizontal error of a keyframe path [m]."""
+        path = self._paths[name]
+        if path is None or not path.poses or len(self._true_t) < 2:
+            return float("nan"), float("nan")
+        tt = np.asarray(self._true_t)
+        tp = np.asarray(self._true_p)
+        stamps = np.array(
+            [Time.from_msg(p.header.stamp).nanoseconds * 1e-9 for p in path.poses]
+        )
+        ok = (stamps >= tt[0]) & (stamps <= tt[-1])
+        if not ok.any():
+            return float("nan"), float("nan")
+        truth = np.stack(
+            [np.interp(stamps[ok], tt, tp[:, k]) for k in range(3)], axis=1
+        )
+        truth = self._true_in_graph(truth)
+        est = np.array(
+            [(p.pose.position.x, p.pose.position.y) for p in path.poses]
+        )[ok]
+        err = np.linalg.norm(est - truth[:, :2], axis=1)
+        return float(err.mean()), float(err.max())
 
     def _on_truth(self, msg):
         if self._fixed_truth:
@@ -203,6 +312,16 @@ class GraphEval(Node):
         row = [round(time.monotonic() - self._t0, 1), *self._vehicle, round(yaw, 2)]
         self._drift_pub.publish(Float64(data=yaw))
         per_map_rows = {}
+        traj = []
+        for name in ("graph", "odom"):
+            mean, mx = self._trajectory_errors(name)
+            traj += [mean, mx]
+            self._traj_pubs[(name, "mean")].publish(Float64(data=mean))
+            self._traj_pubs[(name, "max")].publish(Float64(data=mx))
+        line.append(
+            f"path: graph {traj[0]:4.2f}/{traj[1]:4.2f} m odom {traj[2]:4.2f}/{traj[3]:4.2f} m (mean/max)"
+        )
+        self._publish_true_path()
         for lab in self._labels:
             msg = self._maps[lab]
             rows = self._errors(msg) if msg else []
@@ -233,7 +352,7 @@ class GraphEval(Node):
             per_map_rows[lab] = rows
         self.get_logger().info(" | ".join(line))
         self._publish_markers(per_map_rows)
-        self._w.writerow(row)
+        self._w.writerow(row + [round(v, 3) for v in traj])
         self._csv.flush()
 
     def _publish_markers(self, per_map_rows):

@@ -390,11 +390,29 @@ std::vector<Eigen::Isometry3d> LandmarkGraph::keyframes_in_odom() const {
     return out;
 }
 
+std::vector<Eigen::Isometry3d> LandmarkGraph::keyframes_in_graph() const {
+    std::vector<Eigen::Isometry3d> out;
+    out.reserve(impl_->keyframes.size());
+    for (std::size_t i = 0; i < impl_->keyframes.size(); ++i) {
+        out.push_back(to_isometry(impl_->estimate.at<gtsam::Pose3>(pose_key(i))));
+    }
+    return out;
+}
+
 std::vector<Eigen::Isometry3d> LandmarkGraph::keyframes_raw() const {
     std::vector<Eigen::Isometry3d> out;
     out.reserve(impl_->keyframes.size());
     for (const auto& kf : impl_->keyframes) {
         out.push_back(kf.odom_T_body);
+    }
+    return out;
+}
+
+std::vector<double> LandmarkGraph::keyframe_stamps() const {
+    std::vector<double> out;
+    out.reserve(impl_->keyframes.size());
+    for (const auto& kf : impl_->keyframes) {
+        out.push_back(kf.stamp);
     }
     return out;
 }
