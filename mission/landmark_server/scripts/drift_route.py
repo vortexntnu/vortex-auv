@@ -8,6 +8,12 @@ seen at the start and at the end closes the loop.
 route:=long: two laps that also look at the bins and the table, so pipes,
 board and bins are seen again after a lot of drift.
 
+route:=slalom: past the gate at y = -3, then laps through the slalom at the
+depth of the poles (depth:=2.6): out through the three sets facing +x, turn,
+back through them facing -x. Each set is passed between the red pole and the
+white one on its left, 0.8 m from both. The front camera sees the poles on
+every pass, so they are seen again after more and more drift.
+
 World frame (true odometry).
 """
 
@@ -47,7 +53,28 @@ LONG = [
     (13.0, -3.0, 0.0, 3.0),
     (13.0, 2.5, 0.0, 6.0),
 ]
-ROUTES = {"short": SHORT, "long": LONG}
+# Gaps of the three slalom sets (between the red pole and the white one on
+# its left, robosub_dummy_publisher course_layout.py): x of the set, y of
+# the middle of the gap.
+SLALOM_GAPS = [(8.12, -0.45), (10.13, 0.15), (12.13, -0.85)]
+SLALOM_LAPS = 3
+
+
+def slalom_route():
+    out = [(0.0, 0.0, 0.0, 2.0), (2.0, -3.0, 0.0, 0.0), (6.0, -3.0, 0.0, 0.0)]
+    first_x, first_y = SLALOM_GAPS[0]
+    last_x, last_y = SLALOM_GAPS[-1]
+    for _ in range(SLALOM_LAPS):
+        out.append((first_x - 2.0, first_y, 0.0, 3.0))
+        out += [(x, y, 0.0, 0.0) for x, y in SLALOM_GAPS]
+        out += [(last_x + 1.8, last_y, 0.0, 0.0), (last_x + 1.8, last_y, 180.0, 3.0)]
+        out += [(x, y, 180.0, 0.0) for x, y in reversed(SLALOM_GAPS)]
+        out.append((first_x - 2.0, first_y, 180.0, 0.0))
+    out.append((first_x - 2.0, first_y, 0.0, 8.0))
+    return out
+
+
+ROUTES = {"short": SHORT, "long": LONG, "slalom": slalom_route()}
 
 
 def waypoint(x, y, z, yaw_deg, hold):
