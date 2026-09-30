@@ -12,10 +12,10 @@
       # MEASURE on the board in use: icon -> opening offsets, board frame
       # (+X out of the front, +Y right, +Z down). These are the simulator's.
       torpedo_targets_from_icons:
-        version_1: {fire: [0.0, 0.0, -0.169], blood: [0.0, 0.0, -0.169],
-                    firetruck: [0.0, 0.1888, 0.0], ambulance: [0.0, -0.192, 0.0]}
-        version_2: {fire: [0.0, 0.0, -0.218], blood: [0.0, 0.0, -0.168],
-                    firetruck: [0.0, -0.1555, -0.15], ambulance: [0.0, 0.193, 0.0]}
+        version_1: {fire: [0.0, 0.004, 0.150], blood: [0.0, 0.005, 0.158],
+                    firetruck: [0.0, 0.189, 0.002], ambulance: [0.0, -0.176, -0.002]}
+        version_2: {fire: [0.0, -0.001, 0.160], blood: [0.0, 0.0, 0.158],
+                    firetruck: [0.0, -0.178, 0.017], ambulance: [0.0, 0.181, 0.012]}
       # Test A: about 1.5 x the typical error when the vehicle returns.
       plausibility_radius_m: 3.0
 
