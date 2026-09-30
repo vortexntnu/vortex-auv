@@ -268,3 +268,29 @@ def main():
             print(json.dumps(report, indent=2), flush=True)
             assert report['pose_publishers'] == ['gtsam_control_adapter']
             assert report['reference_received']
+            assert report['dp_active_wrench_max'] > 1.0
+            assert report['killswitch_zero']
+            assert report['joystick_timeout_zero']
+            assert report['stale_estimate_zero']
+            assert report['matched_estimates'] > 100
+            assert report['settled_estimated_tracking_error_m'] < 0.15
+            assert report['settled_true_tracking_error_m'] < 0.15
+        finally:
+            (output / 'stonefish-results.json').write_text(json.dumps(report, indent=2))
+            for pid in stopped:
+                try:
+                    os.kill(pid, signal.SIGCONT)
+                except ProcessLookupError:
+                    pass
+            process.send_signal(signal.SIGINT)
+            try:
+                process.wait(timeout=12)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGTERM)
+                process.wait(timeout=5)
+            node.destroy_node()
+            rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
