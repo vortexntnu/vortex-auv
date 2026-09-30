@@ -178,3 +178,93 @@
         <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
         <material name="robot_material" />
         <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <actuator name="Thruster4" type="thruster">
+      <link name="Base" />
+      <origin xyz="-0.4139 0.313 0.0217" rpy="0 0 -2.356194490" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <actuator name="Thruster5" type="thruster">
+      <link name="Base" />
+      <origin xyz="-0.4139 -0.313 0.0217" rpy="0 0 2.356194490" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <actuator name="Thruster6" type="thruster">
+      <link name="Base" />
+      <origin xyz="-0.1639 -0.313 0.0217" rpy="0 -1.570796327 0" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <actuator name="Thruster7" type="thruster">
+      <link name="Base" />
+      <origin xyz="0.140 -0.313 0.0217" rpy="0 -1.570796327 0" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <actuator name="Thruster8" type="thruster">
+      <link name="Base" />
+      <origin xyz="0.4139 -0.313 0.0217" rpy="0 0 0.7853981634" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
