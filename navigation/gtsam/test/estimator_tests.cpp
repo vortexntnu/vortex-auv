@@ -178,3 +178,93 @@ TEST(Estimator, AccelerationTurningAndDvlDropoutRecovery) {
             omega};
         if (i % 20 == 0 && !(time > 4 && time < 6)) {
             // Factor uses the left endpoint gyro over this interval.
+            const auto measured = config.imu_p_dvl.rotation().unrotate(
+                pose.rotation().unrotate(velocity) +
+                previous.angular_velocity.cross(
+                    config.imu_p_dvl.translation()));
+            estimator.add_dvl({time, measured, gtsam::I_3x3 * 2.5e-5});
+        }
+        ASSERT_TRUE(estimator.add_imu(sample)) << estimator.status().detail;
+        previous = sample;
+    }
+    const auto result = estimator.latest();
+    ASSERT_TRUE(result);
+    EXPECT_LT((result->pose.translation() - pose.translation()).norm(), 2e-3);
+    EXPECT_LT((result->velocity - velocity).norm(), 2e-3);
+    EXPECT_LT(
+        gtsam::Rot3::Logmap(result->pose.rotation().between(pose.rotation()))
+            .norm(),
+        2e-3);
+    EXPECT_GT(estimator.status().last_dvl_time, 9.0);
+    EXPECT_TRUE(
+        result->covariance.isApprox(result->covariance.transpose(), 1e-9));
+    EXPECT_GT(Eigen::SelfAdjointEigenSolver<Matrix15>(result->covariance)
+                  .eigenvalues()
+                  .minCoeff(),
+              -1e-12);
+}
+
+TEST(Estimator, DvlOutlierRejectedWithoutCorruptingState) {
+    Estimator estimator(test_config());
+    feed_stationary(estimator, 0, 100);
+    const auto rejected = estimator.status().rejected_dvl;
+    estimator.add_dvl({1.055, {100, 0, 0}, gtsam::I_3x3 * 2.5e-5});
+    feed_stationary(estimator, 101, 150);
+    EXPECT_GT(estimator.status().rejected_dvl, rejected);
+    ASSERT_TRUE(estimator.latest());
+    EXPECT_LT(estimator.latest()->velocity.norm(), 1e-7);
+}
+
+TEST(Estimator, SeededStim300ProfilesWithInternalBiasAndDropout) {
+    for (double accel_density : {0.07 / 60.0, 0.21 / 60.0}) {
+        auto config = test_config();
+        config.accel_noise_density = accel_density;
+        config.initialization_duration = 2.0;
+        config.lag = 5.0;
+        Estimator estimator(config);
+        std::mt19937 rng(42);
+        std::normal_distribution<double> gaussian(0, 1);
+        const auto noise = [&rng, &gaussian](double sigma) -> gtsam::Vector3 {
+            return gtsam::Vector3(gaussian(rng), gaussian(rng), gaussian(rng)) *
+                   sigma;
+        };
+        gtsam::Vector3 accel_bias(0.003, -0.002, 0.001);
+        gtsam::Vector3 gyro_bias(2e-5, -1e-5, 1e-5);
+        gtsam::Pose3 pose;
+        gtsam::Vector3 velocity = gtsam::Vector3::Zero();
+        auto previous = stationary(0);
+        const double dt = 0.01;
+        double squared_position = 0, squared_velocity = 0;
+        int estimates = 0;
+        for (int i = 0; i <= 3000; ++i) {
+            if (i > 0) {
+                const gtsam::Vector3 acceleration =
+                    pose.rotation() * previous.acceleration +
+                    gtsam::Vector3(0, 0, 9.81);
+                pose = gtsam::Pose3(
+                    pose.rotation() *
+                        gtsam::Rot3::Expmap(previous.angular_velocity * dt),
+                    pose.translation() + velocity * dt +
+                        0.5 * acceleration * dt * dt);
+                velocity += acceleration * dt;
+            }
+            const double time = i * dt;
+            const gtsam::Vector3 acceleration(i > 500 && i < 1000 ? 0.02 : 0, 0,
+                                              0);
+            const gtsam::Vector3 omega =
+                i > 500 ? gtsam::Vector3(0.01 * std::sin(time),
+                                         0.01 * std::cos(time), 0.04)
+                        : gtsam::Vector3::Zero();
+            ImuSample ideal{time,
+                            pose.rotation().unrotate(
+                                acceleration - gtsam::Vector3(0, 0, 9.81)),
+                            omega};
+            if (i % 20 == 0 && !(time >= 15 && time < 17)) {
+                const auto measurement = config.imu_p_dvl.rotation().unrotate(
+                    pose.rotation().unrotate(velocity) +
+                    previous.angular_velocity.cross(
+                        config.imu_p_dvl.translation()));
+                estimator.add_dvl(
+                    {time, measurement + noise(0.005), gtsam::I_3x3 * 2.5e-5});
+            }
+            accel_bias += noise(config.accel_bias_random_walk * std::sqrt(dt));
