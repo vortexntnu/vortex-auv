@@ -88,3 +88,46 @@ def generate_launch_description():
                             LaunchConfiguration("publish_rate"), value_type=float
                         ),
                     },
+                ],
+            ),
+            Node(
+                package="gtsam_navigation",
+                executable="simulate_sensors.py",
+                namespace="nautilus",
+                output="screen",
+                parameters=[
+                    {
+                        "trajectory": LaunchConfiguration("trajectory"),
+                        "imu_rate": ParameterValue(
+                            LaunchConfiguration("imu_rate"), value_type=float
+                        ),
+                        "dvl_rate": ParameterValue(
+                            LaunchConfiguration("dvl_rate"), value_type=float
+                        ),
+                        "dropout_start": ParameterValue(
+                            LaunchConfiguration("dropout_start"), value_type=float
+                        ),
+                        "dropout_end": ParameterValue(
+                            LaunchConfiguration("dropout_end"), value_type=float
+                        ),
+                        "duration": ParameterValue(
+                            LaunchConfiguration("duration"), value_type=float
+                        ),
+                        "noise": ParameterValue(
+                            LaunchConfiguration("noise"), value_type=bool
+                        ),
+                        "imu_profile": LaunchConfiguration("imu_profile"),
+                        "seed": ParameterValue(
+                            LaunchConfiguration("seed"), value_type=int
+                        ),
+                        "stress_scale": ParameterValue(
+                            LaunchConfiguration("stress_scale"), value_type=float
+                        ),
+                        "dvl_max_tilt_deg": ParameterValue(
+                            LaunchConfiguration("dvl_max_tilt_deg"), value_type=float
+                        ),
+                    }
+                ],
+            ),
+        ]
+    )
