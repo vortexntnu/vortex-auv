@@ -178,3 +178,93 @@ def main():
                 dvl.twist.twist.linear.y,
                 dvl.twist.twist.linear.z,
             ) = row[8:11]
+            for diagonal in (0, 7, 14):
+                dvl.twist.covariance[diagonal] = 0.005**2
+            truth = Odometry()
+            truth.header.stamp = stamp
+            truth.header.frame_id = "nautilus/odom"
+            truth.child_frame_id = "nautilus/imu_link"
+            (
+                truth.pose.pose.position.x,
+                truth.pose.pose.position.y,
+                truth.pose.pose.position.z,
+            ) = truths[index, 1:4]
+            (
+                truth.pose.pose.orientation.x,
+                truth.pose.pose.orientation.y,
+                truth.pose.pose.orientation.z,
+                truth.pose.pose.orientation.w,
+            ) = truths[index, 4:8]
+            for name in names:
+                ip, dp, tp = publishers[name]
+                measured = copy.deepcopy(imu)
+                reference = copy.deepcopy(truth)
+                velocity = copy.deepcopy(dvl)
+                if name == "poisoned":
+                    # A plausible quaternion with a deliberately false attitude,
+                    # advertised as available, must still be ignored by the node.
+                    measured.orientation.x = 1.0
+                    measured.orientation_covariance[0] = 1e-12
+                    reference.pose.pose.position.x += 1000
+                    reference.pose.pose.position.y -= 500
+                    reference.pose.pose.orientation.x = 1.0
+                    reference.pose.pose.orientation.w = 0.0
+                if name == "changed_dvl" and sim_time >= 5:
+                    velocity.twist.twist.linear.x += 0.02
+                ip.publish(measured)
+                if row[7]:
+                    dp.publish(velocity)
+                if name != "absent":
+                    tp.publish(reference)
+            # Preserve a realistic arrival rate without depending on ROS timers.
+            target = start + 1.0 / 200
+            while time.monotonic() < target:
+                rclpy.spin_once(
+                    node, timeout_sec=max(0.0, min(0.001, target - time.monotonic()))
+                )
+            # Wall timer phases differ between processes. At checkpoints, hold
+            # the input stream until all nodes have published that same stamp.
+            if index % 10 == 0 and sim_time >= 3:
+                checkpoint = round((10 + sim_time) * 1e9)
+                spin_until(
+                    lambda checkpoint=checkpoint: all(
+                        checkpoint in results[name] for name in names
+                    )
+                )
+        last_stamp = round((10 + rows[-1, 0]) * 1e9)
+        spin_until(lambda: all(last_stamp in results[name] for name in names))
+        common = sorted(set.intersection(*(set(results[name]) for name in names)))
+        assert len(common) > 100
+        differences = {}
+        for name in names[1:]:
+            differences[name] = float(
+                max(
+                    np.max(np.abs(results[name][stamp] - results["reference"][stamp]))
+                    for stamp in common
+                )
+            )
+        assert differences["poisoned"] < 1e-10, differences
+        assert differences["absent"] < 1e-10, differences
+        assert differences["changed_dvl"] > 1e-4, differences
+        report = {
+            "common_stamps": len(common),
+            "max_state_and_covariance_difference": differences,
+            "subscriptions": subscriptions,
+            "final_status": statuses,
+        }
+        (args.output / "ros-boundary.json").write_text(
+            json.dumps(report, indent=2) + "\n"
+        )
+        print(json.dumps(report, indent=2))
+    finally:
+        for process in processes:
+            if process.poll() is None:
+                process.send_signal(signal.SIGINT)
+        for process in processes:
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.terminate()
+                process.wait(timeout=5)
+        for log in logs:
+            log.close()
