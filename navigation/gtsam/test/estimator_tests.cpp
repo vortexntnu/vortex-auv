@@ -268,3 +268,93 @@ TEST(Estimator, SeededStim300ProfilesWithInternalBiasAndDropout) {
                     {time, measurement + noise(0.005), gtsam::I_3x3 * 2.5e-5});
             }
             accel_bias += noise(config.accel_bias_random_walk * std::sqrt(dt));
+            gyro_bias += noise(config.gyro_bias_random_walk * std::sqrt(dt));
+            auto measured = ideal;
+            measured.acceleration +=
+                accel_bias + noise(accel_density / std::sqrt(dt));
+            measured.angular_velocity +=
+                gyro_bias + noise(config.gyro_noise_density / std::sqrt(dt));
+            ASSERT_TRUE(estimator.add_imu(measured))
+                << estimator.status().detail;
+            if (const auto estimate = estimator.latest()) {
+                squared_position +=
+                    (estimate->pose.translation() - pose.translation())
+                        .squaredNorm();
+                squared_velocity +=
+                    (estimate->velocity - velocity).squaredNorm();
+                ++estimates;
+            }
+            previous = ideal;
+        }
+        ASSERT_GT(estimates, 2000);
+        const auto estimate = estimator.latest();
+        ASSERT_TRUE(estimate);
+        const double position_rmse = std::sqrt(squared_position / estimates);
+        const double velocity_rmse = std::sqrt(squared_velocity / estimates);
+        const double attitude_error =
+            gtsam::Rot3::Logmap(
+                estimate->pose.rotation().between(pose.rotation()))
+                .norm();
+        std::cout << "STIM300 density=" << accel_density
+                  << ": position RMSE=" << position_rmse
+                  << " m, velocity RMSE=" << velocity_rmse
+                  << " m/s, final attitude error=" << attitude_error
+                  << " rad, accel bias error="
+                  << (estimate->bias.accelerometer() - accel_bias).norm()
+                  << " m/s^2, gyro bias error="
+                  << (estimate->bias.gyroscope() - gyro_bias).norm()
+                  << " rad/s\n";
+        EXPECT_LT(position_rmse, 0.2);
+        EXPECT_LT(velocity_rmse, 0.04);
+        EXPECT_LT(attitude_error, 0.03);
+        EXPECT_GT(estimator.status().last_dvl_time, 29.0);
+    }
+}
+
+TEST(Covariance, GrowsWithoutDvlAndShrinksAfterRecovery) {
+    Estimator estimator(test_config());
+    feed_stationary(estimator, 0, 200);
+    const double before =
+        estimator.latest()->covariance.block<3, 3>(6, 6).trace();
+    for (int i = 201; i <= 500; ++i) {
+        estimator.add_imu(stationary(i * 0.01));
+    }
+    const double dropout =
+        estimator.latest()->covariance.block<3, 3>(6, 6).trace();
+    feed_stationary(estimator, 501, 700);
+    const double recovered =
+        estimator.latest()->covariance.block<3, 3>(6, 6).trace();
+    EXPECT_GT(dropout, before);
+    EXPECT_LT(recovered, dropout);
+}
+
+TEST(Covariance, RosMappingsMatchNumericalJacobians) {
+    Estimate estimate;
+    estimate.pose =
+        gtsam::Pose3(gtsam::Rot3::RzRyRx(0.3, -0.2, 0.4), {1, 2, 3});
+    estimate.velocity = gtsam::Vector3(0.4, -0.1, 0.2);
+    estimate.covariance = Matrix15::Identity() * 0.01;
+    estimate.covariance(0, 12) = estimate.covariance(12, 0) = 0.002;
+    const auto config = test_config();
+    const auto [pose_cov, twist_cov] = odometry_covariances(estimate, config);
+    const std::function<gtsam::Vector6(const Eigen::Matrix<double, 15, 1>&)>
+        pose_fn = [&estimate](const auto& dx) {
+            const auto pose = estimate.pose.retract(dx.template head<6>());
+            gtsam::Vector6 result;
+            result << pose.translation(),
+                gtsam::Rot3::Logmap(pose.rotation() *
+                                    estimate.pose.rotation().inverse());
+            return result;
+        };
+    const std::function<gtsam::Vector6(const Eigen::Matrix<double, 15, 1>&)>
+        twist_fn = [&estimate](const auto& dx) {
+            const auto pose = estimate.pose.retract(dx.template head<6>());
+            gtsam::Vector6 result;
+            result << pose.rotation().unrotate(estimate.velocity +
+                                               dx.template segment<3>(6)),
+                -dx.template tail<3>();
+            return result;
+        };
+    const Eigen::Matrix<double, 15, 1> zero =
+        Eigen::Matrix<double, 15, 1>::Zero();
+    const auto jp = gtsam::numericalDerivative11(pose_fn, zero);
