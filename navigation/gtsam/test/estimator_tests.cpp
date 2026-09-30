@@ -358,3 +358,50 @@ TEST(Covariance, RosMappingsMatchNumericalJacobians) {
     const Eigen::Matrix<double, 15, 1> zero =
         Eigen::Matrix<double, 15, 1>::Zero();
     const auto jp = gtsam::numericalDerivative11(pose_fn, zero);
+    const auto jt = gtsam::numericalDerivative11(twist_fn, zero);
+    auto expected_twist = (jt * estimate.covariance * jt.transpose()).eval();
+    expected_twist.bottomRightCorner<3, 3>().diagonal().array() +=
+        std::pow(config.gyro_noise_density, 2) / estimate.gyro_sample_dt;
+    EXPECT_TRUE(
+        pose_cov.isApprox(jp * estimate.covariance * jp.transpose(), 1e-6));
+    EXPECT_TRUE(twist_cov.isApprox(expected_twist, 1e-6));
+}
+
+TEST(Smoother, MarginalizationMatchesShortBatchReference) {
+    gtsam::ISAM2Params settings;
+    settings.findUnusedFactorSlots = true;
+    settings.relinearizeSkip = 1;
+    settings.setRelinearizeThreshold(0.001);
+    gtsam::IncrementalFixedLagSmoother smoother(0.3, settings);
+    gtsam::NonlinearFactorGraph batch;
+    gtsam::Values all_values;
+    // A linear Gaussian velocity chain isolates information preservation from
+    // nonlinear relinearization effects, and has an exact batch reference.
+    for (int i = 0; i < 30; ++i) {
+        gtsam::NonlinearFactorGraph factors;
+        if (i == 0) {
+            factors.add(gtsam::PriorFactor<gtsam::Vector3>(
+                V(i), {0, 0, 0}, gtsam::noiseModel::Isotropic::Sigma(3, 0.1)));
+        } else {
+            factors.add(gtsam::BetweenFactor<gtsam::Vector3>(
+                V(i - 1), V(i), {0.01, 0, 0},
+                gtsam::noiseModel::Isotropic::Sigma(3, 0.02)));
+        }
+        factors.add(gtsam::PriorFactor<gtsam::Vector3>(
+            V(i), {i * 0.01 + 0.003 * std::sin(i), 0, 0},
+            gtsam::noiseModel::Isotropic::Sigma(3, 0.05)));
+        const gtsam::Vector3 guess(i * 0.01, 0, 0);
+        gtsam::Values values;
+        values.insert(V(i), guess);
+        all_values.insert(V(i), guess);
+        batch.push_back(factors);
+        smoother.update(factors, values, {{V(i), i * 0.1}});
+    }
+    const auto solution =
+        gtsam::LevenbergMarquardtOptimizer(batch, all_values).optimize();
+    EXPECT_TRUE(smoother.calculateEstimate<gtsam::Vector3>(V(29)).isApprox(
+        solution.at<gtsam::Vector3>(V(29)), 1e-8));
+    EXPECT_LE(smoother.timestamps().size(), 5u);
+}
+}  // namespace
+}  // namespace gtsam_navigation
