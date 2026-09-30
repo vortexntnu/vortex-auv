@@ -268,3 +268,9 @@ def main():
                 process.wait(timeout=5)
         for log in logs:
             log.close()
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()
