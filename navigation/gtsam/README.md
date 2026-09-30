@@ -178,3 +178,93 @@ identity transforms when TF is missing. All parameters are startup-only.
 
 | Direction | Relative topic | Message |
 | --- | --- | --- |
+| Input | imu/data_raw | sensor_msgs/Imu |
+| Input | dvl/twist | geometry_msgs/TwistWithCovarianceStamped |
+| Output | gtsam/odom | nav_msgs/Odometry |
+| Output | gtsam/status | diagnostic_msgs/DiagnosticArray |
+
+Default namespace/frame prefix is `nautilus`. IMU messages must have frame
+`nautilus/imu_link`, acceleration as **specific force including gravity response**
+in m/s², and rates in rad/s. Orientation is ignored. DVL messages must have frame
+`nautilus/dvl_link`, velocity in m/s at that sensor's origin, and a positive
+definite linear 3x3 covariance in the upper-left block of the ROS 6x6 covariance.
+Invalid bottom lock must be suppressed upstream or marked by invalid covariance.
+Zero/unknown covariance, negative validity markers, NaNs and bad frames are
+rejected rather than given an invented certainty. Drivers are outside this package.
+
+Odometry pose is in `nautilus/odom`, with child frame **`nautilus/imu_link`** and
+twist in IMU axes. The existing controller expects `base_link`: transform this
+odometry to the body/control origin before connecting it, including the
+rotational velocity lever arm and covariance. A topic remap alone is insufficient.
+The existing `odom_transformer` provides the repository's adapter pattern, but
+currently resets the origin and copies covariance without transforming it; it is
+not a covariance-correct drop-in adapter for this output. This package does not
+change or automatically connect controller inputs.
+
+`publish_tf` is off by default. When enabled, the node publishes the equivalent
+`odom -> base_link` transform, preserving the URDF's `base_link -> imu_link` edge
+and avoiding a second parent for the IMU. Only one odometry source may publish
+that edge.
+
+## Initialization, timing and limits
+
+Keep the vehicle still for two seconds after valid IMU and TF become available.
+The configurable window checks angular rate, acceleration magnitude and sample
+variance. It estimates tilt and gyro offset, with an uncertain zero accelerometer
+bias prior. Motion restarts alignment. This is coarse startup alignment, not a
+factory calibration or thermal warm-up procedure. It cannot distinguish slow
+constant motion from rest or determine absolute yaw/all accelerometer biases.
+Earth rotation is neglected; its small projection may enter the initial gyro bias.
+
+After initialization, the origin persists while carrying/launching the vehicle.
+Without DVL it dead-reckons and uncertainty grows. IMU+DVL do not ensure bounded
+position/heading drift, and controller stability is not established here.
+
+The default five-second lag is an optimization-history tuning value, not output
+latency. Old states are marginalized and factor slots reused. Keyframes are
+created at DVL measurement times and at most 100 ms apart. DVL keyframes closer
+than 5 ms are rejected to bound graph growth. IMU samples are zero-order held on
+`[sample_time, next_sample_time)` and intervals are split exactly at keyframes.
+Sorted input buffers allow 250 ms of reordering. Samples behind committed time
+are rejected; there is no retroactive insertion outside that processing horizon.
+
+High-rate output replays the uncommitted IMU tail from the latest corrected state.
+Its covariance propagates the full pose/velocity/bias joint covariance and IMU
+noise. This is a first-order approximation: process noise correlations within an
+interval and reuse of gyro samples by DVL/IMU factors are not modeled exactly.
+Pose covariance is mapped to world XYZ and fixed-axis rotation; twist covariance
+is in IMU axes, with velocity/attitude/bias cross terms retained.
+
+Publication is capped at 125 Hz with strictly advancing measurement timestamps.
+Stale IMU or a clock mismatch stops output. A committed IMU gap over 100 ms,
+buffer overflow, or optimizer failure latches a fault requiring node restart;
+no fabricated measurements bridge a gap. DVL dropout retains IMU prediction and
+reports WARN. Status reports initialization, data freshness, rejection counters,
+bounded graph sizes and faults. Bias values are never a public ROS interface.
+
+## Noise sources
+
+STIM300 TS1524 rev.27 (August 2021), printed pages 6–9, Tables 6-3–6-5:
+
+| Profile | Accel velocity random walk | Gyro angle random walk |
+| --- | --- | --- |
+| 10 g (provisional default) | 0.07 m/s/√h | 0.15 °/√h |
+| 30 g | 0.21 m/s/√h | 0.15 °/√h |
+
+Convert hourly square-root units by dividing by 60; convert gyro degrees to
+radians. These are continuous white-noise densities: sampled rate noise has
+standard deviation `density / sqrt(dt)`. Bias random walks use independent
+increments `bias_density * sqrt(dt)`. The simulation defaults to accelerometer
+offset `[0.003, -0.002, 0.001]` m/s² and gyro offset `[2e-5, -1e-5, 1e-5]` rad/s;
+these and the drift densities (1e-5 m/s²/√s and 1e-7 rad/s/√s) are explicit
+modeling assumptions, not datasheet claims. Both profiles can override densities.
+
+The FFI report *Rate table tests of low-cost inertial measurement units*,
+2014/01970, section 3.2 (printed pages 27 onward), reports tests of an older
+STIM300 unit. It motivates stress testing bias/noise beyond nominal specifications.
+`stress_scale` multiplies simulator white-noise and bias-drift densities only;
+it is a sensitivity study, not a fitted FFI model. Allan bias-instability minima
+are not used as bias random-walk coefficients. No claims are made about calibration
+of the current physical sensor. Nucleus default single-ping DVL sigma is 0.005 m/s
+from the supplied product datasheet; long-term scale errors are not white noise.
+
