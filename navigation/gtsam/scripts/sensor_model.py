@@ -88,3 +88,93 @@ def smooth_rotation(time, angle, duration):
         return 0.0, 0.0, 0.0
     if time >= duration:
         return angle, 0.0, 0.0
+    u = time / duration
+    return (
+        angle * (10 * u**3 - 15 * u**4 + 6 * u**5),
+        angle / duration * 30 * u**2 * (1 - u) ** 2,
+        angle / duration**2 * 60 * u * (1 - u) * (1 - 2 * u),
+    )
+
+
+def finite_forward_motion(time, distance, speed=0.3):
+    """Translate a fixed distance, using two-second cosine acceleration/braking."""
+    acceleration_time = 2.0
+    duration = distance / speed + acceleration_time
+    if time >= duration:
+        return distance, 0.0, 0.0
+    start = ramp(time, speed, acceleration_time)
+    stop = ramp(time - (duration - acceleration_time), speed, acceleration_time)
+    return tuple(a - b for a, b in zip(start, stop, strict=True))
+
+
+def square_barrel_roll(time):
+    """A 3 m square with stopped yaw turns, then one forward roll and final rest.
+
+    Time is relative to the end of stationary alignment. Each square leg takes
+    12 s, followed by a 1 s stop, a 4 s yaw turn and a 1 s pause. The fourth yaw
+    restores the original heading at the starting point. The final forward
+    segment accelerates for 2 s, rolls for 5 s and brakes for 2 s.
+    """
+    corners = ((0, 0, 0), (3, 0, 0), (3, 3, 0), (0, 3, 0))
+    directions = ((1, 0, 0), (0, 1, 0), (-1, 0, 0), (0, -1, 0))
+    if time < 72:
+        leg = min(3, max(0, int(time // 18)))
+        local_time = time - 18 * leg
+        distance, speed, acceleration = finite_forward_motion(local_time, 3.0)
+        turn, rate, alpha = smooth_rotation(local_time - 13, math.pi / 2, 4.0)
+        direction = np.array(directions[leg], dtype=float)
+        return (
+            np.array(corners[leg], dtype=float) + distance * direction,
+            speed * direction,
+            acceleration * direction,
+            rotation_z(leg * math.pi / 2 + turn),
+            np.array([0.0, 0.0, rate]),
+            np.array([0.0, 0.0, alpha]),
+        )
+    local_time = time - 72
+    distance, speed, acceleration = finite_forward_motion(local_time, 2.1)
+    roll, rate, alpha = smooth_rotation(local_time - 2, 2 * math.pi, 5.0)
+    c, s = math.cos(roll), math.sin(roll)
+    return (
+        np.array([distance, 0.0, 0.0]),
+        np.array([speed, 0.0, 0.0]),
+        np.array([acceleration, 0.0, 0.0]),
+        np.array([[1, 0, 0], [0, c, -s], [0, s, c]]),
+        np.array([rate, 0.0, 0.0]),
+        np.array([alpha, 0.0, 0.0]),
+    )
+
+
+def trajectory(time, kind="turn", settle=5.0):
+    """Return body-origin world position/velocity/acceleration and body rotation/rates."""
+    if kind == "square_barrel_roll":
+        return square_barrel_roll(time - settle)
+    if kind not in ("stationary", "straight", "turn", "rotate", "barrel_roll"):
+        raise ValueError(f"Unknown trajectory: {kind}")
+    p, v, a = ramp(time - settle, 0.3 if kind != "stationary" else 0.0)
+    yaw, omega, alpha = ramp(time - settle, 0.08 if kind == "turn" else 0.0)
+    attitude = (
+        rotating_attitude(time - settle)
+        if kind == "rotate"
+        else (rotation_z(yaw), np.array([0.0, 0.0, omega]), np.array([0.0, 0.0, alpha]))
+    )
+    if kind == "barrel_roll":
+        roll, rate, acceleration = ramp(time - settle, 2 * math.pi / 5.0)
+        c, s = math.cos(roll), math.sin(roll)
+        attitude = (
+            np.array([[1, 0, 0], [0, c, -s], [0, s, c]]),
+            np.array([rate, 0.0, 0.0]),
+            np.array([acceleration, 0.0, 0.0]),
+        )
+    return (
+        np.array([p, 0.0, 0.0]),
+        np.array([v, 0.0, 0.0]),
+        np.array([a, 0.0, 0.0]),
+        *attitude,
+    )
+
+
+def bottom_lock_available(rotation, max_tilt_deg=30.0):
+    """Simplified flat-seabed visibility from DVL +Z boresight tilt to world down.
+
+    The fixed DVL mount differs from the body by yaw only, so both +Z axes
