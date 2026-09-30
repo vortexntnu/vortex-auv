@@ -88,3 +88,67 @@ def main():
                     "Launch exited before scenario completion"
                 )
             assert records["odom"][-1][0] >= duration - 0.01
+            summary = {}
+            for name, data in records.items():
+                window = [row for row in data if 3 <= row[0] <= 7]
+                stamps = np.array([row[0] for row in window])
+                assert np.all(np.diff(stamps) > 0)
+                summary[name] = {
+                    "messages": len(data),
+                    "median_header_rate_hz": float(1 / np.median(np.diff(stamps))),
+                    "wall_rate_hz": float(
+                        (len(window) - 1) / (window[-1][1] - window[0][1])
+                    ),
+                }
+            assert abs(summary["imu"]["median_header_rate_hz"] - 1000) < 1e-6
+            assert abs(summary["dvl"]["median_header_rate_hz"] - 8) < 1e-6
+            assert 110 < summary["odom"]["wall_rate_hz"] < 140
+            if square:
+                for instant, position in ((77, [0, 0, 0]), (90, [2.1, 0, 0])):
+                    row = min(records["truth"], key=lambda row: abs(row[0] - instant))
+                    assert abs(row[0] - instant) < 0.002
+                    p, q, v = (
+                        row[2].pose.pose.position,
+                        row[2].pose.pose.orientation,
+                        row[2].twist.twist.linear,
+                    )
+                    np.testing.assert_allclose([p.x, p.y, p.z], position, atol=1e-6)
+                    np.testing.assert_allclose([v.x, v.y, v.z], 0, atol=1e-6)
+                    assert abs(abs(q.w) - 1) < 1e-5
+                square_pings = [row[0] for row in records["dvl"] if 5 <= row[0] <= 78]
+                assert max(np.diff(square_pings)) < 0.26
+                assert not any(81 < row[0] < 82 for row in records["dvl"])
+                assert any(85 < row[0] < 90 for row in records["dvl"])
+                summary["returned_to_start_and_final_stop"] = True
+            else:
+                for instant in (12, 17):
+                    row = min(records["truth"], key=lambda row: abs(row[0] - instant))
+                    assert abs(row[0] - instant) < 0.002
+                    q = row[2].pose.pose.orientation
+                    assert abs(abs(q.w) - 1) < 1e-5
+                    assert abs(row[2].twist.twist.angular.x - 2 * math.pi / 5) < 1e-12
+                assert not any(7.2 < row[0] < 11.58 for row in records["dvl"])
+                assert any(11.6 < row[0] < 12.4 for row in records["dvl"])
+                summary["full_revolutions_checked_at_s"] = [12, 17]
+            assert True in locks
+            assert False in locks
+            assert not any(
+                msg.status[0].level == 2
+                for msg in statuses
+                if msg.header.stamp.sec > 13
+            )
+            summary["lock_loss_and_recovery"] = True
+            (output / f"{label}-rates.json").write_text(
+                json.dumps(summary, indent=2) + "\n"
+            )
+            print(json.dumps(summary, indent=2))
+        finally:
+            if process.poll() is None:
+                process.send_signal(signal.SIGINT)
+            process.wait(timeout=10)
+            node.destroy_node()
+            rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()
