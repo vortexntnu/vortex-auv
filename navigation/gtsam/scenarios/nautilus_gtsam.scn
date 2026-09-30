@@ -299,3 +299,4 @@
     <ros_publisher thrusters="/nautilus/thruster_state" servos="/nautilus/servo_state" />
     <ros_base_link_transform publish="false" />
   </robot>
+</scenario>
