@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>gtsam_navigation</name>
+  <version>0.1.0</version>
+  <description>Bounded-history IMU and bottom-track DVL navigation for Nautilus.</description>
+  <maintainer email="patricsh@stud.ntnu.no">Patrick Sheehan</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>gtsam</depend>
+  <depend>eigen</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>diagnostic_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>auv_setup</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>rosgraph_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>stonefish_ros2</exec_depend>
+  <exec_depend>stonefish_sim</exec_depend>
+  <exec_depend>stonefish_sim_interface</exec_depend>
+  <exec_depend>dp_adapt_backs_controller_quat</exec_depend>
+  <exec_depend>joystick_interface_auv</exec_depend>
+  <exec_depend>operation_mode_manager</exec_depend>
+  <exec_depend>thrust_allocator_auv</exec_depend>
+  <exec_depend>joy</exec_depend>
+  <exec_depend>keyboard_joy</exec_depend>
+  <exec_depend>foxglove_bridge</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>vortex_msgs</exec_depend>
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>launch_testing_ament_cmake</test_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>
