@@ -23,6 +23,14 @@
         before_gate: {x: [-10.0, 45.0], y: [-12.0, 12.0]}
         after_gate: {x: [-5.0, 40.0], y: [-6.0, 6.0]}
 
-    # The simulator's odometry does not drift and the dummy detections are
-    # clean: the common noise values are fine here. Do not tune them in the
-    # simulator (the numbers do not carry over to the pool).
+    # The simulator's own odometry does not drift; drift_injector.py makes it
+    # drift like an IMU + DVL estimator (config/drift/). Position noise that
+    # fits that drift: the DVL error grows with the distance (scale,
+    # misalignment) and also while hovering (random walk). With the common
+    # values (0.02 per m, 1 cm floor) the graph trusted the odometry position
+    # too much, turned the vehicle instead and its path was worse than the raw
+    # odometry (worst profile: 0.35 m vs 0.32 m); with these it was 0.19 m.
+    # The other noise values are the common ones; the pool needs its own
+    # (pool.yaml).
+    graph:
+      odom_noise: {pos_std_per_m: 0.05, min_pos_std_m: 0.05}

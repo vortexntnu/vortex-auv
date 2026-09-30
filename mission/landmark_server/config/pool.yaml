@@ -33,6 +33,11 @@
         yaw_std_deg_per_m: 1.0      # MEASURE: 2 x yaw drift per metre (test A)
         pos_std_per_m: 0.02         # MEASURE: 2 x DVL scale error (test A)
         yaw_std_deg_per_sec: 0.01   # MEASURE: yaw drift per second in hover (test B)
+        # MEASURE: position drift per keyframe (~5 s) in hover (test B). Too
+        # small values (and pos_std_per_m) make the graph turn the vehicle to
+        # explain position drift: in the simulator the path got worse than the
+        # raw odometry until both were 0.05 (sim.yaml).
+        min_pos_std_m: 0.01
 
     track_config:
       default:
