@@ -88,3 +88,92 @@ def setup(context):
         ),
         node(
             'thrust_allocator_auv',
+            'thrust_allocator_auv_node',
+            [{'propulsion.solver_type': 'qp'}],
+        ),
+        node(
+            'stonefish_sim_interface',
+            'stonefish_sim_interface',
+            [{'mock_odom': False, 'tf_name_prefix': 'nautilus', 'drone': 'nautilus'}],
+            [
+                ('odom', 'stonefish/unused_odom'),
+                ('pose', 'stonefish/unused_pose'),
+                ('twist', 'stonefish/unused_twist'),
+                ('dvl/twist', 'stonefish/unused_dvl'),
+            ],
+        ),
+        node(
+            'gtsam_navigation',
+            'stonefish_sensors.py',
+            [
+                {
+                    'dvl_max_tilt_deg': float(
+                        LaunchConfiguration('dvl_max_tilt_deg').perform(context)
+                    )
+                }
+            ],
+        ),
+        node(
+            'gtsam_navigation',
+            'gtsam_navigation_node',
+            [
+                os.path.join(package, 'config/navigation.yaml'),
+                {
+                    'frame_prefix': 'nautilus',
+                    'publish_tf': True,
+                    'diagnostic_hardware_id': 'Stonefish: provisional STIM300 + generic four-beam DVL',
+                },
+            ],
+        ),
+        node('gtsam_navigation', 'stonefish_control.py'),
+        node('gtsam_navigation', 'stonefish_evaluation.py'),
+    ]
+    if device == 'joystick':
+        nodes.append(
+            node(
+                'joy',
+                'joy_node',
+                [{'deadzone': 0.15, 'autorepeat_rate': 100.0}],
+                [('/joy', '/nautilus/joy')],
+            )
+        )
+    elif device == 'keyboard':
+        nodes.append(include('keyboard_joy', 'keyboard_joy_node.launch.py', common))
+    if LaunchConfiguration('foxglove').perform(context) == 'true':
+        nodes.append(
+            Node(
+                package='foxglove_bridge',
+                executable='foxglove_bridge',
+                parameters=[
+                    {
+                        'port': int(
+                            LaunchConfiguration('foxglove_port').perform(context)
+                        ),
+                        'use_sim_time': False,
+                    }
+                ],
+                output='screen',
+            )
+        )
+    return nodes
+
+
+def generate_launch_description():
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument(
+                'rendering', default_value='true', choices=['true', 'false']
+            ),
+            DeclareLaunchArgument(
+                'input',
+                default_value='joystick',
+                choices=['joystick', 'keyboard', 'none'],
+            ),
+            DeclareLaunchArgument(
+                'foxglove', default_value='true', choices=['true', 'false']
+            ),
+            DeclareLaunchArgument('foxglove_port', default_value='8765'),
+            DeclareLaunchArgument('dvl_max_tilt_deg', default_value='25.0'),
+            OpaqueFunction(function=setup),
+        ]
+    )
