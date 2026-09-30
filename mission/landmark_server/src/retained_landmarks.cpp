@@ -265,6 +265,24 @@ void RetainedLandmarks::update(
         landmarks_.push_back(std::move(lm));
     }
 
+    // A pipe mapped before the large structure next to it (a gate post taken
+    // for a pipe, the gate itself confirmed a moment later) goes when the
+    // structure is in the map: which one was seen first must not decide.
+    std::vector<int> too_close;
+    for (const auto& lm : landmarks_) {
+        const double d =
+            config_.rule_for(lm.key).min_distance_to_large_structures_m;
+        if (!lm.derived && d > 0.0 && near_large_structure(lm.position, d)) {
+            too_close.push_back(lm.id);
+        }
+    }
+    if (!too_close.empty()) {
+        rejected_ += static_cast<int>(too_close.size());
+        std::erase_if(landmarks_, [&](const RetainedLandmark& l) {
+            return std::ranges::find(too_close, l.id) != too_close.end();
+        });
+    }
+
     forget_expired(now);
 }
 

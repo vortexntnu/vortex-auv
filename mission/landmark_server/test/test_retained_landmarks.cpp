@@ -297,6 +297,28 @@ TEST(RetainedLandmarks, PipeNextToTheGateIsRejected) {
     EXPECT_EQ(map.landmarks().size(), 2u);
 }
 
+TEST(RetainedLandmarks, PipeMappedBeforeTheGateGoesWhenTheGateIsMapped) {
+    RetainedLandmarks map(example_config());
+
+    // A gate post taken for a pipe, before the gate itself is confirmed.
+    map.update({make_track(2, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE, v(10, 1))},
+               0.0);
+    ASSERT_EQ(map.landmarks().size(), 1u);
+
+    // The gate 1 m from it: the pipe goes, also while its track is live.
+    map.update({make_track(1, LT::GATE, LS::GATE_WHOLE, v(10, 0)),
+                make_track(2, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE, v(10, 1))},
+               1.0);
+    ASSERT_EQ(map.landmarks().size(), 1u);
+    EXPECT_EQ(map.landmarks()[0].key.type, LT::GATE);
+
+    // And it does not come back while the gate is there.
+    map.update({make_track(1, LT::GATE, LS::GATE_WHOLE, v(10, 0)),
+                make_track(2, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE, v(10, 1))},
+               2.0);
+    EXPECT_EQ(map.landmarks().size(), 1u);
+}
+
 TEST(RetainedLandmarks, PipesAreForgottenAfterRetainSecUnlessWellObserved) {
     RetainedLandmarks map(example_config());
 
