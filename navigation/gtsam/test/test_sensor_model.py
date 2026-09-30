@@ -268,3 +268,38 @@ def test_square_boundary_continuity_and_forward_only_translation():
 
 
 def test_square_rates_and_accelerations_match_pose_derivatives():
+    step = 1e-4
+    for time in (
+        6,
+        15.5,
+        19,
+        20,
+        25.2,
+        33.5,
+        38,
+        43.2,
+        56,
+        73,
+        78,
+        80,
+        81.5,
+        83,
+        85,
+        90,
+    ):
+        before = MODEL.trajectory(time - step, "square_barrel_roll")
+        state = MODEL.trajectory(time, "square_barrel_roll")
+        after = MODEL.trajectory(time + step, "square_barrel_roll")
+        np.testing.assert_allclose(
+            state[1], (after[0] - before[0]) / (2 * step), atol=2e-8
+        )
+        np.testing.assert_allclose(
+            state[2], (after[1] - before[1]) / (2 * step), atol=2e-8
+        )
+        skew = state[3].T @ ((after[3] - before[3]) / (2 * step))
+        np.testing.assert_allclose(
+            state[4], [skew[2, 1], skew[0, 2], skew[1, 0]], atol=5e-8
+        )
+        np.testing.assert_allclose(
+            state[5], (after[4] - before[4]) / (2 * step), atol=2e-8
+        )
