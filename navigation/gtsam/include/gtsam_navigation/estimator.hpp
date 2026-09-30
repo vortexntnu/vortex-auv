@@ -88,3 +88,25 @@ class Estimator {
                      const ImuSample& imu,
                      double sample_dt) const;
     void fail(const std::string& reason);
+    Config config_;
+    Status status_;
+    std::shared_ptr<gtsam::PreintegrationParams> params_;
+    gtsam::IncrementalFixedLagSmoother smoother_;
+    std::unique_ptr<gtsam::PreintegratedImuMeasurements> pim_;
+    std::map<double, ImuSample> imu_buffer_;
+    std::map<double, DvlSample> dvl_buffer_;
+    std::deque<ImuSample> alignment_;
+    std::optional<ImuSample> previous_imu_;
+    Estimate anchor_;
+    double newest_imu_time_ = -1;
+    double integrated_time_ = 0;
+    double latest_sample_dt_ = 0.01;
+    double last_dvl_key_time_ = -1;
+    std::size_t index_ = 0;
+};
+
+/** ROS-compatible covariance blocks, including cross terms and gyro bias. */
+std::pair<gtsam::Matrix6, gtsam::Matrix6> odometry_covariances(
+    const Estimate& estimate,
+    const Config& config);
+}  // namespace gtsam_navigation
