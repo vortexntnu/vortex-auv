@@ -88,3 +88,93 @@ def test_three_axis_trajectory_rates_match_rotation_derivatives():
         skew = rotation.T @ ((after[3] - before[3]) / (2 * step))
         np.testing.assert_allclose(
             omega, [skew[2, 1], skew[0, 2], skew[1, 0]], atol=1e-9
+        )
+        np.testing.assert_allclose(
+            alpha, (after[4] - before[4]) / (2 * step), atol=1e-9
+        )
+        np.testing.assert_allclose(rotation.T @ rotation, np.eye(3), atol=1e-14)
+    assert np.all(np.abs(MODEL.trajectory(7, "rotate")[4]) > 0.005)
+
+
+@pytest.mark.parametrize("kind", ["rotate", "barrel_roll", "square_barrel_roll"])
+def test_rotating_sensor_measurements_match_sensor_position_derivatives(kind):
+    step = 1e-3
+    # Test finite differences inside segments; endpoint continuity is checked
+    # separately because jerk can change there, reducing difference accuracy.
+    for time in (5.5, 7.3, 10.0, 20.0, 45.3, 80.0):
+        state = MODEL.trajectory(time, kind)
+        before = MODEL.trajectory(time - step, kind)
+        after = MODEL.trajectory(time + step, kind)
+        force, _, dvl = MODEL.ideal_measurements(state)
+        p_imu = state[0] + state[3] @ MODEL.IMU_OFFSET
+        p_imu_before = before[0] + before[3] @ MODEL.IMU_OFFSET
+        p_imu_after = after[0] + after[3] @ MODEL.IMU_OFFSET
+        world_acceleration = (p_imu_after - 2 * p_imu + p_imu_before) / step**2
+        np.testing.assert_allclose(
+            state[3] @ force + [0, 0, 9.81], world_acceleration, atol=2e-7
+        )
+        # Velocity differences can use a finer step without the cancellation
+        # inherent in the second position derivative above.
+        velocity_step = step / 10
+        before_v = MODEL.trajectory(time - velocity_step, kind)
+        after_v = MODEL.trajectory(time + velocity_step, kind)
+        p_dvl_before = before_v[0] + before_v[3] @ MODEL.DVL_OFFSET
+        p_dvl_after = after_v[0] + after_v[3] @ MODEL.DVL_OFFSET
+        world_velocity = (p_dvl_after - p_dvl_before) / (2 * velocity_step)
+        np.testing.assert_allclose(
+            state[3] @ MODEL.rotation_z(MODEL.DVL_YAW) @ dvl, world_velocity, atol=5e-8
+        )
+
+
+@pytest.mark.parametrize("kind", ["rotate", "barrel_roll", "square_barrel_roll"])
+def test_rotating_trajectory_preserves_stationary_alignment(kind):
+    for time in (0.0, 2.0, 4.999, 5.0):
+        for actual, expected in zip(
+            MODEL.trajectory(time, kind),
+            MODEL.trajectory(time, "stationary"),
+            strict=True,
+        ):
+            np.testing.assert_allclose(actual, expected, atol=1e-14)
+
+
+def test_truth_quaternion_matches_rotation_including_half_turns():
+    rotations = [MODEL.trajectory(t, "rotate")[3] for t in (0, 7, 10, 45, 80)]
+    rotations += [np.diag([1, -1, -1]), np.diag([-1, 1, -1]), np.diag([-1, -1, 1])]
+    for rotation in rotations:
+        x, y, z, w = MODEL.quaternion_from_rotation(rotation)
+        reconstructed = np.array(
+            [
+                [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+                [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+                [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
+            ]
+        )
+        np.testing.assert_allclose(reconstructed, rotation, atol=1e-14)
+
+
+def test_continuous_rotation_passes_full_revolutions():
+    # After a 5 s alignment and 4 s ramp, the integrated steady-rate time is t-7.
+    # Distinct full-turn counts (4 roll, 3 pitch, 2 yaw) coincide after 120 s.
+    np.testing.assert_allclose(
+        MODEL.trajectory(127, "rotate")[3], np.eye(3), atol=1e-13
+    )
+    assert np.linalg.norm(MODEL.trajectory(127, "rotate")[4]) > 0.2
+    # Pitch passes through 90 and 180 degrees instead of reversing at a small tilt.
+    rotation_quarter = MODEL.trajectory(17, "rotate")[3]
+    rotation_half = MODEL.trajectory(27, "rotate")[3]
+    np.testing.assert_allclose(rotation_quarter[2, 0], -1, atol=1e-13)
+    np.testing.assert_allclose(rotation_half[2, 0], 0, atol=1e-13)
+    np.testing.assert_allclose(rotation_half[2, 2], 0.5, atol=1e-13)
+
+
+def test_barrel_roll_keeps_forward_axis_aligned_and_completes_revolutions():
+    for time in (0, 7, 10, 22, 37, 67):
+        position, velocity, _, rotation, omega, _ = MODEL.trajectory(
+            time, "barrel_roll"
+        )
+        np.testing.assert_allclose(rotation @ [1, 0, 0], [1, 0, 0], atol=1e-14)
+        np.testing.assert_allclose(position[1:], 0)
+        np.testing.assert_allclose(velocity[1:], 0)
+        np.testing.assert_allclose(omega[1:], 0)
+    np.testing.assert_allclose(
+        MODEL.trajectory(9.5, "barrel_roll")[3], np.diag([1, -1, -1]), atol=1e-14
