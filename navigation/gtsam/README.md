@@ -88,3 +88,93 @@ Truth is published for comparison only; the generator prints
 position, IMU-frame velocity and quaternion orientation-angle RMSE at completion. Change duration, seed,
 trajectory, noise or stress_scale through launch arguments. The simulator's
 static transforms reproduce the existing URDF and should not be launched with a
+second robot-description publisher.
+
+`trajectory:=rotate` continuously increases the roll, pitch and yaw rotation
+parameters at 12, 9 and 6 degrees/s respectively, giving full revolutions every
+30, 40 and 60 seconds after ramp-up. The attitude is composed as
+`Rz(yaw) Ry(pitch) Rx(roll)` and retains the world-X translation. All motion begins
+after five seconds of stationary alignment and ramps up over four seconds. Body-axis
+angular rates and accelerations include the coupling between the three rotations;
+sensor measurements retain the IMU/DVL lever-arm effects. Truth includes the full
+orientation quaternion and all three angular velocity components. The default
+`turn` trajectory continues to rotate in yaw only.
+The composed body rates are not three constant gyro readings. There is no
+inverse Euler-rate calculation at pitch +/-90 degrees, so motion remains smooth
+through those attitudes. Euler display angles will fold/wrap; orientation error
+is therefore measured as the shortest quaternion rotation angle.
+
+`trajectory:=barrel_roll` keeps the forward body X axis aligned with world X,
+translates at 0.3 m/s, and continuously rolls about that axis at 72 degrees/s:
+one revolution every five seconds after the same stationary alignment and smooth
+ramp. It rests for five seconds and ramps for four seconds; the first complete
+revolution occurs at simulation t=12 s, followed by t=17 s, 22 s, and so on.
+Pitch and yaw stay zero.
+The body origin follows a straight line; the offset IMU traces a small helix.
+
+`trajectory:=square_barrel_roll` runs a finite 3 m x 3 m square followed by a
+single forward barrel roll. Forward speed is limited to 0.3 m/s. Each straight
+leg uses two-second cosine acceleration and braking ramps, a one-second stop,
+a smooth four-second 90-degree yaw rotation while stopped, and a one-second
+pause before the next leg. The fourth turn restores the initial heading at the
+starting point. The yaw and roll profiles have zero angular velocity and
+acceleration at their endpoints; there are no pose, velocity or acceleration
+jumps. This is a stop-turn-go square, not a banked moving-corner maneuver.
+
+| Simulation time | Body-origin motion |
+| --- | --- |
+| 0--5 s | Stationary alignment |
+| 5--17 s | First 3 m leg, forward along initial X |
+| 17--23 s | Stop, yaw 90 degrees, pause |
+| 23--35 s | Second leg |
+| 35--41 s | Stop, yaw 90 degrees, pause |
+| 41--53 s | Third leg |
+| 53--59 s | Stop, yaw 90 degrees, pause |
+| 59--71 s | Fourth leg, returning to the starting point |
+| 71--77 s | Stop, align with original heading, pause |
+| 77--79 s | Accelerate forward |
+| 79--84 s | One full 360-degree roll while moving at 0.3 m/s |
+| 84--86 s | Brake to a stop, upright, 2.1 m forward of the start |
+| 86 s onward | Remain stationary |
+
+The single roll takes five seconds including smooth angular acceleration and
+deceleration, so its peak angular rate is 135 degrees/s rather than a constant
+72 degrees/s. This scenario defaults to a 100-second run. Its timed DVL dropout
+is disabled, making the upright square fully aided under the simple lock model;
+the roll still loses lock when tilted. `dropout_start` and `dropout_end` launch
+arguments can enable an additional outage (equal values disable it).
+The square refers to the body origin; the offset IMU moves around it during yaw
+turns and the barrel roll. This remains a prescribed kinematic maneuver, not a
+claim that Nautilus's thrusters can realize the specified accelerations.
+
+For all trajectories, `/nautilus/dvl/bottom_lock` (`std_msgs/Bool`) reports
+simulated lock at each DVL sampling instant. The retained flag is true only when
+the DVL +Z boresight is within `dvl_max_tilt_deg` of world down and the configured
+timed dropout is inactive. The default limit is 30 degrees, a configurable
+simulation assumption, not a Nortek specification. No DVL twist is published
+while lock is false. IMU and truth publication continue. Lock and velocity
+updates resume when the sensor returns within the limit; GTSAM may gate those
+measurements using its usual NIS check. Its status warns about dead reckoning
+after the configured DVL timeout (1 second by default).
+
+At the steady 72 degrees/s barrel-roll rate, each upright lock window lasts
+about 0.833 s and yields roughly six or seven DVL measurements at 8 Hz. Lock is
+unavailable for about 4.167 s between windows. The separate t=20--25 s dropout
+also suppresses measurements even if the sensor is upright.
+
+This remains a kinematic test with a simplified flat-seabed visibility model;
+individual beam returns, altitude/range, acoustic effects, reacquisition time,
+vehicle dynamics and thruster feasibility are not modeled. The bottom-lock flag
+is simulator telemetry, not a new estimator input requirement.
+
+When Stonefish or another vehicle stack is running, isolate this standalone
+simulation and its Foxglove Bridge with `ROS_DOMAIN_ID=42` in both terminals.
+Run only one simulation instance. After the sensor generator finishes, stop the
+remaining launch with Ctrl+C before starting another run.
+
+The hardware launch loads the existing Nautilus description. If already running,
+use `start_description:=false`. The node waits for sensor TF; it does not assume
+identity transforms when TF is missing. All parameters are startup-only.
+
+| Direction | Relative topic | Message |
+| --- | --- | --- |
