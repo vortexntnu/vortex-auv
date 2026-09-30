@@ -88,3 +88,23 @@ interval. These plots do not validate absolute position or absolute heading.
   about exact Nucleus reacquisition, beam-quality or sound-speed behavior.
 - The model, meshes and controller come from other installed workspace packages;
   external repositories are unchanged. The dedicated scene copies the Nautilus
+  model with sensor/environment changes, and must be reviewed if its upstream
+  physical model changes. Camera and sonar streams are omitted in this launch.
+
+## Reproduce validation
+
+```bash
+source install/setup.bash
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon test --packages-select gtsam_navigation
+colcon test-result --test-result-base build/gtsam_navigation --verbose
+ROS_DOMAIN_ID=169 ROS_LOCALHOST_ONLY=1 python3 \
+  src/vortex-auv/navigation/gtsam/test/audit_stonefish.py
+```
+
+The audit owns its launch, sends synthetic Xbox Joy messages through the real
+joystick node, then tests manual departure, DP hold, forward/yaw reference
+changes, killswitch and heartbeat timeout. Results and launch logs are written
+under `.deps/audit/stonefish-*`. Use the normal user Python environment: on this
+machine, disabling the user site exposes an incompatible system SciPy/NumPy
+combination. Disabling pytest plugin autoload avoids the unrelated typeguard
+plugin failure without changing packages.
