@@ -178,3 +178,21 @@ def main():
     scale_error[:, 8:11] *= 1.01
     case("straight_dvl_scale_plus_1pct", scale_error, truth)
     rows, truth, _ = measurements("barrel_roll", 75, 42, stress=3)
+    case("barrel_roll_3x_imu_noise", rows, truth)
+    for kind in ("straight", "barrel_roll"):
+        ends = []
+        for seed in range(args.seeds):
+            rows, truth, _ = measurements(kind, 75, seed)
+            case(f"{kind}_seed{seed}", rows, truth)
+            ends.append(report[f"{kind}_seed{seed}"]["position_nees_final"])
+        report[f"{kind}_ensemble"] = {
+            "independent_noise_seeds": args.seeds,
+            "evaluation_time_s": 75,
+            "position_anees": float(np.mean(ends)),
+            "note": "Fixed initial biases and truth, heuristic priors; not samples from the full assumed prior.",
+        }
+    (args.output / "summary.json").write_text(json.dumps(report, indent=2) + "\n")
+
+
+if __name__ == "__main__":
+    main()
