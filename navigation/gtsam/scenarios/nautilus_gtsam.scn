@@ -88,3 +88,93 @@
         <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
         <inertia xyz="0.0 0.0 0.0" />
         <cg xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <hydrodynamics viscous_drag="0.0 0.0 0.0" quadratic_drag="0.0 0.0 0.0" />
+      </physical>
+      <visual>
+        <mesh filename="nautilus/gripper_finger_left_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+      </visual>
+      <material name="Neutral" />
+      <look name="White" />
+      <mass value="0.000001" />
+    </link>
+    <joint name="finger_joint1" type="prismatic">
+      <parent name="arm" />
+      <child name="finger1" />
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <axis xyz="0.70711 0.70711 0.0" />
+      <limits min="-0.033" max="0.0" />
+    </joint>
+    <actuator name="finger_servo1" type="servo">
+      <controller position_gain="0.2" velocity_gain="1.0" max_torque="1.0" />
+      <joint name="finger_joint1" />
+    </actuator>
+    <link name="finger2" type="model" physics="surface" buoyancy="false">
+      <physical>
+        <mesh filename="nautilus/gripper_finger_right_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+        <inertia xyz="0.0 0.0 0.0" />
+        <cg xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <hydrodynamics viscous_drag="0.0 0.0 0.0" quadratic_drag="0.0 0.0 0.0" />
+      </physical>
+      <visual>
+        <mesh filename="nautilus/gripper_finger_right_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+      </visual>
+      <material name="Neutral" />
+      <look name="White" />
+      <mass value="0.000001" />
+    </link>
+    <joint name="finger_joint2" type="prismatic">
+      <parent name="arm" />
+      <child name="finger2" />
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <axis xyz="0.70711 -0.70711 0.0" />
+      <limits min="-0.033" max="0.0" />
+    </joint>
+    <actuator name="finger_servo2" type="servo">
+      <controller position_gain="0.2" velocity_gain="1.0" max_torque="1.0" />
+      <joint name="finger_joint2" />
+    </actuator>
+    <actuator name="Thruster1" type="thruster">
+      <link name="Base" />
+      <origin xyz="0.4139 0.3130 0.0217" rpy="0 0 -0.7853981634" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <actuator name="Thruster2" type="thruster">
+      <link name="Base" />
+      <origin xyz="0.140 0.313 0.0217" rpy="0 -1.570796327 0" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <actuator name="Thruster3" type="thruster">
+      <link name="Base" />
+      <origin xyz="-0.1639 0.313 0.0217" rpy="0 -1.570796327 0" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
