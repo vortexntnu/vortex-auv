@@ -88,3 +88,93 @@ class NavigationNode : public rclcpp::Node {
         tf_timer_ = create_wall_timer(std::chrono::milliseconds(100),
                                       [this]() { load_transforms(); });
         RCLCPP_INFO(get_logger(),
+                    "Waiting for fixed Nautilus sensor transforms; bias states "
+                    "remain internal");
+    }
+
+   private:
+    void declare_config() {
+        const auto profile = declare_parameter<std::string>(
+            "imu_profile", "stim300_10g_provisional");
+        if (profile == "stim300_30g") {
+            config_.accel_noise_density = 0.21 / 60.0;
+        } else if (profile != "stim300_10g_provisional" &&
+                   profile != "stim300_10g") {
+            throw std::invalid_argument("Unknown STIM300 profile");
+        }
+        config_.gravity = declare_parameter("gravity", config_.gravity);
+        config_.accel_noise_density = declare_parameter(
+            "accel_noise_density", config_.accel_noise_density);
+        config_.gyro_noise_density =
+            declare_parameter("gyro_noise_density", config_.gyro_noise_density);
+        config_.accel_bias_random_walk = declare_parameter(
+            "accel_bias_random_walk", config_.accel_bias_random_walk);
+        config_.gyro_bias_random_walk = declare_parameter(
+            "gyro_bias_random_walk", config_.gyro_bias_random_walk);
+        config_.integration_sigma =
+            declare_parameter("integration_sigma", config_.integration_sigma);
+        config_.lag = declare_parameter("lag_seconds", config_.lag);
+        config_.keyframe_interval =
+            declare_parameter("keyframe_interval", config_.keyframe_interval);
+        config_.reorder_delay =
+            declare_parameter("reorder_delay", config_.reorder_delay);
+        config_.max_imu_gap =
+            declare_parameter("max_imu_gap", config_.max_imu_gap);
+        config_.initialization_duration = declare_parameter(
+            "initialization_duration", config_.initialization_duration);
+        config_.stationary_accel_std = declare_parameter(
+            "stationary_accel_std", config_.stationary_accel_std);
+        config_.stationary_gyro_std = declare_parameter(
+            "stationary_gyro_std", config_.stationary_gyro_std);
+        config_.stationary_gyro_norm = declare_parameter(
+            "stationary_gyro_norm", config_.stationary_gyro_norm);
+        config_.stationary_gravity_tolerance =
+            declare_parameter("stationary_gravity_tolerance",
+                              config_.stationary_gravity_tolerance);
+        config_.dvl_gate_squared =
+            declare_parameter("dvl_gate_squared", config_.dvl_gate_squared);
+        const int capacity =
+            declare_parameter<int>("max_buffer_samples", 20000);
+        if (capacity < 10) {
+            throw std::invalid_argument(
+                "max_buffer_samples must be at least 10");
+        }
+        config_.max_buffer_samples = static_cast<std::size_t>(capacity);
+        // Validate numerical parameters immediately, before waiting for TF.
+        Estimator validate(config_);
+    }
+
+    static gtsam::Pose3 pose_from_transform(
+        const geometry_msgs::msg::Transform& transform) {
+        const auto& q = transform.rotation;
+        Eigen::Quaterniond rotation(q.w, q.x, q.y, q.z);
+        const auto& t = transform.translation;
+        if (!rotation.coeffs().allFinite() ||
+            std::abs(rotation.norm() - 1.0) > 1e-3 ||
+            !gtsam::Vector3(t.x, t.y, t.z).allFinite()) {
+            throw std::invalid_argument("Invalid fixed sensor transform");
+        }
+        return gtsam::Pose3(gtsam::Rot3(rotation.normalized()),
+                            gtsam::Point3(t.x, t.y, t.z));
+    }
+
+    void load_transforms() {
+        if (estimator_) {
+            return;
+        }
+        try {
+            body_p_imu_ = pose_from_transform(
+                tf_buffer_
+                    ->lookupTransform(body_frame_, imu_frame_,
+                                      tf2::TimePointZero)
+                    .transform);
+            config_.imu_p_dvl = pose_from_transform(
+                tf_buffer_
+                    ->lookupTransform(imu_frame_, dvl_frame_,
+                                      tf2::TimePointZero)
+                    .transform);
+            estimator_ = std::make_unique<Estimator>(config_);
+            tf_timer_->cancel();
+            RCLCPP_INFO(get_logger(),
+                        "Fixed sensor transforms loaded; collecting stationary "
+                        "IMU samples");
