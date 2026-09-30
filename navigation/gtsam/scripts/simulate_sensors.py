@@ -178,3 +178,74 @@ class SensorSimulator(Node):
             imu.angular_velocity_covariance[diagonal] = (
                 self.model.gyro_density**2 * self.rate
             )
+        self.imu_pub.publish(imu)
+        if time + 1e-9 >= self.next_dvl:
+            self.next_dvl += 1.0 / self.dvl_rate
+            has_lock = bottom_lock_available(state[3], self.dvl_max_tilt_deg)
+            has_lock = has_lock and not self.dropout_start <= time < self.dropout_end
+            self.lock_pub.publish(Bool(data=has_lock))
+            if has_lock:
+                msg = TwistWithCovarianceStamped()
+                msg.header.stamp = stamp
+                msg.header.frame_id = self.prefix + "dvl_link"
+                (
+                    msg.twist.twist.linear.x,
+                    msg.twist.twist.linear.y,
+                    msg.twist.twist.linear.z,
+                ) = map(float, self.model.dvl(dvl))
+                for diagonal in (0, 7, 14):
+                    msg.twist.covariance[diagonal] = 0.005**2
+                self.dvl_pub.publish(msg)
+        truth = Odometry()
+        truth.header.stamp = stamp
+        truth.header.frame_id = self.prefix + "odom"
+        truth.child_frame_id = self.prefix + "imu_link"
+        p, v, _, rotation, w, _ = state
+        p = p + rotation @ IMU_OFFSET - IMU_OFFSET
+        v = v + rotation @ np.cross(w, IMU_OFFSET)
+        (
+            truth.pose.pose.position.x,
+            truth.pose.pose.position.y,
+            truth.pose.pose.position.z,
+        ) = map(float, p)
+        (
+            truth.pose.pose.orientation.x,
+            truth.pose.pose.orientation.y,
+            truth.pose.pose.orientation.z,
+            truth.pose.pose.orientation.w,
+        ) = map(float, quaternion_from_rotation(rotation))
+        (
+            truth.twist.twist.linear.x,
+            truth.twist.twist.linear.y,
+            truth.twist.twist.linear.z,
+        ) = map(float, rotation.T @ v)
+        (
+            truth.twist.twist.angular.x,
+            truth.twist.twist.angular.y,
+            truth.twist.twist.angular.z,
+        ) = map(float, w)
+        self.truth_pub.publish(truth)
+        self.index += 1
+
+
+def main():
+    """Run for the configured duration and print the final comparison metrics."""
+    rclpy.init()
+    node = SensorSimulator()
+    executor = SingleThreadedExecutor()
+    executor.add_node(node)
+    try:
+        while rclpy.ok() and not node.finished:
+            executor.spin_once(timeout_sec=0.1)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
+    finally:
+        # ros2 launch may forward a second SIGINT while entities are destroyed.
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        executor.shutdown()
+        node.destroy_node()
+        rclpy.try_shutdown()
+
+
+if __name__ == "__main__":
+    main()
