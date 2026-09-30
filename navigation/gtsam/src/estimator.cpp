@@ -88,3 +88,93 @@ bool Estimator::add_imu(const ImuSample& sample) {
         ++status_.rejected_imu;
         return false;
     }
+    if (imu_buffer_.size() >= config_.max_buffer_samples) {
+        fail("IMU buffer overflow; restart required");
+        return false;
+    }
+    imu_buffer_.emplace(sample.time, sample);
+    newest_imu_time_ = std::max(newest_imu_time_, sample.time);
+    try {
+        process();
+    } catch (const std::exception& error) {
+        fail(std::string("estimation failed; restart required: ") +
+             error.what());
+    }
+    status_.buffered_samples = imu_buffer_.size() + dvl_buffer_.size();
+    return !status_.fault;
+}
+
+bool Estimator::add_dvl(const DvlSample& sample) {
+    if (status_.fault) {
+        return false;
+    }
+    if (!std::isfinite(sample.time) || sample.time < 0 ||
+        !sample.velocity.allFinite() ||
+        !positive_covariance(sample.covariance) ||
+        (previous_imu_ && sample.time <= previous_imu_->time) ||
+        dvl_buffer_.count(sample.time) ||
+        dvl_buffer_.size() >= config_.max_buffer_samples) {
+        ++status_.rejected_dvl;
+        return false;
+    }
+    dvl_buffer_.emplace(sample.time, sample);
+    status_.buffered_samples = imu_buffer_.size() + dvl_buffer_.size();
+    return true;
+}
+
+void Estimator::initialize(const ImuSample& sample) {
+    alignment_.push_back(sample);
+    // Retain the sample straddling the left boundary, including irregular
+    // rates.
+    while (alignment_.size() > 2 && sample.time - alignment_[1].time >=
+                                        config_.initialization_duration) {
+        alignment_.pop_front();
+    }
+    if (alignment_.size() > config_.max_buffer_samples) {
+        fail("alignment buffer overflow; restart required");
+        return;
+    }
+    if (alignment_.size() < 3 || sample.time - alignment_.front().time <
+                                     config_.initialization_duration) {
+        return;
+    }
+    gtsam::Vector3 mean_acc = gtsam::Vector3::Zero();
+    gtsam::Vector3 mean_gyro = gtsam::Vector3::Zero();
+    for (const auto& item : alignment_) {
+        mean_acc += item.acceleration;
+        mean_gyro += item.angular_velocity;
+    }
+    const double count = static_cast<double>(alignment_.size());
+    mean_acc /= count;
+    mean_gyro /= count;
+    gtsam::Vector3 var_acc = gtsam::Vector3::Zero();
+    gtsam::Vector3 var_gyro = gtsam::Vector3::Zero();
+    for (const auto& item : alignment_) {
+        var_acc += (item.acceleration - mean_acc).array().square().matrix();
+        var_gyro +=
+            (item.angular_velocity - mean_gyro).array().square().matrix();
+    }
+    if ((var_acc / count).maxCoeff() >
+            std::pow(config_.stationary_accel_std, 2) ||
+        (var_gyro / count).maxCoeff() >
+            std::pow(config_.stationary_gyro_std, 2) ||
+        mean_gyro.norm() > config_.stationary_gyro_norm ||
+        std::abs(mean_acc.norm() - config_.gravity) >
+            config_.stationary_gravity_tolerance) {
+        alignment_.clear();
+        status_.detail = "motion detected; restarting stationary alignment";
+        return;
+    }
+    const double roll = std::atan2(-mean_acc.y(), -mean_acc.z());
+    const double pitch =
+        std::atan2(mean_acc.x(), std::hypot(mean_acc.y(), mean_acc.z()));
+    anchor_.pose = gtsam::Pose3(gtsam::Rot3::RzRyRx(roll, pitch, 0.0),
+                                gtsam::Point3::Zero());
+    anchor_.time = sample.time;
+    anchor_.bias =
+        gtsam::imuBias::ConstantBias(gtsam::Vector3::Zero(), mean_gyro);
+    gtsam::Vector6 pose_sigmas;
+    pose_sigmas << 0.02, 0.02, 0.001, 0.001, 0.001, 0.001;
+    gtsam::Vector6 bias_sigmas;
+    bias_sigmas << 0.01, 0.01, 0.01, 1e-4, 1e-4, 1e-4;
+    gtsam::NonlinearFactorGraph graph;
