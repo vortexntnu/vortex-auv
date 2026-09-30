@@ -512,6 +512,8 @@ parse_per_class_track_config(
             get_or<double>(n, "prob_of_detection", c.prob_of_detection);
         c.clutter_intensity =
             get_or<double>(n, "clutter_intensity", c.clutter_intensity);
+        c.new_track_min_distance = get_or<double>(n, "new_track_min_distance_m",
+                                                  c.new_track_min_distance);
     };
 
     for (int pass = 0; pass < 2; ++pass) {

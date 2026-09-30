@@ -49,6 +49,32 @@ TEST_F(PoseTrackManagerTests, creates_tracks_from_measurements) {
     }
 }
 
+TEST_F(PoseTrackManagerTests, no_new_track_close_to_a_track_of_its_class) {
+    auto cfg = make_default_config();
+    cfg.default_class_config.max_pos_error = 0.2;
+    cfg.default_class_config.new_track_min_distance = 0.7;
+    PoseTrackManager mgr(cfg);
+
+    std::vector<Landmark> first{make_landmark({0.0, 0.0, 0.0})};
+    mgr.step(first, 0.1);
+    ASSERT_EQ(mgr.get_tracks().size(), 1);
+
+    // Outside the gate of the track, but within 0.7 m of it: no second track.
+    // Farther away: a new object.
+    std::vector<Landmark> second{make_landmark({0.5, 0.0, 0.0}),
+                                 make_landmark({1.5, 0.0, 0.0})};
+    mgr.step(second, 0.1);
+    const auto& tracks = mgr.get_tracks();
+    ASSERT_EQ(tracks.size(), 2);
+    const auto at = [&](double x) {
+        return std::ranges::count_if(tracks, [&](const Track& t) {
+            return std::abs(t.nominal_state.pos.x() - x) < 1e-9;
+        });
+    };
+    EXPECT_EQ(at(0.0), 1);
+    EXPECT_EQ(at(1.5), 1);
+}
+
 TEST_F(PoseTrackManagerTests, track_confirms_after_n_hits) {
     auto cfg = make_default_config();
     cfg.default_class_config.nm.confirm_n = 3;

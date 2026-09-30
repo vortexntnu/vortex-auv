@@ -357,6 +357,17 @@ void PoseTrackManager::create_tracks(
     };
 
     for (const Landmark& m : measurements) {
+        // A measurement that went to no track, close to a track of its class:
+        // a noisy look at that object, not a new one.
+        const double min_distance = cfg_for(m).new_track_min_distance;
+        if (min_distance > 0.0 &&
+            std::ranges::any_of(tracks_, [&](const Track& t) {
+                return t.class_key == m.class_key &&
+                       (t.nominal_state.pos - m.pose.pos_vector()).norm() <
+                           min_distance;
+            })) {
+            continue;
+        }
         tracks_.push_back(make_track(m));
         associations_.push_back({tracks_.back().id, m});
     }
