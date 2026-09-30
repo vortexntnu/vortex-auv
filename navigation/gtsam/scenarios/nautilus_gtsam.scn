@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='utf-8'?>
+<scenario>
+  <environment>
+    <ned latitude="63.446827" longitude="10.421906" />
+    <ocean>
+      <water density="1031.0" jerlov="0.20" />
+      <waves height="0.0" />
+    </ocean>
+    <atmosphere>
+      <sun azimuth="-88.0" elevation="20.0" />
+    </atmosphere>
+  </environment>
+  <include file="$(find stonefish_sim)/metadata/materials.scn" />
+  <include file="$(find stonefish_sim)/metadata/looks.scn" />
+  <static name="pool_floor" type="box">
+    <dimensions xyz="40.0 40.0 1.0" />
+    <material name="Neutral" />
+    <look name="Grey" />
+    <world_transform xyz="0.0 0.0 10.5" rpy="0.0 0.0 0.0" />
+  </static>
+  <robot name="nautilus" fixed="false" self_collisions="false">
+    <base_link name="Base" type="model" physics="submerged">
+      <physical>
+        <mesh filename="nautilus/nautilus_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+      </physical>
+      <visual>
+        <mesh filename="nautilus/nautilus_visual.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+      </visual>
+      <material name="Neutral" />
+      <look name="Grey" />
+      <mass value="53.7" />
+      <inertia xyz="11.06 23.11 26.24" />
+      <hydrodynamics viscous_drag="0.01 0.10 0.10" quadratic_drag="0.04 0.10 0.10" />
+      <cg xyz="0.0 0.0 0.01" rpy="0.0 0.0 0.0" />
+    </base_link>
+    <link name="shoulder" type="model" physics="surface" buoyancy="false">
+      <physical>
+        <mesh filename="nautilus/gripper_shoulder_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+        <inertia xyz="0.0 0.0 0.0" />
+        <cg xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <hydrodynamics viscous_drag="0.0 0.0 0.0" quadratic_drag="0.0 0.0 0.0" />
+      </physical>
+      <visual>
+        <mesh filename="nautilus/gripper_shoulder_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+      </visual>
+      <material name="Neutral" />
+      <look name="Grey" />
+      <mass value="0.000001" />
+    </link>
+    <joint name="shoulder_joint" type="fixed">
+      <parent name="Base" />
+      <child name="shoulder" />
+      <origin rpy="0.0 0.0 0.0" xyz="0.282589 0.028 0.115803" />
+    </joint>
+    <link name="arm" type="model" physics="surface" buoyancy="false">
+      <physical>
+        <mesh filename="nautilus/gripper_arm_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+        <inertia xyz="0.0 0.0 0.0" />
+        <cg xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <hydrodynamics viscous_drag="0.0 0.0 0.0" quadratic_drag="0.0 0.0 0.0" />
+      </physical>
+      <visual>
+        <mesh filename="nautilus/gripper_arm_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+      </visual>
+      <material name="Neutral" />
+      <look name="Grey" />
+      <mass value="0.000001" />
+    </link>
+    <joint name="arm_joint" type="revolute">
+      <parent name="shoulder" />
+      <child name="arm" />
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+      <axis xyz="1.0 0.0 0.0" />
+    </joint>
+    <actuator name="arm_servo" type="servo">
+      <controller position_gain="1.2" velocity_gain="1.0" max_torque="10.0" />
+      <joint name="arm_joint" />
+    </actuator>
+    <link name="finger1" type="model" physics="surface" buoyancy="false">
+      <physical>
+        <mesh filename="nautilus/gripper_finger_left_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+        <inertia xyz="0.0 0.0 0.0" />
+        <cg xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
