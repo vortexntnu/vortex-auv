@@ -40,8 +40,9 @@
         sens_mod_std_dev: 0.2
         gate:
           # At least 3-4 x the depth std at the longest working range (test C),
-          # probably 1.0-1.5 m for a camera.
-          max_pos_error: 0.5
+          # probably 1.0-1.5 m for a camera. 0.5 split pipes into many tracks
+          # in the simulator.
+          max_pos_error: 1.5
 
     intake:
       # MEASURE (test C, plus the range bias from test D): variance along the

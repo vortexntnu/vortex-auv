@@ -17,7 +17,9 @@
 
         gate:
           min_pos_error: 0.0 # in meters
-          max_pos_error: 0.5 # in meters
+          # A camera's depth error at 6-7 m reaches 0.6 m: a tighter limit
+          # splits one object into several tracks (many duplicates).
+          max_pos_error: 1.5 # in meters
           min_ori_error: 0.0 # in radians
           max_ori_error: 0.5 # in radians
 
@@ -29,8 +31,26 @@
 
         # sqrt(d^2) limit; 3.37 = 99 % of true detections in 3D (position only)
         mahalanobis_gate_threshold: 3.4
-        prob_of_detection: 0.5
-        clutter_intensity: 0.01
+        # No PDAF weighting: association is global nearest neighbour, so each
+        # track gets at most one measurement, and with these two values the
+        # PDAF update is exactly the Kalman update with it (the no-detection
+        # weight clutter * (1 - p_detection) is 0). PDAF gave the same maps
+        # in the simulator.
+        prob_of_detection: 1.0
+        clutter_intensity: 0.0
+
+      # Pipes stand at least 1.5 m apart. A detection within 0.5 m of a pipe
+      # track is that pipe, whatever the covariance says; one that goes to no
+      # track does not start a new pipe within 0.7 m of an existing one (a
+      # noisy look at it). Without these a pipe was split into a second track
+      # about 12 times a minute in the simulator. 5 hits in 7 ticks to
+      # confirm: with the wide gate, clutter next to a pipe could take the
+      # pipe's detections and get confirmed with 3 in 5 (short-lived false
+      # pipes with the erratic dummy profile).
+      SLALOM_PIPE:
+        nm: {confirm_n: 5, confirm_m: 7}
+        gate: {min_pos_error: 0.5}
+        new_track_min_distance_m: 0.7
 
     topics:
       object_map: "landmark_server/object_map"
