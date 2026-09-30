@@ -88,3 +88,93 @@ class SensorSimulator(Node):
             transform = TransformStamped()
             transform.header.frame_id = self.prefix + "base_link"
             transform.child_frame_id = self.prefix + child
+            transform.transform.translation.x = float(offset[0])
+            transform.transform.translation.y = float(offset[1])
+            transform.transform.translation.z = float(offset[2])
+            transform.transform.rotation.z = math.sin(yaw / 2)
+            transform.transform.rotation.w = math.cos(yaw / 2)
+            transforms.append(transform)
+        self.tf.sendTransform(transforms)
+        self.create_subscription(
+            Odometry, "gtsam/odom", self.on_estimate, qos_profile_sensor_data
+        )
+        self.errors = []
+        self.index = 0
+        self.finished = False
+        self.next_dvl = 0.0
+        self.timer = self.create_timer(1.0 / self.rate, self.tick)
+
+    def on_estimate(self, msg):
+        """Compare at the estimate's timestamp; truth never feeds the estimator."""
+        time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9 - 10.0
+        p, v, _, rotation, omega, _ = trajectory(time, self.kind)
+        p = p + rotation @ IMU_OFFSET - IMU_OFFSET
+        v = v + rotation @ np.cross(omega, IMU_OFFSET)
+        measured_p = np.array(
+            [
+                msg.pose.pose.position.x,
+                msg.pose.pose.position.y,
+                msg.pose.pose.position.z,
+            ]
+        )
+        measured_v = np.array(
+            [
+                msg.twist.twist.linear.x,
+                msg.twist.twist.linear.y,
+                msg.twist.twist.linear.z,
+            ]
+        )
+        q = msg.pose.pose.orientation
+        measured_q = np.array([q.x, q.y, q.z, q.w])
+        measured_q /= np.linalg.norm(measured_q)
+        dot = abs(float(measured_q @ quaternion_from_rotation(rotation)))
+        orientation_error = 2 * math.acos(min(1.0, dot))
+        self.errors.append(
+            [
+                float(np.linalg.norm(measured_p - p)),
+                float(np.linalg.norm(measured_v - rotation.T @ v)),
+                orientation_error,
+            ]
+        )
+
+    def tick(self):
+        """Generate one fixed-time sensor sample."""
+        time = self.index / self.rate
+        if time > self.duration:
+            self.timer.cancel()
+            self.finished = True
+            if self.errors:
+                rmse = np.sqrt(np.mean(np.square(self.errors), axis=0))
+                self.get_logger().info(
+                    f"RMSE: position={rmse[0]:.6f} m, IMU velocity={rmse[1]:.6f} m/s, "
+                    f"orientation={math.degrees(rmse[2]):.6f} deg; {len(self.errors)} estimates"
+                )
+            else:
+                self.get_logger().error("Simulation finished without estimator output")
+            return
+        stamp = rclpy.time.Time(nanoseconds=round((10.0 + time) * 1e9)).to_msg()
+        clock = Clock()
+        clock.clock = stamp
+        self.clock_pub.publish(clock)
+        state = trajectory(time, self.kind)
+        acceleration, omega, dvl = ideal_measurements(state)
+        acceleration, omega = self.model.imu(acceleration, omega, 1.0 / self.rate)
+        imu = Imu()
+        imu.header.stamp = stamp
+        imu.header.frame_id = self.prefix + "imu_link"
+        imu.orientation_covariance[0] = -1.0
+        (
+            imu.linear_acceleration.x,
+            imu.linear_acceleration.y,
+            imu.linear_acceleration.z,
+        ) = map(float, acceleration)
+        imu.angular_velocity.x, imu.angular_velocity.y, imu.angular_velocity.z = map(
+            float, omega
+        )
+        for diagonal in (0, 4, 8):
+            imu.linear_acceleration_covariance[diagonal] = (
+                self.model.accel_density**2 * self.rate
+            )
+            imu.angular_velocity_covariance[diagonal] = (
+                self.model.gyro_density**2 * self.rate
+            )
