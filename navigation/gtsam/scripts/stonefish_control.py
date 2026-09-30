@@ -178,3 +178,24 @@ class Control(Node):
         allowed = self.synchronized and command_allowed(
             self.mode, self.killed, now - receipt, age, now - self.joy_received
         )
+        out = copy.deepcopy(command) if allowed else WrenchStamped()
+        out.header.stamp = self.get_clock().now().to_msg()
+        out.header.frame_id = 'nautilus/base_link'
+        self.wrench.publish(out)
+
+
+def main():
+    rclpy.init()
+    node = Control()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
