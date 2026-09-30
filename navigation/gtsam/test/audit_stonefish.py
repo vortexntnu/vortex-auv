@@ -178,3 +178,93 @@ def main():
                     truth_body
                     - np.array([last_reference.x, last_reference.y, last_reference.z])
                 )
+            )
+            report['reference_received'] = len(records.get('ref', [])) > 100
+            report['pose_publishers'] = [
+                x.node_name for x in node.get_publishers_info_by_topic('/nautilus/pose')
+            ]
+            report['dp_subscriptions'] = node.get_subscriber_names_and_types_by_node(
+                'dp_adapt_backs_controller_node', '/nautilus'
+            )
+            report['gtsam_subscriptions'] = node.get_subscriber_names_and_types_by_node(
+                'gtsam_navigation', '/nautilus'
+            )
+
+            def norm_wrench(m):
+                return float(
+                    np.linalg.norm(
+                        [
+                            m.wrench.force.x,
+                            m.wrench.force.y,
+                            m.wrench.force.z,
+                            m.wrench.torque.x,
+                            m.wrench.torque.y,
+                            m.wrench.torque.z,
+                        ]
+                    )
+                )
+
+            report['dp_active_wrench_max'] = max(
+                norm_wrench(m) for t, m in records['wrench'] if t > hold_start
+            )
+            button(1)
+            advance(0.3)
+            report['killswitch_zero'] = norm_wrench(latest['wrench']) == 0.0
+            button(1)
+            advance(0.5)
+            advance(0.8, heartbeat=False)
+            report['joystick_timeout_zero'] = norm_wrench(latest['wrench']) == 0.0
+            for name in ('imu', 'dvl', 'native_dvl', 'odom', 'truth', 'pose'):
+                samples = records.get(name, [])
+                report[name + '_received_hz'] = (
+                    (len(samples) - 1) / (samples[-1][0] - samples[0][0])
+                    if len(samples) > 1
+                    else 0.0
+                )
+
+            def p(m):
+                v = m.pose.pose.position
+                return np.array([v.x, v.y, v.z])
+
+            truth = {
+                (m.header.stamp.sec, m.header.stamp.nanosec): m
+                for _, m in records['truth']
+            }
+            errors = [
+                np.linalg.norm(
+                    p(m) - p(truth[(m.header.stamp.sec, m.header.stamp.nanosec)])
+                )
+                for _, m in records['odom']
+                if (m.header.stamp.sec, m.header.stamp.nanosec) in truth
+            ]
+            report['matched_estimates'] = len(errors)
+            report['position_rmse_m'] = float(np.sqrt(np.mean(np.square(errors))))
+            report['max_position_error_m'] = float(max(errors))
+            report['last_reference'] = str(latest.get('ref'))
+            report['last_pose'] = str(latest.get('pose'))
+            report['last_status'] = str(latest.get('status'))
+            report['max_thruster_force_n'] = float(
+                max(abs(f) for _, m in records['thrusters'] for f in m.thrust)
+            )
+            # Stop only our launch's sensor adapter. DP keeps producing commands
+            # but the guard must stop forwarding once estimate timestamps age.
+            advance(0.6)
+            for proc in Path('/proc').iterdir():
+                if not proc.name.isdigit():
+                    continue
+                try:
+                    pid = int(proc.name)
+                    if (
+                        os.getpgid(pid) == process.pid
+                        and b'/stonefish_sensors.py' in (proc / 'cmdline').read_bytes()
+                    ):
+                        os.kill(pid, signal.SIGSTOP)
+                        stopped.append(pid)
+                except (ProcessLookupError, FileNotFoundError, PermissionError):
+                    continue
+            assert stopped, 'Sensor adapter was not found in the owned process group'
+            advance(0.8)
+            report['stale_estimate_zero'] = norm_wrench(latest['wrench']) == 0.0
+            print(json.dumps(report, indent=2), flush=True)
+            assert report['pose_publishers'] == ['gtsam_control_adapter']
+            assert report['reference_received']
