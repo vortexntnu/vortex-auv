@@ -178,3 +178,93 @@ def test_barrel_roll_keeps_forward_axis_aligned_and_completes_revolutions():
         np.testing.assert_allclose(omega[1:], 0)
     np.testing.assert_allclose(
         MODEL.trajectory(9.5, "barrel_roll")[3], np.diag([1, -1, -1]), atol=1e-14
+    )
+    np.testing.assert_allclose(
+        MODEL.trajectory(12, "barrel_roll")[3], np.eye(3), atol=1e-14
+    )
+    np.testing.assert_allclose(
+        MODEL.trajectory(17, "barrel_roll")[3], np.eye(3), atol=1e-14
+    )
+    for time in (9.0, 11.3, 25.0):
+        state = MODEL.trajectory(time, "barrel_roll")
+        np.testing.assert_allclose(state[4], [2 * np.pi / 5, 0, 0], atol=1e-14)
+        np.testing.assert_allclose(
+            MODEL.trajectory(time + 5, "barrel_roll")[3], state[3], atol=1e-14
+        )
+
+
+def test_bottom_lock_lost_when_tilted_and_restored_upright():
+    for time, expected in (
+        (5, True),
+        (7.0, True),
+        (7.2, False),
+        (9.5, False),
+        (11.5, False),
+        (11.625, True),
+        (12, True),
+        (12.5, False),
+    ):
+        assert (
+            MODEL.bottom_lock_available(MODEL.trajectory(time, "barrel_roll")[3])
+            == expected
+        )
+    assert MODEL.bottom_lock_available(MODEL.trajectory(11.25, "barrel_roll")[3], 65)
+    for limit in (0, 90, -1, float("nan")):
+        with pytest.raises(ValueError, match="tilt"):
+            MODEL.bottom_lock_available(np.eye(3), limit)
+
+
+def test_square_returns_to_start_aligns_rolls_once_and_stops():
+    for time, position, yaw in (
+        (17, [3, 0, 0], 0),
+        (35, [3, 3, 0], np.pi / 2),
+        (53, [0, 3, 0], np.pi),
+        (71, [0, 0, 0], 3 * np.pi / 2),
+        (77, [0, 0, 0], 0),
+        (86, [2.1, 0, 0], 0),
+        (150, [2.1, 0, 0], 0),
+    ):
+        p, v, a, rotation, omega, alpha = MODEL.trajectory(time, "square_barrel_roll")
+        np.testing.assert_allclose(p, position, atol=1e-13)
+        np.testing.assert_allclose(rotation, MODEL.rotation_z(yaw), atol=1e-13)
+        for derivative in (v, a, omega, alpha):
+            np.testing.assert_allclose(derivative, 0, atol=1e-13)
+    # The single roll starts upright at 79 s, passes inverted at 81.5 s,
+    # and ends upright at 84 s while still moving forward at cruising speed.
+    for time, rotation in (
+        (79, np.eye(3)),
+        (81.5, np.diag([1, -1, -1])),
+        (84, np.eye(3)),
+    ):
+        state = MODEL.trajectory(time, "square_barrel_roll")
+        np.testing.assert_allclose(state[1], [0.3, 0, 0], atol=1e-13)
+        np.testing.assert_allclose(state[3], rotation, atol=1e-13)
+    assert not MODEL.bottom_lock_available(
+        MODEL.trajectory(81.5, "square_barrel_roll")[3]
+    )
+
+
+def test_square_boundary_continuity_and_forward_only_translation():
+    boundaries = {0.0, 5.0, 77.0, 79.0, 84.0, 86.0}
+    for leg in range(4):
+        boundaries.update(
+            5 + 18 * leg + offset for offset in (0, 2, 10, 12, 13, 17, 18)
+        )
+    for time in boundaries:
+        before = MODEL.trajectory(time - 1e-6, "square_barrel_roll")
+        after = MODEL.trajectory(time + 1e-6, "square_barrel_roll")
+        for left, right in zip(before, after, strict=True):
+            np.testing.assert_allclose(left, right, atol=4e-6)
+    for time in np.linspace(0, 100, 1001):
+        p, v, _, rotation, omega, _ = MODEL.trajectory(time, "square_barrel_roll")
+        local_velocity = rotation.T @ v
+        np.testing.assert_allclose(local_velocity[1:], 0, atol=1e-13)
+        assert -1e-13 <= local_velocity[0] <= 0.3 + 1e-13
+        assert abs(p[2]) < 1e-13
+        if time < 79:
+            assert MODEL.bottom_lock_available(rotation)
+            if np.linalg.norm(omega) > 1e-10:
+                np.testing.assert_allclose(v, 0, atol=1e-13)
+
+
+def test_square_rates_and_accelerations_match_pose_derivatives():
