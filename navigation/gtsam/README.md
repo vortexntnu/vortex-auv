@@ -268,3 +268,32 @@ are not used as bias random-walk coefficients. No claims are made about calibrat
 of the current physical sensor. Nucleus default single-ping DVL sigma is 0.005 m/s
 from the supplied product datasheet; long-term scale errors are not white noise.
 
+References: [IMU factor note](https://gtsam.org/notes/imu-factor/),
+[GTSAM 4.3.0](https://github.com/borglab/gtsam/releases/tag/4.3.0), and the supplied
+STIM300 datasheet, Nucleus documentation and FFI report. The PDFs are not copied
+into this package.
+
+## Local validation
+
+See [the simulation audit](SIMULATION_AUDIT.md) for truth-isolation experiments,
+numerical integration limits, covariance checks, and the DVL model's abstraction.
+
+Built with ROS 2 Humble, GCC 13 and GTSAM 4.3.0. C++ tests cover numerical DVL
+and output-covariance Jacobians, stationary alignment, invalid/reordered data,
+turning motion, outlier rejection, DVL dropout/recovery, bounded history over
+120 simulated seconds, and marginalization against a batch reference. Python
+tests verify noise scaling and that simulation mounting geometry matches the
+existing Nautilus URDF. The ROS launch test checks IMU-frame messages,
+measurement timestamps, diagnostics, absence of bias topics and process exit.
+
+The seeded 30-second C++ trajectory includes initial bias offsets, bias drift,
+white sensor noise, turning and a two-second DVL dropout:
+
+| Profile | Position RMSE | Velocity RMSE | Final attitude error |
+| --- | --- | --- | --- |
+| 10 g | 0.0171 m | 0.00529 m/s | 0.00139 rad |
+| 30 g | 0.0176 m | 0.00725 m/s | 0.00136 rad |
+
+These are reproducible synthetic regression results, not sensor calibration or
+hardware accuracy guarantees. Absolute heading and bias observability remain
+motion-dependent; the tests do not require every bias to converge to its truth.
