@@ -16,7 +16,6 @@ setup(
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
     ],
     install_requires=['setuptools', 'pyyaml'],
-    tests_require=['pytest'],
     zip_safe=True,
     maintainer='kluge7',
     maintainer_email='andreas.svendsrud@vortexntnu.no',
