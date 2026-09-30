@@ -178,3 +178,40 @@ installed ROS interface. From the workspace, after sourcing `install/setup.bash`
 ```bash
 PYTHONNOUSERSITE=1 python3 src/vortex-auv/navigation/gtsam/test/audit_simulation.py \
   --binary /home/vortex/ros2_ws/build/gtsam_navigation/audit_replay \
+  --output /home/vortex/ros2_ws/src/vortex-auv/navigation/gtsam/.deps/audit --seeds 12
+# Separate timestep sensitivity suite:
+PYTHONNOUSERSITE=1 python3 src/vortex-auv/navigation/gtsam/test/audit_simulation.py \
+  --binary /home/vortex/ros2_ws/build/gtsam_navigation/audit_replay \
+  --output /home/vortex/ros2_ws/src/vortex-auv/navigation/gtsam/.deps/audit --suite integration
+# Current 1000/8 Hz five-second-roll scenario, with and without noise:
+PYTHONNOUSERSITE=1 python3 src/vortex-auv/navigation/gtsam/test/audit_simulation.py \
+  --binary /home/vortex/ros2_ws/build/gtsam_navigation/audit_replay \
+  --output /home/vortex/ros2_ws/src/vortex-auv/navigation/gtsam/.deps/audit --suite scenario
+ROS_DOMAIN_ID=168 ROS_LOCALHOST_ONLY=1 PYTHONNOUSERSITE=1 \
+  python3 src/vortex-auv/navigation/gtsam/test/audit_ros_boundary.py \
+  --output /home/vortex/ros2_ws/src/vortex-auv/navigation/gtsam/.deps/audit
+ROS_DOMAIN_ID=168 ROS_LOCALHOST_ONLY=1 PYTHONNOUSERSITE=1 \
+  python3 src/vortex-auv/navigation/gtsam/test/audit_scenario.py
+node src/vortex-auv/navigation/gtsam/test/audit_metrics.cjs
+```
+
+The offline suite intentionally retains 200/5 Hz as its comparison baseline;
+its generator accepts explicit IMU/DVL rates. It uses the current trajectory,
+so reruns after the roll-period change will differ from historical numbers above.
+The ROS scenario audit uses the installed current defaults. Use a domain unused
+by other ROS processes. Both ROS tools terminate only processes they started.
+
+## Sources inspected
+
+- Local `scripts/sensor_model.py`, `scripts/simulate_sensors.py`, `src/estimator.cpp`,
+  `src/dvl_factor.cpp`, `src/navigation_node.cpp`, launch/configuration, and metrics.
+- Supplied STIM300 TS1524 rev.27, printed pp.6--9: noise, delays, bias and calibration.
+- Supplied `Nucleus_1000.pdf`, technical specifications: noise and ping rate.
+- Supplied `Nucleus-Operation-Integration-Manual.pdf`, sections 4.1, 5.2, 5.6--5.9,
+  and 8.10: XYZ velocity, error sources, acquisition/rates, validity and timing.
+- Supplied FFI report 2014/01970, section 3.2: older STIM300 characterization;
+  insufficient to identify this individual sensor's current stochastic model.
+- [GTSAM IMU factor note](https://gtsam.org/notes/imu-factor/): default tangent
+  preintegration is manifold-aware; it does not promise zero discretization error.
+- [NIST chi-square distribution](https://www.itl.nist.gov/div898/handbook/eda/section3/eda3666.htm):
+  distribution and expected value underlying the stated ideal NEEDS comparison.
