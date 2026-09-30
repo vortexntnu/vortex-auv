@@ -88,3 +88,93 @@ def evaluate(output, truths):
                     np.sum((output[moving, 8:11] - truth[moving, 8:11]) ** 2, axis=1)
                 )
             )
+        ),
+        "orientation_final_deg": float(np.degrees(angle[-1])),
+        "position_nees_final": float(needs[-1]),
+        "position_nees_time_mean": float(needs[moving].mean()),
+        "position_nees_fraction_in_single_sample_95_interval": float(
+            np.mean((needs[moving] >= 0.2158) & (needs[moving] <= 9.3484))
+        ),
+        "last_accepted_dvl_time": float(output[-1, 20]),
+        "rejected_dvl_including_startup": int(output[-1, 21]),
+    }
+    return metrics, np.column_stack((output[:, 0], errors, needs, output[:, 20]))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--binary", type=pathlib.Path, required=True)
+    parser.add_argument("--output", type=pathlib.Path, required=True)
+    parser.add_argument("--seeds", type=int, default=12)
+    parser.add_argument(
+        "--suite", choices=("all", "integration", "scenario"), default="all"
+    )
+    args = parser.parse_args()
+    args.output.mkdir(parents=True, exist_ok=True)
+    summary_path = args.output / "summary.json"
+    report = json.loads(summary_path.read_text()) if summary_path.exists() else {}
+
+    def case(name, rows, truth):
+        result, digest = replay(args.binary, rows)
+        metrics, series = evaluate(result, truth)
+        metrics["measurement_sha256"] = digest
+        report[name] = metrics
+        np.savetxt(
+            args.output / f"{name}.csv",
+            series,
+            delimiter=",",
+            header="simulation_time,position_error_m,position_nees,last_accepted_dvl_time",
+        )
+        print(name, json.dumps(metrics), flush=True)
+        return result
+
+    if args.suite == "scenario":
+        for noise in (False, True):
+            rows, truth, _ = measurements(
+                "barrel_roll", 75, 42, noise=noise, rate=1000, dvl_rate=8
+            )
+            name = "barrel_5s_1000imu_8dvl_" + ("noisy" if noise else "noiseless")
+            case(name, rows, truth)
+        summary_path.write_text(json.dumps(report, indent=2) + "\n")
+        return
+
+    if args.suite == "integration":
+        for kind in ("rotate", "barrel_roll"):
+            for rate in (200, 400, 800):
+                rows, truth, _ = measurements(kind, 75, 42, noise=False, rate=rate)
+                case(f"{kind}_noiseless_{rate}hz", rows, truth)
+        summary_path.write_text(json.dumps(report, indent=2) + "\n")
+        return
+
+    rows, truth, _ = measurements("barrel_roll", 170, 42)
+    baseline = case("barrel_roll_170s_seed42", rows, truth)
+    repeat, _ = replay(args.binary, rows)
+    assert np.array_equal(baseline, repeat), (
+        "Identical sensor replay changed the estimate"
+    )
+    poisoned_truth = truth.copy()
+    poisoned_truth[:, 1:4] += [100, -50, 25]
+    poisoned_metrics, _ = evaluate(repeat, poisoned_truth)
+    report["truth_poisoning_offline"] = {
+        "estimate_bit_identical": True,
+        "position_rmse_with_shifted_reference_m": poisoned_metrics[
+            "position_rmse_after_5s_m"
+        ],
+        "note": "Truth only reaches the separate Python evaluator; ROS boundary tested separately.",
+    }
+    dropped = rows.copy()
+    dropped[:, 7] = 0
+    case("barrel_roll_no_dvl", dropped, truth)
+    altered = rows.copy()
+    altered[altered[:, 0] >= 5, 1] += 0.02
+    changed = case("barrel_roll_accel_x_offset_002", altered, truth)
+    assert not np.array_equal(baseline, changed)
+    for kind in ("stationary", "straight", "turn", "rotate", "barrel_roll"):
+        clean, reference, _ = measurements(kind, 75, 42, noise=False)
+        case(f"{kind}_noiseless", clean, reference)
+    rows, truth, _ = measurements("straight", 75, 42)
+    case("straight_nominal", rows, truth)
+    scale_error = rows.copy()
+    scale_error[:, 8:11] *= 1.01
+    case("straight_dvl_scale_plus_1pct", scale_error, truth)
+    rows, truth, _ = measurements("barrel_roll", 75, 42, stress=3)
