@@ -88,3 +88,93 @@ results for the new scenario. Local raw evidence is in `.deps/audit/` (ignored).
    samples. Largest cross-channel correlation was 0.0131. Finite differences of
    sensor positions independently verify rotational velocity and tangential/
    centripetal acceleration. Quaternion/rotation consistency also passes.
+8. **Checked-in Foxglove metric arithmetic passed runtime checks.** Float64Array
+   covariance, full position cross-covariance, exact timestamp pairing, both
+   arrival orders, duplicate rejection, frame mismatch, invalid covariance, and
+   clock-reset handling were exercised. An independent analytic example gives
+   NEEDS=5 for error [1,2,3] and covariance [[2,1,0],[1,2,0],[0,0,3]]. This does not
+   inspect the user's saved Foxglove layout or compile its TypeScript types.
+
+The package build and all 29 existing tests passed after the scenario change.
+An isolated 18-second ROS run measured median message-timestamp rates of
+1000 / 8 / 125 Hz for IMU / available DVL / odometry. Observed wall rates over
+t=3--7 s were approximately 998 / 8 / 125 Hz. Full turns at t=12 and t=17 s,
+lock loss, recovery, and continued odometry were checked. Measured rates are
+machine-load dependent, not hard real-time guarantees.
+
+A separate 75-second sensor-only replay of the new 1000/8 Hz, five-second-roll
+scenario gave these results (position RMSE evaluated after t=5 s):
+
+| Sensor noise | Position RMSE | Final position error | Final position NEEDS |
+| --- | --- | --- | --- |
+| Disabled, zero biases | 0.1283 m | 0.2096 m | 7.45 |
+| Enabled, seed 42 | 0.1769 m | 0.2838 m | 14.48 |
+
+Thus the higher rate reduces numerical error but does not remove it; the new
+scenario's covariance cannot yet be called validated either. These are single
+runs, not an ensemble consistency test. The graph was not returned to force NEEDS
+inside a desired interval.
+
+## Meaning and limitations of the DVL model
+
+This is a **Cartesian measurement-level model**, representing the output of a
+bottom-track velocity solution, not the internal acoustics or the Nucleus INS.
+It computes velocity at the DVL origin, rotates it into instrument XYZ axes,
+and adds independent Gaussian noise with standard deviation 0.005 m/s per axis.
+The estimator uses the fixed IMU-to-DVL transform and measured gyro minus its
+estimated bias to account for rotational lever-arm velocity.
+
+The supplied product sheet specifies 0.5 cm/s single-ping standard deviation.
+Using that value independently and isotropically on XYZ is an approximation;
+the specification does not establish a constant full Cartesian covariance.
+The manual's BottomTrackData includes per-axis uncertainty/FOM, validity bits,
+and timing offsets. A hardware adapter must use valid fresh bottom-track XYZ,
+appropriate timestamps, and a defensible covariance, rejecting invalid fields.
+It must not substitute Nucleus INS velocity or repeatedly count a held ping as
+new independent data.
+
+The manual specifies 1--8 Hz internal acoustic triggering, with maximum rate
+limited by configured range; 8 Hz applies at range <=9 m in its table. Interleaved
+altimeter/current-profile operations can reduce bottom-track update rate.
+The chosen 8 Hz simulation is an explicit simplification for the pool scenario.
+Pool depth alone does not determine DVL-to-bottom range.
+
+Not modeled: sequential three-beam acquisition, beam intersections, pool depth/
+altitude, seabed slope, range-dependent rate/uncertainty, correlation between
+axes, acoustic multipath/noise, sound-speed/scale errors, mounting uncertainty,
+invalid sentinels, acquisition delay, or hysteresis. The 30-degree tilt lock
+threshold is an assumed test rule, not a Nortek limit. It switches immediately;
+no velocity is published while false. The lock Bool has no timestamp and remains
+latched after the simulator stops, so it alone is not a freshness indicator.
+
+## Other interpretation limits
+
+- STIM300 noise magnitudes come from the supplied datasheet, but sensor bandwidth,
+  group delay, temperature, quantization, scale errors, misalignment, saturation,
+  vibration, and Earth rotation are omitted. Random-walk bias parameters and
+  initial biases are assumptions, not a fit to the FFI rate-table data.
+- Truth and estimator assume identical mounts, gravity, and synchronized clocks.
+  These are disclosed perfect-calibration assumptions, not hidden truth updates.
+- The trajectory is kinematically consistent. No thruster, hydrodynamic, buoyancy,
+  controller, or pool-boundary dynamics establish that Nautilus can execute it.
+- Position covariance is in world axes and matches the metric's position error.
+  The graph and propagated covariance remain first-order approximations, including
+  simplified within-interval bias noise and reused gyro measurement correlations.
+- DVL NIS is computed before adding its factor. It is currently an internal gate,
+  not a published metric; post-fit factor residual is not a replacement for NIS.
+- RMSE summarizes received, timestamp-matched outputs. Invalid covariance causes
+  the Foxglove script to omit that sample, including its RMSE contribution. Missing
+  outputs therefore need separate monitoring; RMSE alone is not an availability
+  test. Plotting header time avoids confusing arrival delay with physical error.
+- Position and heading drift remain unbounded without absolute aiding. An
+  individual correction can increase true error, and low NEEDS is not proof of
+  good accuracy (the no-DVL ablation has large error and very large uncertainty).
+
+## Repeating the audit
+
+Build with `BUILD_TESTING=ON`. `audit_replay` is a local test executable, not an
+installed ROS interface. From the workspace, after sourcing `install/setup.bash`:
+
+```bash
+PYTHONNOUSERSITE=1 python3 src/vortex-auv/navigation/gtsam/test/audit_simulation.py \
+  --binary /home/vortex/ros2_ws/build/gtsam_navigation/audit_replay \
