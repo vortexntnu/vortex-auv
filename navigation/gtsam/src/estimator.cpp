@@ -358,3 +358,76 @@ void Estimator::keyframe(const std::optional<DvlSample>& dvl,
         } else {
             ++status_.rejected_dvl;
         }
+    }
+    gtsam::Values values;
+    values.insert(X(index_), predicted.pose);
+    values.insert(V(index_), predicted.velocity);
+    values.insert(B(index_), predicted.bias);
+    smoother_.update(graph, values,
+                     {{X(index_), predicted.time},
+                      {V(index_), predicted.time},
+                      {B(index_), predicted.time}});
+    anchor_ = predicted;
+    anchor_.pose = smoother_.calculateEstimate<gtsam::Pose3>(X(index_));
+    anchor_.velocity = smoother_.calculateEstimate<gtsam::Vector3>(V(index_));
+    anchor_.bias =
+        smoother_.calculateEstimate<gtsam::imuBias::ConstantBias>(B(index_));
+    const auto joint = smoother_.getISAM2().jointMarginalCovariance(
+        {X(index_), V(index_), B(index_)});
+    const std::array<gtsam::Key, 3> keys{X(index_), V(index_), B(index_)};
+    const std::array<int, 3> offsets{0, 6, 9}, sizes{6, 3, 6};
+    for (int row = 0; row < 3; ++row) {
+        for (int col = 0; col < 3; ++col) {
+            anchor_.covariance.block(offsets[row], offsets[col], sizes[row],
+                                     sizes[col]) =
+                joint.at(keys[row], keys[col]);
+        }
+    }
+    if (!anchor_.covariance.allFinite() || !anchor_.pose.matrix().allFinite() ||
+        !anchor_.velocity.allFinite()) {
+        throw std::runtime_error("non-finite optimized state");
+    }
+    pim_->resetIntegrationAndSetBias(anchor_.bias);
+    status_.active_states = smoother_.timestamps().size() / 3;
+    status_.factor_slots = smoother_.getFactors().size();
+}
+
+std::optional<Estimate> Estimator::latest() const {
+    if (!status_.initialized || status_.fault || !previous_imu_) {
+        return std::nullopt;
+    }
+    auto prediction = *pim_;
+    auto previous = *previous_imu_;
+    double dt = latest_sample_dt_;
+    for (const auto& [time, sample] : imu_buffer_) {
+        dt = time - previous.time;
+        if (dt > config_.max_imu_gap) {
+            return std::nullopt;
+        }
+        prediction.integrateMeasurement(previous.acceleration,
+                                        previous.angular_velocity, dt);
+        previous = sample;
+    }
+    return predict(prediction, previous, dt);
+}
+
+std::pair<gtsam::Matrix6, gtsam::Matrix6> odometry_covariances(
+    const Estimate& estimate,
+    const Config& config) {
+    const auto rotation = estimate.pose.rotation().matrix();
+    Eigen::Matrix<double, 6, 15> pose_j = Eigen::Matrix<double, 6, 15>::Zero();
+    pose_j.block<3, 3>(0, 3) = rotation;
+    pose_j.block<3, 3>(3, 0) = rotation;
+    Eigen::Matrix<double, 6, 15> twist_j = Eigen::Matrix<double, 6, 15>::Zero();
+    twist_j.block<3, 3>(0, 0) =
+        gtsam::skewSymmetric(rotation.transpose() * estimate.velocity);
+    twist_j.block<3, 3>(0, 6) = rotation.transpose();
+    twist_j.block<3, 3>(3, 12) = -gtsam::I_3x3;
+    gtsam::Matrix6 pose_cov = pose_j * estimate.covariance * pose_j.transpose();
+    gtsam::Matrix6 twist_cov =
+        twist_j * estimate.covariance * twist_j.transpose();
+    twist_cov.bottomRightCorner<3, 3>().diagonal().array() +=
+        std::pow(config.gyro_noise_density, 2) / estimate.gyro_sample_dt;
+    return {pose_cov, twist_cov};
+}
+}  // namespace gtsam_navigation
