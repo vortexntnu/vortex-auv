@@ -268,3 +268,93 @@ class NavigationNode : public rclcpp::Node {
                 *epoch_ns_ +
                 static_cast<int64_t>(std::llround(estimate->time * 1e9)));
             msg.header.frame_id = odom_frame_;
+            msg.child_frame_id = imu_frame_;
+            const auto& p = estimate->pose.translation();
+            const auto q = estimate->pose.rotation().toQuaternion();
+            msg.pose.pose.position.x = p.x();
+            msg.pose.pose.position.y = p.y();
+            msg.pose.pose.position.z = p.z();
+            msg.pose.pose.orientation.w = q.w();
+            msg.pose.pose.orientation.x = q.x();
+            msg.pose.pose.orientation.y = q.y();
+            msg.pose.pose.orientation.z = q.z();
+            const auto v =
+                estimate->pose.rotation().unrotate(estimate->velocity);
+            msg.twist.twist.linear.x = v.x();
+            msg.twist.twist.linear.y = v.y();
+            msg.twist.twist.linear.z = v.z();
+            msg.twist.twist.angular.x = estimate->angular_velocity.x();
+            msg.twist.twist.angular.y = estimate->angular_velocity.y();
+            msg.twist.twist.angular.z = estimate->angular_velocity.z();
+            const auto [pose_cov, twist_cov] =
+                odometry_covariances(*estimate, config_);
+            for (int row = 0; row < 6; ++row) {
+                for (int col = 0; col < 6; ++col) {
+                    msg.pose.covariance[row * 6 + col] = pose_cov(row, col);
+                    msg.twist.covariance[row * 6 + col] = twist_cov(row, col);
+                }
+            }
+            odom_pub_->publish(msg);
+            last_published_time_ = estimate->time;
+            if (publish_tf_) {
+                // The URDF already owns base_link -> imu_link. Publish the
+                // equivalent odom -> base_link edge so the IMU never acquires a
+                // second TF parent.
+                const auto body_pose =
+                    estimate->pose.compose(body_p_imu_.inverse());
+                const auto body_q = body_pose.rotation().toQuaternion();
+                geometry_msgs::msg::TransformStamped transform;
+                transform.header = msg.header;
+                transform.child_frame_id = body_frame_;
+                transform.transform.translation.x = body_pose.x();
+                transform.transform.translation.y = body_pose.y();
+                transform.transform.translation.z = body_pose.z();
+                transform.transform.rotation.w = body_q.w();
+                transform.transform.rotation.x = body_q.x();
+                transform.transform.rotation.y = body_q.y();
+                transform.transform.rotation.z = body_q.z();
+                tf_broadcaster_->sendTransform(transform);
+            }
+        } catch (const std::exception& error) {
+            prediction_failed_ = true;
+            last_error_ = std::string("prediction failed; restart required: ") +
+                          error.what();
+            RCLCPP_ERROR(get_logger(), "%s", last_error_.c_str());
+        }
+    }
+
+    void publish_status() {
+        using Diagnostic = diagnostic_msgs::msg::DiagnosticStatus;
+        diagnostic_msgs::msg::DiagnosticArray msg;
+        msg.header.stamp = now();
+        Diagnostic diagnostic;
+        diagnostic.name =
+            std::string(get_fully_qualified_name()) + "/navigation";
+        diagnostic.hardware_id = hardware_id_;
+        diagnostic.level = Diagnostic::WARN;
+        diagnostic.message = "waiting for fixed sensor transforms";
+        const auto add = [&diagnostic](const std::string& key,
+                                       const std::string& value) {
+            diagnostic_msgs::msg::KeyValue item;
+            item.key = key;
+            item.value = value;
+            diagnostic.values.push_back(item);
+        };
+        if (estimator_) {
+            const auto& status = estimator_->status();
+            diagnostic.message = status.detail;
+            diagnostic.level =
+                status.fault
+                    ? Diagnostic::ERROR
+                    : (status.initialized ? Diagnostic::OK : Diagnostic::WARN);
+            const double imu_age = static_cast<double>(now().nanoseconds() -
+                                                       latest_imu_stamp_ns_) *
+                                   1e-9;
+            if (!status.fault &&
+                (imu_age > imu_timeout_ || imu_age < -imu_timeout_)) {
+                diagnostic.level = Diagnostic::ERROR;
+                diagnostic.message =
+                    "IMU stale or clock mismatch; odometry publication stopped";
+            } else if (!status.fault && status.initialized && epoch_ns_ &&
+                       (status.last_dvl_time < 0 ||
+                        static_cast<double>(now().nanoseconds() - *epoch_ns_) *
