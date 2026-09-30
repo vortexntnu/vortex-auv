@@ -268,3 +268,34 @@
         <time_constant value="0.05" />
       </rotor_dynamics>
       <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <sensor name="odom" type="odometry" rate="1000.0">
+      <link name="Base" />
+      <origin rpy="0.0 0.0 0.0" xyz="-0.1 -0.001 0.085" />
+      <ros_publisher topic="/nautilus/stonefish/truth" />
+    </sensor>
+    <sensor name="imu_link" rate="1000.0" type="imu">
+      <range angular_velocity="10.0 10.0 5.0" linear_acceleration="98.1" />
+      <noise angle="0.0 0.0 0.0" angular_velocity="0.0" yaw_drift="0.0" linear_acceleration="0.0" />
+      <history samples="1" />
+      <origin xyz="-0.1 -0.001 0.085" rpy="0.0 0.0 0.0" />
+      <link name="Base" />
+      <ros_publisher topic="/nautilus/stonefish/imu" />
+    </sensor>
+    <sensor name="dvl_link" rate="8.0" type="dvl">
+      <specs beam_angle="30.0" beam_positive_z="true" />
+      <range velocity="10.0 10.0 5.0" altitude_min="0.1" altitude_max="15.0" />
+      <noise velocity_percent="0.0" velocity="0.0" altitude="0.0" water_velocity_percent="0.0" water_velocity="0.0" />
+      <history samples="1" />
+      <origin rpy="0.0 0.0 3.14159" xyz="-0.130 0.003 0.2414" />
+      <link name="Base" />
+      <ros_publisher topic="/nautilus/dvl/sim" />
+    </sensor>
+    <world_transform xyz="0.0 0.0 9.55" rpy="0.0 0.0 0.0" />
+    <ros_subscriber thrusters="/nautilus/stonefish/thrusters" servos="/nautilus/stonefish/servos" />
+    <ros_publisher thrusters="/nautilus/thruster_state" servos="/nautilus/servo_state" />
+    <ros_base_link_transform publish="false" />
+  </robot>
