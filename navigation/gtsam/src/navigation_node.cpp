@@ -358,3 +358,50 @@ class NavigationNode : public rclcpp::Node {
             } else if (!status.fault && status.initialized && epoch_ns_ &&
                        (status.last_dvl_time < 0 ||
                         static_cast<double>(now().nanoseconds() - *epoch_ns_) *
+                                    1e-9 -
+                                status.last_dvl_time >
+                            dvl_timeout_)) {
+                diagnostic.level = Diagnostic::WARN;
+                diagnostic.message = "DVL unavailable; IMU dead reckoning";
+            }
+            add("initialized", status.initialized ? "true" : "false");
+            add("rejected_imu", std::to_string(status.rejected_imu));
+            add("rejected_dvl", std::to_string(status.rejected_dvl));
+            add("active_states", std::to_string(status.active_states));
+            add("factor_slots", std::to_string(status.factor_slots));
+            add("buffered_samples", std::to_string(status.buffered_samples));
+            add("imu_age_seconds", std::to_string(imu_age));
+        }
+        if (prediction_failed_) {
+            diagnostic.level = Diagnostic::ERROR;
+            diagnostic.message = last_error_;
+        }
+        add("rejected_ros_messages", std::to_string(rejected_ros_));
+        add("last_input_error", last_error_);
+        msg.status.push_back(diagnostic);
+        status_pub_->publish(msg);
+    }
+
+    Config config_;
+    gtsam::Pose3 body_p_imu_;
+    std::unique_ptr<Estimator> estimator_;
+    std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+    std::string body_frame_, imu_frame_, dvl_frame_, odom_frame_, last_error_;
+    std::string hardware_id_;
+    std::optional<int64_t> epoch_ns_;
+    int64_t latest_imu_stamp_ns_ = 0;
+    double last_published_time_ = -1, imu_timeout_ = 0.2, dvl_timeout_ = 1.0;
+    bool publish_tf_ = false, prediction_failed_ = false;
+    std::size_t rejected_ros_ = 0;
+    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
+    rclcpp::Subscription<
+        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr dvl_sub_;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
+    rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr
+        status_pub_;
+    rclcpp::TimerBase::SharedPtr publish_timer_, status_timer_, tf_timer_;
+};
+}  // namespace gtsam_navigation
+RCLCPP_COMPONENTS_REGISTER_NODE(gtsam_navigation::NavigationNode)
