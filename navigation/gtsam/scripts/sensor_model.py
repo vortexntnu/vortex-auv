@@ -178,3 +178,72 @@ def bottom_lock_available(rotation, max_tilt_deg=30.0):
     """Simplified flat-seabed visibility from DVL +Z boresight tilt to world down.
 
     The fixed DVL mount differs from the body by yaw only, so both +Z axes
+    coincide. The limit is a simulation assumption, not a Nucleus specification.
+    """
+    if not math.isfinite(max_tilt_deg) or not 0 < max_tilt_deg < 90:
+        raise ValueError("DVL maximum tilt must be between 0 and 90 degrees")
+    return bool(rotation[2, 2] >= math.cos(math.radians(max_tilt_deg)))
+
+
+def ideal_measurements(state, gravity=9.81):
+    """Include both tangential and centripetal acceleration of the fixed IMU."""
+    _, velocity, acceleration, rotation, omega, alpha = state
+    specific_force = rotation.T @ (acceleration - np.array([0.0, 0.0, gravity]))
+    specific_force += np.cross(alpha, IMU_OFFSET) + np.cross(
+        omega, np.cross(omega, IMU_OFFSET)
+    )
+    dvl = rotation_z(DVL_YAW).T @ (rotation.T @ velocity + np.cross(omega, DVL_OFFSET))
+    return specific_force, omega.copy(), dvl
+
+
+class SensorModel:
+    """White rate noise plus independent continuous bias random walks.
+
+    Drift densities and initial offsets below are modeling assumptions. They are
+    deliberately separate from the datasheet's Allan bias-instability minima.
+    """
+
+    def __init__(
+        self,
+        seed=42,
+        profile="stim300_10g_provisional",
+        noise=True,
+        stress_scale=1.0,
+        accel_bias=(0.003, -0.002, 0.001),
+        gyro_bias=(2e-5, -1e-5, 1e-5),
+        accel_bias_rw=1e-5,
+        gyro_bias_rw=1e-7,
+    ):
+        if profile not in ACCEL_DENSITIES:
+            raise ValueError(f"Unknown IMU profile: {profile}")
+        if not math.isfinite(stress_scale) or stress_scale <= 0:
+            raise ValueError("stress_scale must be positive")
+        self.rng = np.random.default_rng(seed)
+        self.accel_density = ACCEL_DENSITIES[profile] * stress_scale
+        self.gyro_density = GYRO_DENSITY * stress_scale
+        self.accel_bias = np.array(accel_bias, dtype=float) if noise else np.zeros(3)
+        self.gyro_bias = np.array(gyro_bias, dtype=float) if noise else np.zeros(3)
+        self.accel_bias_rw = accel_bias_rw * stress_scale
+        self.gyro_bias_rw = gyro_bias_rw * stress_scale
+        self.noise = noise
+
+    def imu(self, acceleration, omega, dt):
+        """Sample noise with density/sqrt(dt), and bias increments with density*sqrt(dt)."""
+        if not math.isfinite(dt) or dt <= 0:
+            raise ValueError("dt must be finite and positive")
+        if not self.noise:
+            return acceleration.copy(), omega.copy()
+        self.accel_bias += self.rng.normal(size=3) * self.accel_bias_rw * math.sqrt(dt)
+        self.gyro_bias += self.rng.normal(size=3) * self.gyro_bias_rw * math.sqrt(dt)
+        return (
+            acceleration
+            + self.accel_bias
+            + self.rng.normal(size=3) * self.accel_density / math.sqrt(dt),
+            omega
+            + self.gyro_bias
+            + self.rng.normal(size=3) * self.gyro_density / math.sqrt(dt),
+        )
+
+    def dvl(self, velocity, sigma=0.005):
+        """Sample independent 0.5 cm/s single-ping velocity noise by default."""
+        return velocity + (self.rng.normal(size=3) * sigma if self.noise else 0)
