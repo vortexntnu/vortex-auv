@@ -178,3 +178,93 @@ class NavigationNode : public rclcpp::Node {
             RCLCPP_INFO(get_logger(),
                         "Fixed sensor transforms loaded; collecting stationary "
                         "IMU samples");
+        } catch (const tf2::TransformException& error) {
+            last_error_ = error.what();
+        } catch (const std::exception& error) {
+            last_error_ = error.what();
+        }
+    }
+
+    double measurement_time(const builtin_interfaces::msg::Time& stamp) {
+        const auto ns = rclcpp::Time(stamp).nanoseconds();
+        if (!epoch_ns_) {
+            // Keep floating point integration times small without losing ROS
+            // timestamps.
+            epoch_ns_ = (static_cast<int64_t>(stamp.sec) - 1) * 1000000000LL;
+        }
+        return static_cast<double>(ns - *epoch_ns_) * 1e-9;
+    }
+
+    void on_imu(const sensor_msgs::msg::Imu& msg) {
+        if (!estimator_) {
+            return;
+        }
+        if (msg.header.frame_id != imu_frame_ ||
+            msg.angular_velocity_covariance[0] < 0 ||
+            msg.linear_acceleration_covariance[0] < 0) {
+            ++rejected_ros_;
+            last_error_ = "IMU frame mismatch or unavailable acceleration/gyro";
+            return;
+        }
+        const auto& a = msg.linear_acceleration;
+        const auto& w = msg.angular_velocity;
+        try {
+            if (estimator_->add_imu({measurement_time(msg.header.stamp),
+                                     {a.x, a.y, a.z},
+                                     {w.x, w.y, w.z}})) {
+                latest_imu_stamp_ns_ =
+                    std::max(latest_imu_stamp_ns_,
+                             rclcpp::Time(msg.header.stamp).nanoseconds());
+            }
+        } catch (const std::exception& error) {
+            ++rejected_ros_;
+            last_error_ = error.what();
+        }
+    }
+
+    void on_dvl(const geometry_msgs::msg::TwistWithCovarianceStamped& msg) {
+        if (!estimator_ || !epoch_ns_) {
+            return;
+        }
+        if (msg.header.frame_id != dvl_frame_) {
+            ++rejected_ros_;
+            last_error_ = "DVL must be expressed at the DVL origin in DVL axes";
+            return;
+        }
+        gtsam::Matrix3 covariance;
+        for (int row = 0; row < 3; ++row) {
+            for (int col = 0; col < 3; ++col) {
+                covariance(row, col) = msg.twist.covariance[row * 6 + col];
+            }
+        }
+        const auto& v = msg.twist.twist.linear;
+        try {
+            estimator_->add_dvl({measurement_time(msg.header.stamp),
+                                 {v.x, v.y, v.z},
+                                 covariance});
+        } catch (const std::exception& error) {
+            ++rejected_ros_;
+            last_error_ = error.what();
+        }
+    }
+
+    void publish() {
+        if (!estimator_ || !epoch_ns_ || prediction_failed_) {
+            return;
+        }
+        const double age =
+            static_cast<double>(now().nanoseconds() - latest_imu_stamp_ns_) *
+            1e-9;
+        if (age > imu_timeout_ || age < -imu_timeout_) {
+            return;
+        }
+        try {
+            const auto estimate = estimator_->latest();
+            if (!estimate || estimate->time <= last_published_time_) {
+                return;
+            }
+            nav_msgs::msg::Odometry msg;
+            msg.header.stamp = rclcpp::Time(
+                *epoch_ns_ +
+                static_cast<int64_t>(std::llround(estimate->time * 1e9)));
+            msg.header.frame_id = odom_frame_;
