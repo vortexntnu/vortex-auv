@@ -88,3 +88,40 @@ def test_command_guard(mode, killed, cmd, est, joy, expected):
 
 
 @pytest.mark.parametrize(
+    ('altitude', 'velocity', 'expected'),
+    [
+        (1.0, [0.0, 0.0, 0.0], True),
+        (-1.0, [0.0, 0.0, 0.0], False),
+        (0.0, [1.0, 2.0, 3.0], False),
+        (float('nan'), [0.0, 0.0, 0.0], False),
+        (1.0, [float('inf'), 0.0, 0.0], False),
+    ],
+)
+def test_native_dvl_validity(altitude, velocity, expected):
+    assert M.bottom_track_valid(altitude, velocity) == expected
+
+
+@pytest.mark.parametrize(
+    ('angles', 'expected'),
+    [
+        ([0.0, 0.0, 180.0], True),
+        ([24.9, 0.0, 0.0], True),
+        ([25.0, 0.0, 0.0], True),
+        ([25.1, 0.0, 0.0], False),
+        ([-25.1, 0.0, 0.0], False),
+        ([0.0, 25.1, 70.0], False),
+        ([20.0, 20.0, 0.0], False),
+        ([90.0, 0.0, 0.0], False),
+        ([180.0, 0.0, 0.0], False),
+        ([360.0, 0.0, 0.0], True),
+    ],
+)
+def test_bottom_track_tilt(angles, expected):
+    q = Rotation.from_euler('xyz', angles, degrees=True).as_quat()
+    assert M.bottom_track_tilt_valid(q, 25.0) == expected
+    assert M.bottom_track_tilt_valid(-2 * q, 25.0) == expected
+
+
+def test_invalid_attitude_has_no_lock():
+    assert not M.bottom_track_tilt_valid([0.0, 0.0, 0.0, 0.0], 25.0)
+    assert not M.bottom_track_tilt_valid([float('nan'), 0.0, 0.0, 1.0], 25.0)
