@@ -88,3 +88,44 @@ export default function script(
     squaredErrors = [0, 0, 0];
   } else if (previous === time) {
     return undefined;
+  }
+  lastTimes.set(event.topic, time);
+  const key = `${s.sec}:${s.nsec}`;
+  const cache = event.topic === inputs[0] ? estimates : truths;
+  cache.set(key, message);
+  // Bounded buffers accommodate either arrival order and estimator latency.
+  while (cache.size > 2000) {
+    const oldest = cache.keys().next().value;
+    if (oldest === undefined) break;
+    cache.delete(oldest);
+  }
+  const estimate = estimates.get(key);
+  const truth = truths.get(key);
+  if (!estimate || !truth) return undefined;
+  estimates.delete(key);
+  truths.delete(key);
+  if (estimate.header.frame_id !== truth.header.frame_id ||
+      estimate.child_frame_id !== truth.child_frame_id) return undefined;
+  const p = estimate.pose.pose.position;
+  const q = truth.pose.pose.position;
+  const error = [p.x - q.x, p.y - q.y, p.z - q.z];
+  if (!error.every(Number.isFinite)) return undefined;
+  const nees = positionNees(error, estimate.pose.covariance);
+  if (nees === undefined || !Number.isFinite(nees)) return undefined;
+  ++count;
+  for (let i = 0; i < 3; ++i) squaredErrors[i] += error[i] * error[i];
+  return {
+    header: { stamp: s, frame_id: estimate.header.frame_id },
+    matched_samples: count,
+    position_error_m: Math.hypot(...error),
+    rmse_position_m: Math.sqrt(squaredErrors.reduce((a, b) => a + b, 0) / count),
+    rmse_x_m: Math.sqrt(squaredErrors[0] / count),
+    rmse_y_m: Math.sqrt(squaredErrors[1] / count),
+    rmse_z_m: Math.sqrt(squaredErrors[2] / count),
+    position_nees: nees,
+    position_nees_per_dof: nees / 3,
+    nees_expected: 3,
+    nees_lower_95: 0.2158,
+    nees_upper_95: 9.3484,
+  };
+}
