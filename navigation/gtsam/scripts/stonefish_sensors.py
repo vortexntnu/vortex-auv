@@ -88,3 +88,30 @@ class Sensors(Node):
             bottom_track_valid(msg.altitude, v) and fresh_attitude and self.tilt_valid
         )
         self.lock.publish(Bool(data=valid))
+        if not valid:
+            return
+        out = TwistWithCovarianceStamped()
+        out.header = msg.header
+        out.twist.twist.linear.x, out.twist.twist.linear.y, out.twist.twist.linear.z = (
+            self.model.dvl(v).tolist()
+        )
+        for i in (0, 7, 14):
+            out.twist.covariance[i] = 0.005**2
+        self.dvl.publish(out)
+
+
+def main():
+    rclpy.init()
+    node = Sensors()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
