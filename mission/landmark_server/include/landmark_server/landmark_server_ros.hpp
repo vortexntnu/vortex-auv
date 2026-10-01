@@ -132,6 +132,27 @@ class LandmarkServerNode : public rclcpp::Node {
         const vortex::filtering::Track& track) const;
     vortex_msgs::msg::CourseFrameState course_frame_state_msg() const;
 
+    // --- Live rule changes (ros2 param set / ros2 param load) --------------
+    /// Declare the parameters of the config files that nothing else
+    /// declares, so they can be listed, dumped and changed.
+    void declare_config_parameters(
+        const std::map<std::string, rclcpp::ParameterValue>& overrides);
+    /// Validate a change; a valid change of the map rules becomes the
+    /// pending config, applied at the next tick. Tracker and graph settings
+    /// need a restart.
+    rcl_interfaces::msg::SetParametersResult on_parameters_set(
+        const std::vector<rclcpp::Parameter>& params);
+    /// Swap in the pending config (timer thread).
+    void apply_pending_map_config();
+
+    rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr
+        parameters_cb_handle_;
+    std::mutex pending_map_config_mtx_;
+    std::optional<LandmarkMapConfig> pending_map_config_;
+    /// The intake rules, read by the subscription callback.
+    mutable std::mutex intake_mtx_;
+    IntakeConfig intake_config_;
+
     // --- Smoothing backend (iSAM2, landmark_server_graph.cpp) --------------
     /// Odometry, the measurements of this tick (per map landmark) and one
     /// iSAM2 update; then the smoothed positions go into the map.

@@ -40,14 +40,40 @@ course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
 | Stable ids | A new track within `instance_gate_m` of a remembered landmark of the same class takes over its id; classes with `max_instances: 1` accept `plausibility_radius_m`. A false gate 8 m away does not take over. Only a clear nearest takes over (`rules.adoption`): the next remembered landmark of the class must be `ambiguity_ratio` (2) times farther away; otherwise the track waits up to `wait_sec` (2 s) for a closer look and then counts as a new object. A wrong take-over would join two objects in the graph for the rest of the run |
 | Memory | `retain: forever` (gate, board, table, octagon) or `retain_sec`; pipes with `keep_after_observations` observations are kept for the rest of the run |
 | Limits | `max_instances` per (type, subtype); no pipes within `min_distance_to_large_structures_m` of a gate/table/board/bin structure; pipes farther than `max_pipe_distance_m` are discarded at intake |
-| Gate | Yaw from the panel line, gate pulled to the panel midpoint, synthetic `GATE_WHOLE` if only the panels were seen, panels inherit the yaw |
-| Torpedo board | Yaw and centre from the icon pairs (the normals of both pairs are added), version from the icon heights (fire above blood = 1), `TORPEDO_TARGET_*` from icon + `torpedo_targets_from_icons` offsets (board frame; placeholder values, to be measured on our board) |
+| Gate | Yaw from the panel line, gate pulled to the panel midpoint, synthetic `GATE_WHOLE` if only the panels were seen, panels inherit the yaw. Panels more than `max_panel_separation_m` apart are not one gate (a false panel does not move the gate or the course frame) |
+| Torpedo board | Icons more than `board.icon_radius_m` from the board (the measured board, else the median of the icons) are ignored. Yaw and centre from the icon pairs (the normals of both pairs are added; only within `board.yaw_max_distance_m` when set). Version from the icon heights: fire above blood or firetruck above ambulance = 1; a pair votes only with `board.version_min_dz_m` height difference, pairs that disagree give no vote, and `board.version_lock_votes` agreeing votes lock it. `TORPEDO_TARGET_*` from icon + `torpedo_targets_from_icons` offsets (board frame; placeholder values, to be measured on our board); the opening of an ignored icon is hidden |
 | Bins | The role icon seen by the down camera gives the role of the nearest bin; the roleless duplicate is hidden |
-| Octagon | `OCTAGON_WHOLE` over the table; with `z_lock` on it floats at `surface_z` |
+| Table and octagon | One xy for both, from `table_octagon.primary`: `table`, `octagon` or `midpoint`. The missing one is derived: the octagon over the table, or (with `z_lock` on) the table `table_height_m` above the floor under the octagon. With `z_lock` on the octagon floats at `surface_z` |
+| Large structures | A new large structure within `large_structure_separation_m` (xy) of one of another type is not mapped: one object seen as two classes keeps the class seen first |
 | Depth lock | `rules.z_lock`: floor classes get `floor_z`, surface classes `surface_z` (odom z, down positive). Entries can be a type (`OCTAGON`) or one subtype (`OCTAGON_WHOLE`). The table is not locked: its top is ~0.7 m above the floor. Off by default in code, on in the config with the simulator's pool depth: measure the real one |
 | Detector covariance | `intake.measurement_covariance.use`: the position covariance of the detection (rotated into `target_frame`) replaces the class noise and the distance noise, in the tracker and the graph. `scale` multiplies it (testing), `min_std_m` is a floor. Off by default |
 | Distance noise | `intake.distance_noise`: the tracker adds `base + per_meter * distance` to the position variance along the line of sight (depth) and `lateral_ratio` times that across it, so far detections weigh less and the depth, which a camera knows worst, weighs least. The covariance from perception is not used for the position |
 | Association | One tracker update per camera frame (same stamp), in time order; hits and misses are counted once per tick. Per class, global nearest neighbour: squared Mahalanobis distance as the cost, the gate (`gate.max_pos_error`, `mahalanobis_gate_threshold`) as the limit, the Hungarian algorithm for the one-to-one assignment. Each track is then updated by PDAF with its own measurement |
+
+## Changing rules while it runs
+
+The map rules (`intake`, `course_frame`, `classes`, `rules`, `markers`) are
+ROS parameters: they show up in `ros2 param list`, Foxglove's parameter panel
+and `ros2 param dump`, and a change applies at the next tick without losing
+the map. Each change is parsed by the same code as at start; a bad value is
+rejected with the reason and the old rules stay.
+
+```bash
+N=/nautilus/landmark_server_node
+ros2 param set $N rules.board.icon_radius_m 0.8
+ros2 param set $N classes.SLALOM_PIPE.retain_sec 30.0
+ros2 param set $N rules.table_octagon.primary midpoint
+ros2 param load $N src/vortex-auv/mission/landmark_server/config/pool.yaml  # a whole file
+ros2 param dump $N > tuned.yaml                                               # keep what worked
+```
+
+- A key that is not in the config files can be set too (e.g. a rule that is
+  off by default); the log warns, since a misspelt key is ignored.
+- New class limits apply to new landmarks: a lower `max_instances` does not
+  remove landmarks already in the map (`landmark_server/clear` does).
+- `track_config` and `graph` are read at start: a new value is rejected with
+  "restart the landmark server". Loading a whole file is fine as long as
+  those values are unchanged.
 
 ## Smoothing backend (config `graph`)
 

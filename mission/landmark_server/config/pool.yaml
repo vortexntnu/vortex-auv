@@ -9,6 +9,8 @@
       # MEASURE: pool floor depth in odom z (down positive). Off until then:
       # a wrong floor depth moves bins and path markers.
       z_lock: {enable: false, floor_z: 3.432, surface_z: 0.0}
+      # MEASURE: table top above the floor (handbook ~0.7 m).
+      table_octagon: {table_height_m: 0.7}
       # MEASURE on the board in use: icon -> opening offsets, board frame
       # (+X out of the front, +Y right, +Z down). These are the simulator's.
       torpedo_targets_from_icons:

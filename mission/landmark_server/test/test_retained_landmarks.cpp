@@ -297,6 +297,36 @@ TEST(RetainedLandmarks, PipeNextToTheGateIsRejected) {
     EXPECT_EQ(map.landmarks().size(), 2u);
 }
 
+TEST(RetainedLandmarks, LargeStructureNextToAnotherTypeIsRejected) {
+    auto config = example_config();
+    config.large_structure_separation_m = 2.0;
+    RetainedLandmarks map(config);
+    map.update({make_track(1, LT::BIN, LS::BIN_STRUCTURE, v(10, 0))}, 0.0);
+
+    // 1 m from the bin rig: the same object, seen as a table.
+    map.update({make_track(1, LT::BIN, LS::BIN_STRUCTURE, v(10, 0)),
+                make_track(2, LT::TABLE, LS::TABLE_WHOLE, v(11, 0))},
+               1.0);
+    EXPECT_EQ(map.landmarks().size(), 1u);
+    EXPECT_EQ(map.rejected_count(), 1);
+
+    // Parts of the same type are fine (bins in the rig), and so is a table
+    // 3 m away.
+    map.update({make_track(1, LT::BIN, LS::BIN_STRUCTURE, v(10, 0)),
+                make_track(3, LT::BIN, LS::BIN_UNCLASSIFIED, v(10.3, 0)),
+                make_track(4, LT::TABLE, LS::TABLE_WHOLE, v(13, 0))},
+               2.0);
+    EXPECT_EQ(map.landmarks().size(), 3u);
+}
+
+TEST(RetainedLandmarks, LargeStructureSeparationOffByDefault) {
+    RetainedLandmarks map(example_config());
+    map.update({make_track(1, LT::BIN, LS::BIN_STRUCTURE, v(10, 0)),
+                make_track(2, LT::TABLE, LS::TABLE_WHOLE, v(11, 0))},
+               0.0);
+    EXPECT_EQ(map.landmarks().size(), 2u);
+}
+
 TEST(RetainedLandmarks, PipeMappedBeforeTheGateGoesWhenTheGateIsMapped) {
     RetainedLandmarks map(example_config());
 

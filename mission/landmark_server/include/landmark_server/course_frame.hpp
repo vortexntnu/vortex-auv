@@ -50,6 +50,9 @@ class CourseFrameTracker {
     /// Back to UNSET (mission/wipe).
     void reset();
 
+    /// New settings (live parameter change); the frame and its state stay.
+    void set_config(CourseFrameConfig config) { config_ = std::move(config); }
+
     /**
      * @brief Add a gate estimate. @p gate_yaw is the yaw of GATE_WHOLE, which
      * points out of the front towards the start, so the course direction is

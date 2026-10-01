@@ -83,7 +83,126 @@ YAML::Node overrides_to_yaml(
     return root;
 }
 
+/// Map rules: these can change while the server runs.
+const std::vector<std::string> kLiveRoots = {"intake", "course_frame",
+                                             "classes", "rules", "markers"};
+/// Tracker and graph settings: read once at start.
+const std::vector<std::string> kRestartRoots = {"track_config", "graph"};
+
+std::string root_of(const std::string& name) {
+    return name.substr(0, name.find('.'));
+}
+
+bool has_root(const std::vector<std::string>& roots, const std::string& name) {
+    return std::find(roots.begin(), roots.end(), root_of(name)) != roots.end();
+}
+
 }  // namespace
+
+void LandmarkServerNode::declare_config_parameters(
+    const std::map<std::string, rclcpp::ParameterValue>& overrides) {
+    rcl_interfaces::msg::ParameterDescriptor descriptor;
+    // `ros2 param set ... 4` for a double must not fail on the type: the
+    // parser checks the values.
+    descriptor.dynamic_typing = true;
+    for (const auto& [name, value] : overrides) {
+        if ((has_root(kLiveRoots, name) || has_root(kRestartRoots, name)) &&
+            !this->has_parameter(name)) {
+            this->declare_parameter(name, value, descriptor);
+        }
+    }
+}
+
+rcl_interfaces::msg::SetParametersResult LandmarkServerNode::on_parameters_set(
+    const std::vector<rclcpp::Parameter>& params) {
+    rcl_interfaces::msg::SetParametersResult result;
+    result.successful = true;
+
+    bool map_rules_changed = false;
+    for (const auto& p : params) {
+        if (has_root(kRestartRoots, p.get_name())) {
+            // Loading a whole config file sets these too: the same value is
+            // fine, a new one needs a restart.
+            if (this->has_parameter(p.get_name()) &&
+                this->get_parameter(p.get_name()).get_parameter_value() ==
+                    p.get_parameter_value()) {
+                continue;
+            }
+            result.successful = false;
+            result.reason = p.get_name() +
+                            ": tracker and graph settings are read at start; "
+                            "restart the landmark server to change them";
+            return result;
+        }
+        map_rules_changed =
+            map_rules_changed || has_root(kLiveRoots, p.get_name());
+    }
+    if (!map_rules_changed) {
+        return result;
+    }
+
+    // The whole rule set as it would be after this change, parsed by the
+    // same code as at start, so a bad value is rejected here.
+    std::map<std::string, rclcpp::ParameterValue> values;
+    const auto listed = this->list_parameters(kLiveRoots, 0);
+    for (const auto& p : this->get_parameters(listed.names)) {
+        values[p.get_name()] = p.get_parameter_value();
+    }
+    for (const auto& p : params) {
+        if (p.get_type() == rclcpp::ParameterType::PARAMETER_NOT_SET) {
+            values.erase(p.get_name());
+        } else {
+            values[p.get_name()] = p.get_parameter_value();
+        }
+    }
+    LandmarkMapConfig config;
+    try {
+        config = parse_map_config(overrides_to_yaml(values, kLiveRoots));
+    } catch (const std::exception& e) {
+        result.successful = false;
+        result.reason = std::string("invalid map rules: ") + e.what();
+        return result;
+    }
+
+    for (const auto& p : params) {
+        if (!has_root(kLiveRoots, p.get_name())) {
+            continue;
+        }
+        if (!this->has_parameter(p.get_name())) {
+            spdlog::warn(
+                "LandmarkServer: new parameter {} (not in the config files): "
+                "check the spelling, unknown keys are ignored",
+                p.get_name());
+        } else if (this->get_parameter(p.get_name()).get_parameter_value() ==
+                   p.get_parameter_value()) {
+            continue;
+        }
+        spdlog::info("LandmarkServer: {} = {}", p.get_name(),
+                     p.value_to_string());
+    }
+    {
+        std::lock_guard<std::mutex> lock(intake_mtx_);
+        intake_config_ = config.intake;
+    }
+    std::lock_guard<std::mutex> lock(pending_map_config_mtx_);
+    pending_map_config_ = std::move(config);
+    return result;
+}
+
+void LandmarkServerNode::apply_pending_map_config() {
+    std::optional<LandmarkMapConfig> pending;
+    {
+        std::lock_guard<std::mutex> lock(pending_map_config_mtx_);
+        pending.swap(pending_map_config_);
+    }
+    if (!pending) {
+        return;
+    }
+    map_config_ = std::move(*pending);
+    map_->set_config(map_config_);
+    course_->set_config(map_config_.course_frame);
+    spdlog::info("LandmarkServer: map rules updated");
+}
 
 void LandmarkServerNode::create_map() {
     const auto overrides =
@@ -138,6 +257,12 @@ void LandmarkServerNode::create_map() {
 
     map_ = std::make_unique<RetainedLandmarks>(map_config_);
     course_ = std::make_unique<CourseFrameTracker>(map_config_.course_frame);
+    intake_config_ = map_config_.intake;
+    declare_config_parameters(overrides);
+    parameters_cb_handle_ = this->add_on_set_parameters_callback(
+        [this](const std::vector<rclcpp::Parameter>& params) {
+            return on_parameters_set(params);
+        });
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
     const auto object_map_topic = this->declare_parameter<std::string>(
@@ -223,6 +348,7 @@ void LandmarkServerNode::reset_map() {
 }
 
 void LandmarkServerNode::update_map() {
+    apply_pending_map_config();
     RetainedLandmarks::PositionFilter filter;
     if (course_->status() != CourseFrameStatus::UNSET) {
         filter = [this](const Eigen::Vector3d& p) {

@@ -16,13 +16,19 @@ namespace vortex::mission {
  *  - gate: yaw from the line between the two panels (normal on the line, the
  *    front is the side the vehicle first saw it from), the gate is pulled to
  *    the panel midpoint, a synthetic GATE_WHOLE is made if only the panels
- *    have been seen, and the panels inherit the yaw;
- *  - torpedo board: yaw and centre from the icon pairs, board version from the
- *    icon heights (fire above blood = version 1) and TORPEDO_TARGET_* openings
- *    from icon + offset in the board frame;
+ *    have been seen, and the panels inherit the yaw. Panels farther apart than
+ *    max_panel_separation_m are not one gate;
+ *  - torpedo board: icons farther than board_icon_radius_m from the board are
+ *    ignored; yaw and centre from the icon pairs (yaw only within
+ *    board_yaw_max_distance_m), board version from the icon heights (fire
+ *    above blood or firetruck above ambulance = version 1, both pairs must
+ *    agree, locked after board_version_lock_votes votes) and TORPEDO_TARGET_*
+ *    openings from icon + offset in the board frame;
  *  - bins: the role icon seen by the down camera gives the role of the nearest
  *    bin;
- *  - octagon: OCTAGON_WHOLE above the table.
+ *  - table and octagon: one xy for both, from table_octagon_primary (table,
+ *    octagon or midpoint); the missing one is derived from the other (a
+ *    table only with z_lock on, at floor_z - table_height_m).
  *
  * Yaw is locked after N consistent estimates and never flips afterwards
  * (a yaw that follows the observer would turn when the object is seen from

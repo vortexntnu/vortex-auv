@@ -23,7 +23,11 @@ const auto start_msg = R"(
 namespace vortex::mission {
 
 LandmarkServerNode::LandmarkServerNode(const rclcpp::NodeOptions& options)
-    : rclcpp::Node("landmark_server_node", options) {
+    // Undeclared parameters are allowed so that a rule that is not in the
+    // config files yet can be set live (on_parameters_set validates it).
+    : rclcpp::Node("landmark_server_node",
+                   rclcpp::NodeOptions(options).allow_undeclared_parameters(
+                       true)) {
     timer_cb_group_ = this->create_callback_group(
         rclcpp::CallbackGroupType::MutuallyExclusive);
 

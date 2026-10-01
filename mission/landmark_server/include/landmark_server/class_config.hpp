@@ -124,9 +124,33 @@ struct MapRulesConfig {
     double min_icon_separation_m{0.05};
     /// Panels must be this far apart (xy) to give a gate yaw [m].
     double min_panel_separation_m{0.3};
+    /// Panels farther apart than this (xy) are not one gate: no gate is made
+    /// or moved from them [m] (0 = off).
+    double max_panel_separation_m{0.0};
+    /// Icons farther than this from the board are not used [m] (0 = off).
+    /// The reference is the measured board if there is one, else the centre
+    /// of the other icons (with at least three icons).
+    double board_icon_radius_m{0.0};
+    /// Board yaw estimates are only taken with the vehicle this close to the
+    /// board [m] (0 = any distance): far estimates are noisy and the yaw
+    /// locks for the rest of the run.
+    double board_yaw_max_distance_m{0.0};
+    /// An icon pair must differ this much in height to give a board version
+    /// vote [m].
+    double board_version_min_dz_m{0.03};
+    /// Consecutive agreeing votes that lock the board version.
+    int board_version_lock_votes{5};
     /// Board offsets from icon to opening, per board version (1 and 2).
     TorpedoIconOffsets torpedo_version_1;
     TorpedoIconOffsets torpedo_version_2;
+    /// Which of table and octagon gives the shared xy: "table" (the octagon
+    /// is put over the table), "octagon" (the table under the octagon) or
+    /// "midpoint" (both at the midpoint when both are measured). The one that
+    /// is missing is derived from the other either way.
+    std::string table_octagon_primary{"table"};
+    /// Height of the table top above the floor [m]: a table derived from the
+    /// octagon is put at floor_z - this (only with z_lock on).
+    double table_height_m{0.7};
 };
 
 /// A box drawn for a class in the markers: its size in the landmark frame
@@ -162,6 +186,10 @@ struct LandmarkMapConfig {
     /// Classes that count as large structures, as (type, subtype); subtype 0
     /// stands for every subtype of the type.
     std::vector<std::pair<uint16_t, uint16_t>> large_structures;
+    /// A new large structure closer than this (xy) to a large structure of
+    /// another type is not mapped [m] (0 = off): one object seen as two
+    /// classes (a table taken for the bin rig) keeps the class seen first.
+    double large_structure_separation_m{0.0};
 
     /// Boxes for the markers, per (type, subtype); subtype 0 stands for
     /// every subtype of the type.

@@ -122,7 +122,10 @@ void apply_gate_rules(RetainedLandmarks& map,
 
     const Eigen::Vector2d a = survey->position.head<2>();
     const Eigen::Vector2d b = rescue->position.head<2>();
-    if ((b - a).norm() < cfg.min_panel_separation_m) {
+    const double separation = (b - a).norm();
+    if (separation < cfg.min_panel_separation_m ||
+        (cfg.max_panel_separation_m > 0.0 &&
+         separation > cfg.max_panel_separation_m)) {
         return;
     }
     const Eigen::Vector3d midpoint =
@@ -175,6 +178,54 @@ struct Icon {
     Eigen::Vector3d p() const { return lm->position; }
 };
 
+/**
+ * Vote for the board version from the icon heights (z is down, so "above" is
+ * a smaller z): fire above blood, or firetruck above ambulance, is version 1.
+ * A pair votes only when its height difference is at least
+ * board_version_min_dz_m; two pairs that disagree give no vote. The version
+ * locks after board_version_lock_votes agreeing votes in a row, so noise in
+ * the icon heights cannot swap the openings later.
+ */
+void feed_board_version(RetainedLandmark& board,
+                        const Icon& fire,
+                        const Icon& blood,
+                        const Icon& truck,
+                        const Icon& ambulance,
+                        const MapRulesConfig& cfg) {
+    if (board.board_version_locked) {
+        return;
+    }
+    const auto vote = [&](const Icon& upper_in_v1,
+                          const Icon& lower_in_v1) -> int {
+        if (!upper_in_v1 || !lower_in_v1) {
+            return 0;
+        }
+        const double dz = lower_in_v1.p().z() - upper_in_v1.p().z();
+        if (std::abs(dz) < cfg.board_version_min_dz_m) {
+            return 0;
+        }
+        return dz > 0.0 ? 1 : 2;
+    };
+    const int hazard = vote(fire, blood);
+    const int vehicle = vote(truck, ambulance);
+    if (hazard != 0 && vehicle != 0 && hazard != vehicle) {
+        return;
+    }
+    const int version = hazard != 0 ? hazard : vehicle;
+    if (version == 0) {
+        return;
+    }
+    if (version == board.board_version) {
+        ++board.board_version_votes;
+    } else {
+        board.board_version = version;
+        board.board_version_votes = 1;
+    }
+    if (board.board_version_votes >= cfg.board_version_lock_votes) {
+        board.board_version_locked = true;
+    }
+}
+
 void apply_board_rules(RetainedLandmarks& map,
                        const MapRulesConfig& cfg,
                        const Eigen::Vector3d& vehicle,
@@ -185,6 +236,45 @@ void apply_board_rules(RetainedLandmarks& map,
         find_measured(map, {LT::TORPEDO_BOARD, LS::TORPEDO_ICON_FIRETRUCK})};
     Icon ambulance{
         find_measured(map, {LT::TORPEDO_BOARD, LS::TORPEDO_ICON_AMBULANCE})};
+
+    RetainedLandmark* measured_board =
+        find_measured(map, {LT::TORPEDO_BOARD, LS::TORPEDO_BOARD_WHOLE});
+    // An icon far from the board is a false detection: it would pull the
+    // board, turn its yaw and put an opening somewhere else. Reference: the
+    // measured board, else the median of the icons (one outlier cannot move
+    // the median of three or four).
+    if (cfg.board_icon_radius_m > 0.0) {
+        std::vector<Icon*> present;
+        for (Icon* i : {&fire, &blood, &truck, &ambulance}) {
+            if (*i) {
+                present.push_back(i);
+            }
+        }
+        std::optional<Eigen::Vector3d> reference;
+        if (measured_board != nullptr) {
+            reference = measured_board->position;
+        } else if (present.size() >= 3) {
+            reference = Eigen::Vector3d::Zero();
+            for (int axis = 0; axis < 3; ++axis) {
+                std::vector<double> values;
+                for (const Icon* i : present) {
+                    values.push_back(i->p()(axis));
+                }
+                std::sort(values.begin(), values.end());
+                const std::size_t n = values.size();
+                (*reference)(axis) =
+                    n % 2 == 1 ? values[n / 2]
+                               : 0.5 * (values[n / 2 - 1] + values[n / 2]);
+            }
+        }
+        if (reference) {
+            for (Icon* i : present) {
+                if ((i->p() - *reference).norm() > cfg.board_icon_radius_m) {
+                    *i = Icon{};
+                }
+            }
+        }
+    }
 
     std::vector<Icon> icons;
     for (const Icon& i : {fire, blood, truck, ambulance}) {
@@ -206,8 +296,7 @@ void apply_board_rules(RetainedLandmarks& map,
     }
     centre /= static_cast<double>(icons.size());
 
-    RetainedLandmark* board =
-        find_measured(map, {LT::TORPEDO_BOARD, LS::TORPEDO_BOARD_WHOLE});
+    RetainedLandmark* board = measured_board;
     absorb_derived_into_measured(map, "board_whole", board);
     if (board == nullptr) {
         board = &map.upsert_derived(
@@ -223,7 +312,10 @@ void apply_board_rules(RetainedLandmarks& map,
     // Yaw from the icon pairs. Each pair with enough horizontal spread gives
     // a normal; the normals of both pairs are added, so noise in one pair is
     // averaged with the other.
-    if (cfg.board_yaw_from_icons && all_fresh) {
+    const bool close_enough =
+        cfg.board_yaw_max_distance_m <= 0.0 ||
+        (vehicle - centre).head<2>().norm() <= cfg.board_yaw_max_distance_m;
+    if (cfg.board_yaw_from_icons && all_fresh && close_enough) {
         struct Pair {
             Icon a;
             Icon b;
@@ -254,14 +346,16 @@ void apply_board_rules(RetainedLandmarks& map,
         return;
     }
 
-    // Board version from the icon heights: fire above blood = version 1
-    // (z is down, so "above" is a smaller z).
-    if (!cfg.torpedo_targets_from_icons || !fire || !blood) {
+    if (!cfg.torpedo_targets_from_icons) {
         return;
     }
-    const bool version_1 = fire.p().z() < blood.p().z();
-    const TorpedoIconOffsets& offsets =
-        version_1 ? cfg.torpedo_version_1 : cfg.torpedo_version_2;
+    feed_board_version(*board, fire, blood, truck, ambulance, cfg);
+    if (board->board_version == 0) {
+        return;
+    }
+    const TorpedoIconOffsets& offsets = board->board_version == 1
+                                            ? cfg.torpedo_version_1
+                                            : cfg.torpedo_version_2;
 
     struct Target {
         Icon icon;
@@ -281,10 +375,18 @@ void apply_board_rules(RetainedLandmarks& map,
     const Eigen::Quaterniond q = board->orientation;
     for (const Target& t : targets) {
         if (!t.icon) {
+            // The opening of a rejected icon is hidden, not left where the
+            // false icon put it.
+            for (auto& lm : map.landmarks()) {
+                if (lm.derived && lm.derived_slot == t.slot) {
+                    lm.absorbed_by = board->id;
+                }
+            }
             continue;
         }
         RetainedLandmark& target =
             map.upsert_derived(t.slot, {LT::TORPEDO_BOARD, t.subtype}, now);
+        target.absorbed_by = -1;
         target.position = t.icon.p() + q * t.offset;
         target.orientation = q;
         target.has_orientation = true;
@@ -342,24 +444,52 @@ void apply_octagon_rules(RetainedLandmarks& map,
     if (!cfg.octagon_from_table) {
         return;
     }
+    // The octagon floats over the table: one xy for both. The table stands on
+    // the floor, the octagon at the water surface.
     RetainedLandmark* table = find_measured(map, {LT::TABLE, LS::TABLE_WHOLE});
-    if (table == nullptr) {
-        return;
-    }
-    // The octagon is over the table: same xy. It floats at the water surface,
-    // the table stands on the floor.
     RetainedLandmark* octagon =
         find_measured(map, {LT::OCTAGON, LS::OCTAGON_WHOLE});
+    if (table == nullptr && octagon == nullptr) {
+        return;
+    }
     absorb_derived_into_measured(map, "octagon_whole", octagon);
+    absorb_derived_into_measured(map, "table_whole", table);
+
+    Eigen::Vector2d xy;
+    if (table != nullptr && octagon != nullptr) {
+        if (cfg.table_octagon_primary == "octagon") {
+            xy = octagon->position.head<2>();
+        } else if (cfg.table_octagon_primary == "midpoint") {
+            xy = 0.5 * (table->position + octagon->position).head<2>();
+        } else {
+            xy = table->position.head<2>();
+        }
+    } else {
+        xy = (table != nullptr ? table : octagon)->position.head<2>();
+    }
+
     if (octagon == nullptr) {
         octagon = &map.upsert_derived("octagon_whole",
                                       {LT::OCTAGON, LS::OCTAGON_WHOLE}, now);
         octagon->last_measurement = table->last_measurement;
         octagon->derived_live = is_fresh(*table);
+        octagon->position.z() = table->position.z();
+    } else if (table == nullptr && cfg.z_lock.enable) {
+        // Without the floor depth the table top cannot be placed: a table at
+        // the octagon's depth would send the vehicle to the surface.
+        table = &map.upsert_derived("table_whole",
+                                    {LT::TABLE, LS::TABLE_WHOLE}, now);
+        table->last_measurement = octagon->last_measurement;
+        table->derived_live = is_fresh(*octagon);
+        table->position.z() = cfg.z_lock.floor_z - cfg.table_height_m;
     }
-    octagon->position = table->position;
+
+    octagon->position.head<2>() = xy;
     if (cfg.z_lock.enable) {
         octagon->position.z() = cfg.z_lock.surface_z;
+    }
+    if (table != nullptr) {
+        table->position.head<2>() = xy;
     }
 }
 

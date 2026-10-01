@@ -91,6 +91,12 @@ std::vector<Landmark> LandmarkServerNode::ros_msg_to_landmarks(
         std::lock_guard<std::mutex> lock(odom_mtx_);
         vehicle = last_odom_position_;
     }
+    // A copy: the intake rules can change live (on_parameters_set).
+    IntakeConfig intake;
+    {
+        std::lock_guard<std::mutex> lock(intake_mtx_);
+        intake = intake_config_;
+    }
 
     for (const auto& lm_msg : msg.landmarks) {
         if (!is_valid_landmark_msg(lm_msg)) {
@@ -104,7 +110,7 @@ std::vector<Landmark> LandmarkServerNode::ros_msg_to_landmarks(
             const double d =
                 std::hypot(std::hypot(p.x - vehicle->x, p.y - vehicle->y),
                            p.z - vehicle->z);
-            if (d > map_config_.intake.max_pipe_distance_m) {
+            if (d > intake.max_pipe_distance_m) {
                 ++dropped_measurements_;
                 continue;
             }
@@ -120,7 +126,6 @@ std::vector<Landmark> LandmarkServerNode::ros_msg_to_landmarks(
             const double d =
                 std::hypot(std::hypot(p.x - vehicle->x, p.y - vehicle->y),
                            p.z - vehicle->z);
-            const auto& intake = map_config_.intake;
             const double depth_var = intake.noise_base_variance +
                                      intake.noise_variance_per_meter * d;
             lm.extra_variance = depth_var;
@@ -138,7 +143,7 @@ std::vector<Landmark> LandmarkServerNode::ros_msg_to_landmarks(
             }
         }
         const auto& cov = lm_msg.pose.covariance;
-        if (map_config_.intake.use_measurement_covariance && cov[0] > 0.0 &&
+        if (intake.use_measurement_covariance && cov[0] > 0.0 &&
             cov[7] > 0.0 && cov[14] > 0.0) {
             Eigen::Matrix3d pc;
             for (int r = 0; r < 3; ++r) {
@@ -146,14 +151,14 @@ std::vector<Landmark> LandmarkServerNode::ros_msg_to_landmarks(
                     pc(r, c) = cov[r * 6 + c];
                 }
             }
-            const double min_std = map_config_.intake.covariance_min_std_m;
+            const double min_std = intake.covariance_min_std_m;
             pc = 0.5 * (pc + pc.transpose()).eval() *
-                     map_config_.intake.covariance_scale +
+                     intake.covariance_scale +
                  Eigen::Matrix3d::Identity() * min_std * min_std;
             lm.position_cov = pc;
         }
         // A rotational variance >= the limit means "no orientation".
-        const double no_ori = map_config_.intake.no_orientation_rot_variance;
+        const double no_ori = intake.no_orientation_rot_variance;
         lm.has_orientation =
             !(cov[3 * 6 + 3] >= no_ori || cov[4 * 6 + 4] >= no_ori ||
               cov[5 * 6 + 5] >= no_ori);

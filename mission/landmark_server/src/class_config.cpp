@@ -386,6 +386,35 @@ LandmarkMapConfig parse_map_config(const YAML::Node& root) {
             rules, "min_icon_separation_m", mr.min_icon_separation_m);
         mr.min_panel_separation_m = get_or<double>(
             rules, "min_panel_separation_m", mr.min_panel_separation_m);
+        mr.max_panel_separation_m = get_or<double>(
+            rules, "max_panel_separation_m", mr.max_panel_separation_m);
+        cfg.large_structure_separation_m =
+            get_or<double>(rules, "large_structure_separation_m",
+                           cfg.large_structure_separation_m);
+        if (const auto board = rules["board"]) {
+            mr.board_icon_radius_m = get_or<double>(board, "icon_radius_m",
+                                                    mr.board_icon_radius_m);
+            mr.board_yaw_max_distance_m = get_or<double>(
+                board, "yaw_max_distance_m", mr.board_yaw_max_distance_m);
+            mr.board_version_min_dz_m = get_or<double>(
+                board, "version_min_dz_m", mr.board_version_min_dz_m);
+            mr.board_version_lock_votes = get_or<int>(
+                board, "version_lock_votes", mr.board_version_lock_votes);
+        }
+        if (const auto to = rules["table_octagon"]) {
+            mr.table_octagon_primary =
+                get_or<std::string>(to, "primary", mr.table_octagon_primary);
+            if (mr.table_octagon_primary != "table" &&
+                mr.table_octagon_primary != "octagon" &&
+                mr.table_octagon_primary != "midpoint") {
+                throw std::runtime_error(
+                    "rules.table_octagon.primary must be table, octagon or "
+                    "midpoint, not '" +
+                    mr.table_octagon_primary + "'");
+            }
+            mr.table_height_m =
+                get_or<double>(to, "table_height_m", mr.table_height_m);
+        }
         if (const auto z = rules["z_lock"]) {
             const auto classes =
                 [&](const char* key,

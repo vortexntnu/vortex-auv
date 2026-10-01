@@ -130,6 +130,20 @@
       bin_role_from_down_icons: true  # role icon from the down camera -> nearest bin
       octagon_from_table: true        # OCTAGON_WHOLE over the table
       yaw_lock: {consistent_estimates: 5, max_jump_deg: 90.0}
+      # Plausibility checks. The gate panels hang ~1.6 m apart: two panels
+      # farther apart than this are not one gate.
+      max_panel_separation_m: 2.5
+      # A new large structure this close (xy) to one of another type is the
+      # same object seen as another class: the first one is kept.
+      large_structure_separation_m: 2.0
+      board:
+        icon_radius_m: 1.0        # icons farther from the board are ignored
+        yaw_max_distance_m: 0.0   # yaw estimates only this close (0 = any)
+        version_min_dz_m: 0.05    # icon pair height difference for a vote
+        version_lock_votes: 5     # agreeing votes that lock the version
+      # Table and octagon share one xy: from the table, the octagon or the
+      # midpoint. The missing one is derived (a table only with z_lock on).
+      table_octagon: {primary: table, table_height_m: 0.7}
       # Objects on the floor or at the surface get that depth (odom z, down
       # positive) instead of the measured one; the octagon floats at the
       # surface. Not the table: its top and the things on it are ~0.7 m above

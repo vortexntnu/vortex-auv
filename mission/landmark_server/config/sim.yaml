@@ -6,6 +6,8 @@
     rules:
       # The simulator's pool floor (odom z, down positive).
       z_lock: {enable: true, floor_z: 3.432, surface_z: 0.0}
+      # The simulator's table top: 0.715 m above the floor.
+      table_octagon: {table_height_m: 0.715}
       # Board frame: +X out of the front, +Y right, +Z down. Offsets from an
       # icon to its opening, per board version (fire above blood = version 1):
       # the icon centres in the board textures and the openings in the board

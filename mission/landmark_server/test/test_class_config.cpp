@@ -145,6 +145,28 @@ TEST(ClassConfig, UnknownClassIsAnError) {
                  std::runtime_error);
 }
 
+TEST(ClassConfig, ParsesTheRuleChecks) {
+    const auto cfg = parse_map_config(YAML::Load(R"(
+rules:
+  max_panel_separation_m: 3.0
+  large_structure_separation_m: 2.0
+  board: {icon_radius_m: 1.0, yaw_max_distance_m: 6.0, version_min_dz_m: 0.05,
+          version_lock_votes: 7}
+  table_octagon: {primary: midpoint, table_height_m: 0.67}
+)"));
+    EXPECT_DOUBLE_EQ(cfg.map_rules.max_panel_separation_m, 3.0);
+    EXPECT_DOUBLE_EQ(cfg.large_structure_separation_m, 2.0);
+    EXPECT_DOUBLE_EQ(cfg.map_rules.board_icon_radius_m, 1.0);
+    EXPECT_DOUBLE_EQ(cfg.map_rules.board_yaw_max_distance_m, 6.0);
+    EXPECT_DOUBLE_EQ(cfg.map_rules.board_version_min_dz_m, 0.05);
+    EXPECT_EQ(cfg.map_rules.board_version_lock_votes, 7);
+    EXPECT_EQ(cfg.map_rules.table_octagon_primary, "midpoint");
+    EXPECT_DOUBLE_EQ(cfg.map_rules.table_height_m, 0.67);
+
+    EXPECT_THROW(parse_map_config(YAML::Load("rules: {table_octagon: {primary: floor}}")),
+                 std::runtime_error);
+}
+
 TEST(ClassConfig, MissingKeysKeepDefaults) {
     const auto cfg = parse_map_config(YAML::Load("{}"));
     EXPECT_DOUBLE_EQ(cfg.intake.max_pipe_distance_m, 7.0);

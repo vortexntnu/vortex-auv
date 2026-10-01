@@ -106,6 +106,19 @@ bool RetainedLandmarks::near_large_structure(const Eigen::Vector3d& position,
                        });
 }
 
+bool RetainedLandmarks::near_other_large_structure(
+    uint16_t type,
+    const Eigen::Vector3d& position,
+    double distance) const {
+    return std::any_of(landmarks_.begin(), landmarks_.end(),
+                       [&](const RetainedLandmark& l) {
+                           return !l.derived && l.key.type != type &&
+                                  config_.is_large_structure(l.key) &&
+                                  (l.position - position).head<2>().norm() <
+                                      distance;
+                       });
+}
+
 void RetainedLandmarks::forget_expired(double now) {
     landmarks_.erase(
         std::remove_if(landmarks_.begin(), landmarks_.end(),
@@ -252,6 +265,13 @@ void RetainedLandmarks::update(
         if (rule.min_distance_to_large_structures_m > 0.0 &&
             near_large_structure(position,
                                  rule.min_distance_to_large_structures_m)) {
+            ++rejected_;
+            continue;
+        }
+        if (config_.large_structure_separation_m > 0.0 &&
+            config_.is_large_structure(track.class_key) &&
+            near_other_large_structure(track.class_key.type, position,
+                                       config_.large_structure_separation_m)) {
             ++rejected_;
             continue;
         }

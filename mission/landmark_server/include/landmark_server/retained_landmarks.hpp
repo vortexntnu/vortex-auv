@@ -49,6 +49,11 @@ struct RetainedLandmark {
     double yaw_sum_sin{0.0};
     double yaw_sum_cos{0.0};
     int yaw_count{0};
+    /// Torpedo board version (1 or 2; 0 = not known yet), the number of
+    /// consecutive votes for it, and whether it is locked (map rules).
+    int board_version{0};
+    int board_version_votes{0};
+    bool board_version_locked{false};
 
     /// For a derived landmark: the parts it is computed from are being seen.
     bool derived_live{false};
@@ -74,7 +79,8 @@ struct RetainedLandmark {
  *    ambiguous track waits up to adoption_wait_sec for that; a wrong take-over
  *    would join two objects in the smoothing graph for the rest of the run;
  *  - otherwise it becomes a new landmark, unless the class is full, it lies
- *    outside the lane bounds, or (for pipes) too close to a large structure.
+ *    outside the lane bounds, (for pipes) too close to a large structure, or
+ *    (for large structures) too close to a large structure of another type.
  */
 class RetainedLandmarks {
    public:
@@ -94,6 +100,11 @@ class RetainedLandmarks {
 
     /// Forget everything. Ids keep counting up.
     void clear();
+
+    /// New rules (live parameter change). The landmarks stay; the new rules
+    /// apply from the next update (a lower max_instances does not remove
+    /// landmarks that are already there).
+    void set_config(LandmarkMapConfig config) { config_ = std::move(config); }
 
     /**
      * @brief The odom frame moved under the map (the smoothing graph changed
@@ -137,6 +148,10 @@ class RetainedLandmarks {
                            double now) const;
     bool near_large_structure(const Eigen::Vector3d& position,
                               double distance) const;
+    /// A measured large structure of another type within @p distance (xy).
+    bool near_other_large_structure(uint16_t type,
+                                    const Eigen::Vector3d& position,
+                                    double distance) const;
     void forget_expired(double now);
 
     LandmarkMapConfig config_;

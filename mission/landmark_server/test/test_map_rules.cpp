@@ -176,6 +176,21 @@ TEST(MapRulesGate, MeasuredGateWholeIsPulledToTheMidpointAndTakesOverFromSynthet
     }
 }
 
+TEST(MapRulesGate, PanelsTooFarApartMakeNoGate) {
+    Scene s;
+    s.rules.max_panel_separation_m = 3.0;
+    // A false panel 6 m from the real one is not half a gate.
+    s.run({make_track(1, LT::GATE, LS::GATE_SURVEY_REPAIR, v(10.0, -3.0), true, false),
+           make_track(2, LT::GATE, LS::GATE_SEARCH_RESCUE, v(10.0, 3.0), true, false)},
+          5);
+    EXPECT_EQ(s.find(LT::GATE, LS::GATE_WHOLE), nullptr);
+
+    Scene ok;
+    ok.rules.max_panel_separation_m = 3.0;
+    ok.run(gate_panels(), 5);
+    EXPECT_NE(ok.find(LT::GATE, LS::GATE_WHOLE), nullptr);
+}
+
 TEST(MapRulesGate, OnePanelGivesNoYaw) {
     Scene s;
     s.run({make_track(1, LT::GATE, LS::GATE_SURVEY_REPAIR, v(10, -0.78), true, false)}, 10);
@@ -388,6 +403,135 @@ TEST(MapRulesBoard, OpeningIsRightWithTheBoardRotated30Degrees) {
     EXPECT_NEAR(wrap(t->yaw() - yaw), 0.0, 1e-6);
 }
 
+TEST(MapRulesBoard, FalseIconFarAwayIsIgnored) {
+    const Eigen::Vector3d board(20.0, 3.0, 2.0);
+    auto icons = icon_tracks(version_1_layout(), board, M_PI);
+    icons[0].nominal_state.pos += Eigen::Vector3d(0.0, 5.0, 0.0);  // fire
+
+    Scene s;
+    s.rules.board_icon_radius_m = 1.0;
+    s.vehicle = v(5.0, 3.0);
+    s.run(icons, 6);
+
+    Eigen::Vector3d centre = Eigen::Vector3d::Zero();
+    for (int i = 1; i < 4; ++i) {
+        centre += icons[i].nominal_state.pos;
+    }
+    centre /= 3.0;
+    const auto* b = s.find(LT::TORPEDO_BOARD, LS::TORPEDO_BOARD_WHOLE);
+    ASSERT_NE(b, nullptr);
+    EXPECT_NEAR((b->position - centre).norm(), 0.0, 1e-9);
+    ASSERT_TRUE(b->has_orientation);
+    EXPECT_NEAR(std::abs(wrap(b->yaw())), M_PI, 1e-6);
+    // No opening from the false fire icon.
+    EXPECT_EQ(find_target(s, LS::TORPEDO_TARGET_LARGE_SURVEY_REPAIR), nullptr);
+    EXPECT_NE(find_target(s, LS::TORPEDO_TARGET_LARGE_SEARCH_RESCUE), nullptr);
+}
+
+TEST(MapRulesBoard, IconFarFromTheMeasuredBoardIsIgnored) {
+    const Eigen::Vector3d board(20.0, 3.0, 2.0);
+    auto icons = icon_tracks(version_1_layout(), board, M_PI, true, true, false, false);
+    icons[1].nominal_state.pos += Eigen::Vector3d(0.0, 4.0, 0.0);  // blood
+    icons.push_back(make_track(9, LT::TORPEDO_BOARD, LS::TORPEDO_BOARD_WHOLE, board,
+                               true, false));
+    Scene s;
+    s.rules.board_icon_radius_m = 1.0;
+    s.vehicle = v(5.0, 3.0);
+    s.run(icons, 3);
+    // Only the fire icon is left: not enough for a yaw, so no openings.
+    const auto* b = s.find(LT::TORPEDO_BOARD, LS::TORPEDO_BOARD_WHOLE);
+    ASSERT_NE(b, nullptr);
+    EXPECT_FALSE(b->has_orientation);
+    EXPECT_EQ(find_target(s, LS::TORPEDO_TARGET_LARGE_SEARCH_RESCUE), nullptr);
+}
+
+TEST(MapRulesBoard, VersionFromTheVehiclePairAlone) {
+    const auto cfg = rules_config();
+    const Eigen::Vector3d board(20.0, 3.0, 2.0);
+    for (int version : {1, 2}) {
+        Scene s;
+        s.vehicle = v(5.0, 3.0);
+        const Layout layout = version == 1 ? version_1_layout() : version_2_layout();
+        const auto icons = icon_tracks(layout, board, M_PI, false, false, true, true);
+        s.run(icons, 6);
+        const auto* t = find_target(s, LS::TORPEDO_TARGET_SMALL_SURVEY_REPAIR);
+        ASSERT_NE(t, nullptr) << "version " << version;
+        const auto& offsets = version == 1 ? cfg.torpedo_version_1 : cfg.torpedo_version_2;
+        const Eigen::Vector3d expected =
+            icons[0].nominal_state.pos + yaw_q(M_PI) * offsets.firetruck;
+        EXPECT_NEAR((t->position - expected).norm(), 0.0, 1e-6) << "version " << version;
+    }
+}
+
+TEST(MapRulesBoard, PairsThatDisagreeGiveNoVersion) {
+    const Eigen::Vector3d board(20.0, 3.0, 2.0);
+    const Layout v1 = version_1_layout();
+    const Layout v2 = version_2_layout();
+    // Hazard pair says version 1, vehicle pair says version 2.
+    const Layout mixed{v1.fire, v1.blood, v2.firetruck, v2.ambulance};
+    Scene s;
+    s.vehicle = v(5.0, 3.0);
+    s.run(icon_tracks(mixed, board, M_PI), 6);
+    const auto* b = s.find(LT::TORPEDO_BOARD, LS::TORPEDO_BOARD_WHOLE);
+    ASSERT_NE(b, nullptr);
+    EXPECT_EQ(b->board_version, 0);
+    EXPECT_EQ(find_target(s, LS::TORPEDO_TARGET_LARGE_SURVEY_REPAIR), nullptr);
+}
+
+TEST(MapRulesBoard, LockedVersionDoesNotSwapTheOpenings) {
+    const auto cfg = rules_config();
+    const Eigen::Vector3d board(20.0, 3.0, 2.0);
+    Scene s;
+    s.rules.board_version_lock_votes = 5;
+    s.vehicle = v(5.0, 3.0);
+    s.run(icon_tracks(version_1_layout(), board, M_PI), 6);
+    const auto* b = s.find(LT::TORPEDO_BOARD, LS::TORPEDO_BOARD_WHOLE);
+    ASSERT_NE(b, nullptr);
+    EXPECT_TRUE(b->board_version_locked);
+
+    // Noisy heights now say version 2: the openings stay version 1.
+    const auto noisy = icon_tracks(version_2_layout(), board, M_PI);
+    s.run(noisy, 6);
+    EXPECT_EQ(s.find(LT::TORPEDO_BOARD, LS::TORPEDO_BOARD_WHOLE)->board_version, 1);
+    const auto* t = find_target(s, LS::TORPEDO_TARGET_LARGE_SURVEY_REPAIR);
+    ASSERT_NE(t, nullptr);
+    const Eigen::Vector3d expected =
+        noisy[0].nominal_state.pos + yaw_q(M_PI) * cfg.torpedo_version_1.fire;
+    EXPECT_NEAR((t->position - expected).norm(), 0.0, 1e-6);
+}
+
+TEST(MapRulesBoard, SmallHeightDifferenceGivesNoVote) {
+    const Eigen::Vector3d board(20.0, 3.0, 2.0);
+    Layout flat = version_1_layout();
+    flat.fire.z() = 0.0;
+    flat.blood.z() = 0.01;
+    flat.firetruck.z() = 0.0;
+    flat.ambulance.z() = 0.01;
+    Scene s;
+    s.rules.board_version_min_dz_m = 0.03;
+    s.vehicle = v(5.0, 3.0);
+    s.run(icon_tracks(flat, board, M_PI), 6);
+    EXPECT_EQ(s.find(LT::TORPEDO_BOARD, LS::TORPEDO_BOARD_WHOLE)->board_version, 0);
+}
+
+TEST(MapRulesBoard, YawOnlyFromCloseEnough) {
+    const Eigen::Vector3d board(20.0, 3.0, 2.0);
+    const auto icons = icon_tracks(version_1_layout(), board, M_PI);
+    Scene s;
+    s.rules.board_yaw_max_distance_m = 6.0;
+    s.vehicle = v(5.0, 3.0);  // 15 m away
+    s.run(icons, 6);
+    const auto* b = s.find(LT::TORPEDO_BOARD, LS::TORPEDO_BOARD_WHOLE);
+    ASSERT_NE(b, nullptr);
+    EXPECT_FALSE(b->has_orientation);
+
+    s.vehicle = v(16.0, 3.0);  // 4 m away
+    s.run(icons, 6);
+    b = s.find(LT::TORPEDO_BOARD, LS::TORPEDO_BOARD_WHOLE);
+    ASSERT_TRUE(b->has_orientation);
+    EXPECT_NEAR(std::abs(wrap(b->yaw())), M_PI, 1e-6);
+}
+
 TEST(MapRulesBoard, OneIconIsNotEnough) {
     Scene s;
     s.run(icon_tracks(version_1_layout(), {20, 3, 2}, M_PI, true, false, false, false), 10);
@@ -464,6 +608,55 @@ TEST(MapRulesOctagon, OctagonAboveTheTable) {
     const int id = octagon->id;
     s.run({}, 5);
     EXPECT_EQ(s.find(LT::OCTAGON, LS::OCTAGON_WHOLE)->id, id);
+}
+
+TEST(MapRulesOctagon, TableUnderTheOctagonWhenOnlyTheOctagonIsSeen) {
+    Scene s;
+    s.rules.z_lock.enable = true;
+    s.rules.z_lock.floor_z = 3.4;
+    s.rules.table_height_m = 0.7;
+    s.run({make_track(1, LT::OCTAGON, LS::OCTAGON_WHOLE, v(30.0, 2.0, 0.5), true, false)}, 3);
+
+    const auto* table = s.find(LT::TABLE, LS::TABLE_WHOLE);
+    ASSERT_NE(table, nullptr);
+    EXPECT_TRUE(table->derived);
+    EXPECT_NEAR(table->position.x(), 30.0, 1e-9);
+    EXPECT_NEAR(table->position.y(), 2.0, 1e-9);
+    EXPECT_NEAR(table->position.z(), 2.7, 1e-9);
+}
+
+TEST(MapRulesOctagon, NoTableFromTheOctagonWithoutTheFloorDepth) {
+    Scene s;
+    s.run({make_track(1, LT::OCTAGON, LS::OCTAGON_WHOLE, v(30.0, 2.0, 0.5), true, false)}, 3);
+    EXPECT_EQ(s.find(LT::TABLE, LS::TABLE_WHOLE), nullptr);
+}
+
+TEST(MapRulesOctagon, BothMeasuredShareTheXyOfThePrimary) {
+    const std::vector<Track> both = {
+        make_track(1, LT::TABLE, LS::TABLE_WHOLE, v(30.0, 2.0, 3.0), true, false),
+        make_track(2, LT::OCTAGON, LS::OCTAGON_WHOLE, v(31.0, 3.0, 0.2), true, false)};
+    struct Case {
+        const char* primary;
+        double x, y;
+    };
+    for (const Case& c : {Case{"table", 30.0, 2.0}, Case{"octagon", 31.0, 3.0},
+                          Case{"midpoint", 30.5, 2.5}}) {
+        Scene s;
+        s.rules.table_octagon_primary = c.primary;
+        s.run(both, 2);
+        const auto* table = s.find(LT::TABLE, LS::TABLE_WHOLE);
+        const auto* octagon = s.find(LT::OCTAGON, LS::OCTAGON_WHOLE);
+        ASSERT_NE(table, nullptr);
+        ASSERT_NE(octagon, nullptr);
+        for (const auto* lm : {table, octagon}) {
+            EXPECT_FALSE(lm->derived) << c.primary;
+            EXPECT_NEAR(lm->position.x(), c.x, 1e-9) << c.primary;
+            EXPECT_NEAR(lm->position.y(), c.y, 1e-9) << c.primary;
+        }
+        // Each keeps its own depth.
+        EXPECT_NEAR(table->position.z(), 3.0, 1e-9) << c.primary;
+        EXPECT_NEAR(octagon->position.z(), 0.2, 1e-9) << c.primary;
+    }
 }
 
 }  // namespace vortex::mission
