@@ -14,6 +14,7 @@
 
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <rclcpp_action/server_goal_handle.hpp>
@@ -210,6 +211,10 @@ class LandmarkServerNode : public rclcpp::Node {
     void publish_graph_state();
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr graph_path_pub_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr graph_start_path_pub_;
+    rclcpp::Publisher<vortex_msgs::msg::LandmarkArray>::SharedPtr
+        graph_landmarks_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
+        graph_pose_pub_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr graph_odom_path_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr
         graph_stats_pub_;

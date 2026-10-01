@@ -7,6 +7,7 @@
 #include <eigen3/Eigen/Geometry>
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace vortex::mission {
@@ -42,6 +43,14 @@ struct LandmarkGraphConfig {
     /// Huber threshold of the landmark measurements, in standard deviations
     /// (a wrong association should not pull the whole map).
     double huber_k{2.0};
+
+    /// Landmark measurement noise for the graph: std along the line of sight
+    /// from the vehicle (depth) and across it, growing with the distance:
+    /// std = base + per_m * d. Off (base <= 0): the covariance the caller
+    /// gives (the tracker's noise model).
+    double meas_base_std_m{0.0};
+    double meas_along_std_per_m{0.0};
+    double meas_across_std_per_m{0.0};
     /// Landmark measurements per landmark and keyframe; more are dropped
     /// (a hovering vehicle sees the same thing many times a second).
     int max_measurements_per_keyframe{3};
@@ -139,6 +148,21 @@ class LandmarkGraph {
 
     /// Stamp of every keyframe [s], in the order of the two above.
     std::vector<double> keyframe_stamps() const;
+
+    /// A landmark in the graph frame (odom at the first keyframe) with its
+    /// marginal covariance: for consistency checks against the truth.
+    struct GraphLandmark {
+        int id;
+        Eigen::Vector3d position;
+        Eigen::Matrix3d covariance;
+    };
+    /// Every landmark the graph places (min_observations reached).
+    std::vector<GraphLandmark> landmarks_in_graph() const;
+
+    /// The newest keyframe in the graph frame with its marginal covariance
+    /// (tangent order: rotation, then translation).
+    std::optional<std::pair<Eigen::Isometry3d, Eigen::Matrix<double, 6, 6>>>
+    latest_keyframe_with_covariance() const;
 
     /// Measurements of a landmark in the graph (0 if unknown).
     int observations(int landmark_id) const;

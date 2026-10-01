@@ -102,6 +102,12 @@ void LandmarkServerNode::create_map() {
         "landmark_server/graph/start_frame_path", rclcpp::QoS(1).reliable());
     graph_odom_path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
         "landmark_server/graph/odom_path", rclcpp::QoS(1).reliable());
+    graph_landmarks_pub_ =
+        this->create_publisher<vortex_msgs::msg::LandmarkArray>(
+            "landmark_server/graph/landmarks", rclcpp::QoS(1).reliable());
+    graph_pose_pub_ =
+        this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
+            "landmark_server/graph/pose", rclcpp::QoS(1).reliable());
     graph_stats_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>(
         "landmark_server/graph/stats", rclcpp::QoS(10).reliable());
     // The values that differ between sim.yaml and pool.yaml, so the log

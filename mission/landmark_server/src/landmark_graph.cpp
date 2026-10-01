@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <map>
 #include <numbers>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -55,6 +56,7 @@ gtsam::Key pose_key(std::size_t index) {
 gtsam::Key landmark_key(int id) {
     return gtsam::Symbol('l', static_cast<std::uint64_t>(id));
 }
+
 
 /**
  * @brief A landmark position measured in the vehicle frame.
@@ -159,6 +161,7 @@ LandmarkGraphConfig parse_graph_config(const YAML::Node& node) {
             get_or<double>(odom, "min_pos_std_m", c.odom_min_pos_std_m);
         c.odom_min_rot_std_deg =
             get_or<double>(odom, "min_rot_std_deg", c.odom_min_rot_std_deg);
+
     }
     if (const auto abs = node["absolute"]) {
         c.roll_pitch_std_deg =
@@ -167,6 +170,14 @@ LandmarkGraphConfig parse_graph_config(const YAML::Node& node) {
     }
     if (const auto m = node["measurements"]) {
         c.huber_k = get_or<double>(m, "huber_k", c.huber_k);
+        if (const auto noise = m["noise"]) {
+            c.meas_base_std_m =
+                get_or<double>(noise, "base_std_m", c.meas_base_std_m);
+            c.meas_along_std_per_m =
+                get_or<double>(noise, "along_std_per_m", c.meas_along_std_per_m);
+            c.meas_across_std_per_m = get_or<double>(
+                noise, "across_std_per_m", c.meas_across_std_per_m);
+        }
         c.max_measurements_per_keyframe =
             get_or<int>(m, "max_per_keyframe", c.max_measurements_per_keyframe);
         c.min_observations =
@@ -314,7 +325,20 @@ bool LandmarkGraph::add_measurement(int landmark_id,
     const auto& kf = impl_->keyframes[index];
     const Eigen::Matrix3d R = kf.odom_T_body.rotation();
     const Eigen::Vector3d in_body = kf.odom_T_body.inverse() * position;
-    const Eigen::Matrix3d cov_body = R.transpose() * covariance * R;
+    Eigen::Matrix3d cov_body = R.transpose() * covariance * R;
+    if (config_.meas_base_std_m > 0.0) {
+        // The graph's own noise model: depth (along the line of sight from
+        // the vehicle) and bearing (across it), both growing with range.
+        const double d = in_body.norm();
+        const double along =
+            config_.meas_base_std_m + config_.meas_along_std_per_m * d;
+        const double across =
+            config_.meas_base_std_m + config_.meas_across_std_per_m * d;
+        const Eigen::Vector3d u = d > 1e-6 ? Eigen::Vector3d(in_body / d)
+                                           : Eigen::Vector3d::UnitX();
+        cov_body = Eigen::Matrix3d::Identity() * across * across +
+                   (along * along - across * across) * u * u.transpose();
+    }
 
     const auto gaussian = gtsam::noiseModel::Gaussian::Covariance(cov_body);
     const auto model = gtsam::noiseModel::Robust::Create(
@@ -415,6 +439,34 @@ std::vector<double> LandmarkGraph::keyframe_stamps() const {
         out.push_back(kf.stamp);
     }
     return out;
+}
+
+std::vector<LandmarkGraph::GraphLandmark> LandmarkGraph::landmarks_in_graph()
+    const {
+    std::vector<GraphLandmark> out;
+    for (const auto& [id, count] : impl_->observations) {
+        const gtsam::Key lk = landmark_key(id);
+        if (count < config_.min_observations || !impl_->isam.valueExists(lk)) {
+            continue;
+        }
+        out.push_back({id, impl_->estimate.at<gtsam::Point3>(lk),
+                       impl_->isam.marginalCovariance(lk)});
+    }
+    return out;
+}
+
+std::optional<std::pair<Eigen::Isometry3d, Eigen::Matrix<double, 6, 6>>>
+LandmarkGraph::latest_keyframe_with_covariance() const {
+    if (impl_->keyframes.empty()) {
+        return std::nullopt;
+    }
+    const gtsam::Key pk = pose_key(impl_->keyframes.size() - 1);
+    if (!impl_->isam.valueExists(pk)) {
+        return std::nullopt;
+    }
+    return std::make_pair(to_isometry(impl_->estimate.at<gtsam::Pose3>(pk)),
+                          Eigen::Matrix<double, 6, 6>(
+                              impl_->isam.marginalCovariance(pk)));
 }
 
 int LandmarkGraph::observations(int landmark_id) const {

@@ -3,6 +3,7 @@
 #include <cmath>
 #include <map>
 #include <numbers>
+#include <utility>
 #include <vector>
 
 #include "landmark_server/landmark_graph.hpp"
@@ -273,6 +274,47 @@ measurements: {huber_k: 3.0, max_per_keyframe: 4, min_observations: 2}
     // Untouched keys keep their defaults.
     EXPECT_DOUBLE_EQ(c.roll_pitch_std_deg, LandmarkGraphConfig{}.roll_pitch_std_deg);
     EXPECT_FALSE(parse_graph_config(YAML::Node()).enable);
+}
+
+TEST(LandmarkGraph, measurement_noise_is_read_from_yaml) {
+    const YAML::Node node = YAML::Load(R"(
+measurements:
+  noise: {base_std_m: 0.06, along_std_per_m: 0.03, across_std_per_m: 0.003}
+)");
+    const auto c = parse_graph_config(node);
+    EXPECT_DOUBLE_EQ(c.meas_base_std_m, 0.06);
+    EXPECT_DOUBLE_EQ(c.meas_along_std_per_m, 0.03);
+    EXPECT_DOUBLE_EQ(c.meas_across_std_per_m, 0.003);
+    // Off by default: the caller's covariance is used.
+    EXPECT_LE(LandmarkGraphConfig{}.meas_base_std_m, 0.0);
+}
+
+TEST(LandmarkGraph, own_noise_model_is_less_sure_of_depth_than_bearing) {
+    // One landmark 5 m straight ahead, seen once from one keyframe: its
+    // marginal covariance is the measurement noise. Along the line of sight
+    // (x) 0.06 + 0.03 * 5 = 0.21 m, across it 0.06 + 0.003 * 5 = 0.075 m.
+    auto cfg = test_config();
+    cfg.meas_base_std_m = 0.06;
+    cfg.meas_along_std_per_m = 0.03;
+    cfg.meas_across_std_per_m = 0.003;
+    LandmarkGraph graph(cfg);
+    graph.add_odometry(0.0, pose(0, 0, 1, 0));
+    // The covariance given here is ignored when the graph has its own model.
+    ASSERT_TRUE(graph.add_measurement(3, 0.0, {5, 0, 1},
+                                      Eigen::Matrix3d::Identity() * 100.0));
+    graph.optimize();
+    const auto lms = graph.landmarks_in_graph();
+    ASSERT_EQ(lms.size(), 1u);
+    const Eigen::Matrix3d& P = lms[0].covariance;
+    // The first keyframe is fixed by its prior (1 mm), so the landmark's
+    // uncertainty is the measurement's.
+    EXPECT_NEAR(std::sqrt(P(0, 0)), 0.21, 0.01);
+    EXPECT_NEAR(std::sqrt(P(1, 1)), 0.075, 0.01);
+    EXPECT_NEAR(std::sqrt(P(2, 2)), 0.075, 0.01);
+
+    const auto latest = graph.latest_keyframe_with_covariance();
+    ASSERT_TRUE(latest.has_value());
+    EXPECT_LT(latest->second.diagonal().maxCoeff(), 1e-4);
 }
 
 }  // namespace vortex::mission
