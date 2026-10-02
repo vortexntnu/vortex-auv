@@ -170,4 +170,78 @@ TEST(Structures, AFalsePipeDoesNotTakeTheRealOnesPlace) {
     }
 }
 
+namespace {
+
+LandmarkMapConfig overlap_config() {
+    auto cfg = slalom_config();
+    cfg.class_rules[{LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED}].max_instances = 5;
+    cfg.class_rules[{LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE}].max_instances = 5;
+    const auto parsed = parse_map_config(YAML::Load(R"(
+rules:
+  exclusive_groups:
+    slalom_pipes: {classes: [SLALOM_PIPE_WHITE, SLALOM_PIPE_RED], distance_m: 0.7}
+)"));
+    cfg.exclusive_groups = parsed.exclusive_groups;
+    return cfg;
+}
+
+}  // namespace
+
+TEST(Structures, AnExclusiveGroupNeedsTwoClassesAndADistance) {
+    EXPECT_THROW(parse_map_config(YAML::Load(R"(
+rules:
+  exclusive_groups:
+    g: {classes: [SLALOM_PIPE_WHITE], distance_m: 0.7}
+)")),
+                 std::runtime_error);
+    EXPECT_THROW(parse_map_config(YAML::Load(R"(
+rules:
+  exclusive_groups:
+    g: {classes: [SLALOM_PIPE_WHITE, SLALOM_PIPE_RED]}
+)")),
+                 std::runtime_error);
+}
+
+TEST(Structures, InASetTheDrawingDecidesTheColour) {
+    // A red "pipe" on top of the left white of a set (the white pipe called
+    // red), seen more often than the white: the slot is white, the red goes,
+    // and its track does not bring it back.
+    RetainedLandmarks map(overlap_config());
+    map.update({make_track(1, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE,
+                           v(8.0, -1.52)),
+                make_track(2, LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED, v(8.0, 0.0))},
+               0.0);
+    map.update({}, 0.2);
+    ASSERT_EQ(map.structures().instances().size(), 1u);
+    for (int i = 0; i < 10; ++i) {
+        map.update({make_track(3, LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED,
+                               v(8.0, -1.45))},
+                   0.4 + 0.2 * i);
+    }
+    EXPECT_EQ(count_type(map, LS::SLALOM_PIPE_WHITE), 1);
+    EXPECT_EQ(count_type(map, LS::SLALOM_PIPE_RED), 1);
+    EXPECT_GE(map.overlap_count(), 1);
+    for (const auto& l : map.landmarks()) {
+        if (l.key.subtype == LS::SLALOM_PIPE_RED) {
+            EXPECT_NEAR(l.position.y(), 0.0, 1e-9);  // the set's red
+        }
+    }
+}
+
+TEST(Structures, OutsideASetTheOneSeenMoreOftenStays) {
+    RetainedLandmarks map(overlap_config());
+    for (int i = 0; i < 5; ++i) {
+        map.update({make_track(1, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE,
+                               v(20.0, 5.0))},
+                   0.2 * i);
+    }
+    map.update({make_track(1, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE,
+                           v(20.0, 5.0)),
+                make_track(2, LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED,
+                           v(20.0, 5.3))},
+               1.0);
+    EXPECT_EQ(count_type(map, LS::SLALOM_PIPE_WHITE), 1);
+    EXPECT_EQ(count_type(map, LS::SLALOM_PIPE_RED), 0);
+}
+
 }  // namespace vortex::mission

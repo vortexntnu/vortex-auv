@@ -203,6 +203,19 @@ struct LandmarkMapConfig {
     /// Structures from the task drawings (rules.structures): slalom sets.
     std::vector<StructureTemplate> structures;
 
+    /// Classes that cannot stand at the same place (rules.exclusive_groups):
+    /// two landmarks of the group closer than distance_m are one object seen
+    /// as two classes (a pipe called white in some frames and red in
+    /// others). The one in a structure slot is kept (the drawing says which
+    /// class belongs there), else the one with more observations.
+    struct ExclusiveGroup {
+        std::string name;
+        std::vector<std::pair<uint16_t, uint16_t>> classes;
+        double distance_m{0.0};
+        bool contains(const LandmarkClassKey& key) const;
+    };
+    std::vector<ExclusiveGroup> exclusive_groups;
+
     const ClassRule& rule_for(const LandmarkClassKey& key) const;
     bool is_large_structure(const LandmarkClassKey& key) const;
     /// The box for a class (the subtype entry wins over the type), or null.

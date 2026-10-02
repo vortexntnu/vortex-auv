@@ -158,6 +158,14 @@
       # rules.torpedo_targets_from_icons (icon -> opening offsets) is per
       # environment.
 
+      # Classes that cannot stand at the same place: two landmarks of a
+      # group closer than distance_m are one object seen as two classes (a
+      # pipe called white in some frames, red in others). The one in a
+      # structure slot is kept (the drawing says which colour stands there),
+      # else the one seen more often; the other is removed.
+      exclusive_groups:
+        slalom_pipes: {classes: [SLALOM_PIPE_WHITE, SLALOM_PIPE_RED], distance_m: 0.7}
+
       # Structures from the task drawings. Structure frame: +X out of the
       # front, +Y right, +Z down; offset per member, sigma how well the prop
       # and the detector follow the drawing [m]. Used for initialisation: a

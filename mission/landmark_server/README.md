@@ -44,6 +44,9 @@ course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
 | Torpedo board | Icons more than `board.icon_radius_m` from the board (the measured board, else the median of the icons) are ignored. Yaw and centre from the icon pairs (the normals of both pairs are added; only within `board.yaw_max_distance_m` when set). Version from the icon heights: fire above blood or firetruck above ambulance = 1; a pair votes only with `board.version_min_dz_m` height difference, pairs that disagree give no vote, and `board.version_lock_votes` agreeing votes lock it. `TORPEDO_TARGET_*` from icon + `torpedo_targets_from_icons` offsets (board frame; placeholder values, to be measured on our board); the opening of an ignored icon is hidden |
 | Bins | The role icon seen by the down camera gives the role of the nearest bin; the roleless duplicate is hidden |
 | Table and octagon | One xy for both, from `table_octagon.primary`: `table`, `octagon` or `midpoint`. The missing one is derived: the octagon over the table, or (with `z_lock` on) the table `table_height_m` above the floor under the octagon. With `z_lock` on the octagon floats at `surface_z` |
+| Structures | `rules.structures`: rigid arrangements from the task drawings (a slalom set: white, red, white 1.52 m apart; members with class, offset and `sigma` in the structure frame). Fitted to the mapped landmarks every tick (pairs with the right spacing, least squares, joint chi-square), kept refitted, new members join open slots. Drawn in the markers (lines to every member, open slots as spheres, name). A new task is a new entry, live like the other rules |
+| Structure-aware initialisation | A new track near a filled slot of a structure (within half the distance to the next member of the drawing, 0.76 m for slalom) takes that member over: a bad view of a pipe is that pipe, not a second one. `count_only_in_structure` (on for slalom pipes): only pipes in a set count against `max_instances`, so a false pipe cannot block a real one |
+| Overlapping classes | `rules.exclusive_groups`: classes that cannot stand at one place (white and red pipe). Two landmarks of a group closer than `distance_m` are one object seen as two classes: the one in a structure slot stays (the drawing says which colour stands there), else the one seen more often; the other is removed and its track ignored while it lives |
 | Large structures | A new large structure within `large_structure_separation_m` (xy) of one of another type is not mapped: one object seen as two classes keeps the class seen first |
 | Depth lock | `rules.z_lock`: floor classes get `floor_z`, surface classes `surface_z` (odom z, down positive). Entries can be a type (`OCTAGON`) or one subtype (`OCTAGON_WHOLE`). The table is not locked: its top is ~0.7 m above the floor. Off by default in code, on in the config with the simulator's pool depth: measure the real one |
 | Detector covariance | `intake.measurement_covariance.use`: the position covariance of the detection (rotated into `target_frame`) replaces the class noise and the distance noise, in the tracker and the graph. `scale` multiplies it (testing), `min_std_m` is a floor. Off by default |
@@ -96,6 +99,15 @@ vehicle keyframes (every `keyframe.distance_m` / `angle_deg` /
 - The noise values are guesses until the drift has been measured in the pool. The association itself does not get better: a remembered landmark must still be within the adoption radius when it is seen again.
 
 ### Trying it in the simulator
+
+With `--drift`, `tmux_robosub_sim.sh` runs everything that sees the drifted
+data in the frame `nautilus/odom_drift`, which `drift_injector.py` puts in TF
+under the true `nautilus/odom`, and the graph-frame topics in `nautilus/odom`
+(`graph.frame_id`, graph_eval `graph_frame_id`): Foxglove draws the maps and
+the truth where they are in the world (a correct map stands still on the
+green truth; white true path, green the graph's path on it, orange the raw
+odometry drifting off). `--compare-install <dir>` runs the landmark_server of
+another install space (an older branch) on the same data as `/nautilus_cmp`.
 
 ### Recording and replaying for offline tuning
 

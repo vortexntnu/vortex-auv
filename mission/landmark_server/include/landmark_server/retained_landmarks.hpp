@@ -5,6 +5,7 @@
 #include <eigen3/Eigen/Dense>
 #include <functional>
 #include <map>
+#include <set>
 #include <pose_filtering/lib/typedefs.hpp>
 #include <string>
 #include <vector>
@@ -149,6 +150,10 @@ class RetainedLandmarks {
     /// near (ambiguous take-over).
     int ambiguous_count() const { return ambiguous_; }
 
+    /// Landmarks removed because another of their exclusive group was on
+    /// top of them.
+    int overlap_count() const { return overlaps_; }
+
    private:
     void update_from_track(RetainedLandmark& lm,
                            const vortex::filtering::Track& track,
@@ -167,9 +172,15 @@ class RetainedLandmarks {
     int next_id_{0};
     int rejected_{0};
     int ambiguous_{0};
+    int overlaps_{0};
     /// Tracks waiting for an ambiguous take-over to resolve: track id -> time
     /// the wait started.
     std::map<int, double> ambiguous_since_;
+    /// Tracks whose landmark lost an overlap (exclusive_groups): ignored
+    /// while they live, so they do not make it again.
+    std::set<int> suppressed_tracks_;
+    /// Two landmarks of one exclusive group too close: keep one.
+    void resolve_overlaps();
 };
 
 }  // namespace vortex::mission

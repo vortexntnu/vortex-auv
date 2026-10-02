@@ -19,6 +19,7 @@ RetainedLandmarks::RetainedLandmarks(LandmarkMapConfig config)
 void RetainedLandmarks::clear() {
     landmarks_.clear();
     structures_.clear();
+    suppressed_tracks_.clear();
     ambiguous_since_.clear();
     rejected_ = 0;
     ambiguous_ = 0;
@@ -159,6 +160,12 @@ void RetainedLandmarks::update(
         }
     }
 
+    // Suppressed tracks that are gone.
+    std::erase_if(suppressed_tracks_, [&](int id) {
+        return std::none_of(confirmed.begin(), confirmed.end(),
+                            [&](const auto& t) { return t.id == id; });
+    });
+
     // Waits of tracks that are gone.
     for (auto it = ambiguous_since_.begin(); it != ambiguous_since_.end();) {
         const bool alive =
@@ -182,6 +189,9 @@ void RetainedLandmarks::update(
     structures_.update(landmarks_);
 
     for (const auto& track : confirmed) {
+        if (suppressed_tracks_.contains(track.id)) {
+            continue;
+        }
         // 1. A track that is already followed.
         auto followed = std::find_if(
             landmarks_.begin(), landmarks_.end(),
@@ -331,7 +341,49 @@ void RetainedLandmarks::update(
         });
     }
 
+    resolve_overlaps();
     forget_expired(now);
+}
+
+void RetainedLandmarks::resolve_overlaps() {
+    std::set<int> drop;
+    for (const auto& g : config_.exclusive_groups) {
+        for (std::size_t i = 0; i < landmarks_.size(); ++i) {
+            const auto& a = landmarks_[i];
+            if (a.derived || drop.contains(a.id) || !g.contains(a.key)) {
+                continue;
+            }
+            for (std::size_t j = i + 1; j < landmarks_.size(); ++j) {
+                const auto& b = landmarks_[j];
+                if (b.derived || drop.contains(b.id) || !g.contains(b.key) ||
+                    a.key == b.key ||
+                    (a.position - b.position).norm() >= g.distance_m) {
+                    continue;
+                }
+                // The drawing decides when one of them is in a structure
+                // slot (a member is only placed in a slot of its class);
+                // else the one seen more often.
+                const bool a_in = structures_.in_structure(a.id);
+                const bool b_in = structures_.in_structure(b.id);
+                const bool keep_a = a_in != b_in ? a_in
+                                                 : a.observations >= b.observations;
+                const auto& loser = keep_a ? b : a;
+                drop.insert(loser.id);
+                if (loser.live_track_id >= 0) {
+                    suppressed_tracks_.insert(loser.live_track_id);
+                }
+                if (!keep_a) {
+                    break;
+                }
+            }
+        }
+    }
+    if (!drop.empty()) {
+        overlaps_ += static_cast<int>(drop.size());
+        std::erase_if(landmarks_, [&](const RetainedLandmark& l) {
+            return drop.contains(l.id);
+        });
+    }
 }
 
 }  // namespace vortex::mission
