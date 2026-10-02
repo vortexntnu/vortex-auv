@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include "landmark_server/class_config.hpp"
+#include "landmark_server/structures.hpp"
 
 namespace vortex::mission {
 
@@ -104,7 +105,13 @@ class RetainedLandmarks {
     /// New rules (live parameter change). The landmarks stay; the new rules
     /// apply from the next update (a lower max_instances does not remove
     /// landmarks that are already there).
-    void set_config(LandmarkMapConfig config) { config_ = std::move(config); }
+    void set_config(LandmarkMapConfig config) {
+        structures_.set_templates(config.structures);
+        config_ = std::move(config);
+    }
+
+    /// The structures (slalom sets ...) on the map.
+    const StructureMap& structures() const { return structures_; }
 
     /**
      * @brief The odom frame moved under the map (the smoothing graph changed
@@ -156,6 +163,7 @@ class RetainedLandmarks {
 
     LandmarkMapConfig config_;
     std::deque<RetainedLandmark> landmarks_;
+    StructureMap structures_;
     int next_id_{0};
     int rejected_{0};
     int ambiguous_{0};

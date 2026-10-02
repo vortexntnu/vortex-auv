@@ -10,6 +10,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "landmark_server/structures.hpp"
 
 namespace vortex::mission {
 
@@ -79,6 +80,10 @@ struct ClassRule {
     /// New landmarks closer than this to a large structure are rejected [m]
     /// (0 = off). Keeps gate legs from becoming slalom pipes.
     double min_distance_to_large_structures_m{0.0};
+    /// Only landmarks that are members of a structure (rules.structures)
+    /// count against max_instances: a false detection that fits no
+    /// structure cannot take the place of a real object of the class.
+    bool count_only_in_structure{false};
 };
 
 /// Offsets from a torpedo board icon to its opening, in the board frame
@@ -194,6 +199,9 @@ struct LandmarkMapConfig {
     /// Boxes for the markers, per (type, subtype); subtype 0 stands for
     /// every subtype of the type.
     std::map<std::pair<uint16_t, uint16_t>, MarkerBox> marker_boxes;
+
+    /// Structures from the task drawings (rules.structures): slalom sets.
+    std::vector<StructureTemplate> structures;
 
     const ClassRule& rule_for(const LandmarkClassKey& key) const;
     bool is_large_structure(const LandmarkClassKey& key) const;

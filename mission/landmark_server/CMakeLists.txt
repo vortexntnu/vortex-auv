@@ -29,6 +29,7 @@ find_package(pose_filtering REQUIRED)
 find_package(landmark_targets REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(GTSAM REQUIRED)
+find_package(Boost REQUIRED)
 
 include_directories(include)
 
@@ -40,7 +41,8 @@ add_library(${CORE_LIB_NAME} SHARED
   src/class_config.cpp
   src/course_frame.cpp
   src/map_rules.cpp
-  src/retained_landmarks.cpp)
+  src/retained_landmarks.cpp
+  src/structures.cpp)
 
 ament_target_dependencies(${CORE_LIB_NAME} PUBLIC
   vortex_msgs
@@ -48,7 +50,7 @@ ament_target_dependencies(${CORE_LIB_NAME} PUBLIC
   pose_filtering
   landmark_targets
 )
-target_link_libraries(${CORE_LIB_NAME} PUBLIC yaml-cpp)
+target_link_libraries(${CORE_LIB_NAME} PUBLIC yaml-cpp Boost::boost)
 
 # Smoothing backend (iSAM2). Own library: GTSAM stays out of the other
 # translation units.

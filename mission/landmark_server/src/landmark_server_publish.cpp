@@ -701,6 +701,62 @@ void LandmarkServerNode::publish_markers() {
         }
     }
 
+    // Structures (rules.structures): the drawing over the map. Lines from
+    // the structure origin to every member, an open slot (not seen yet) as a
+    // small sphere where the drawing expects it, and the name.
+    for (const auto& s : map_->structures().instances()) {
+        const auto positions = map_->structures().member_positions(s);
+        const auto point = [](const Eigen::Vector3d& v) {
+            geometry_msgs::msg::Point p;
+            p.x = v.x();
+            p.y = v.y();
+            p.z = v.z();
+            return p;
+        };
+        visualization_msgs::msg::Marker lines;
+        lines.header.frame_id = target_frame_;
+        lines.header.stamp = stamp;
+        lines.ns = "structure";
+        lines.id = s.id;
+        lines.action = visualization_msgs::msg::Marker::ADD;
+        lines.type = visualization_msgs::msg::Marker::LINE_LIST;
+        lines.pose.orientation.w = 1.0;
+        lines.scale.x = 0.03;
+        lines.color.r = 0.2F;
+        lines.color.g = 0.9F;
+        lines.color.b = 0.9F;
+        lines.color.a = 0.9F;
+        auto open = lines;
+        open.ns = "structure_open_slots";
+        open.type = visualization_msgs::msg::Marker::SPHERE_LIST;
+        open.scale.x = open.scale.y = open.scale.z = 0.15;
+        open.color.a = 0.35F;
+        for (std::size_t i = 0; i < positions.size(); ++i) {
+            lines.points.push_back(point(s.pose.translation()));
+            lines.points.push_back(point(positions[i]));
+            if (s.members[i] < 0) {
+                open.points.push_back(point(positions[i]));
+            }
+        }
+        array.markers.push_back(lines);
+        if (!open.points.empty()) {
+            array.markers.push_back(open);
+        }
+        auto label = lines;
+        label.ns = "structure_label";
+        label.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
+        label.points.clear();
+        label.pose.position = point(s.pose.translation() -
+                                    Eigen::Vector3d(0.0, 0.0, 0.7));
+        label.scale.z = 0.2;
+        label.color.a = 1.0F;
+        const auto filled = std::count_if(s.members.begin(), s.members.end(),
+                                          [](int m) { return m >= 0; });
+        label.text = s.tmpl.name + " (" + std::to_string(filled) + "/" +
+                     std::to_string(s.members.size()) + ")";
+        array.markers.push_back(label);
+    }
+
     // The course frame: its origin, the direction through the gate and the
     // lane bounds that are in force.
     if (course_->status() != CourseFrameStatus::UNSET) {

@@ -12,10 +12,13 @@ double RetainedLandmark::yaw() const {
 }
 
 RetainedLandmarks::RetainedLandmarks(LandmarkMapConfig config)
-    : config_(std::move(config)) {}
+    : config_(std::move(config)) {
+    structures_.set_templates(config_.structures);
+}
 
 void RetainedLandmarks::clear() {
     landmarks_.clear();
+    structures_.clear();
     ambiguous_since_.clear();
     rejected_ = 0;
     ambiguous_ = 0;
@@ -175,6 +178,9 @@ void RetainedLandmarks::update(
             landmarks_.end());
     }
 
+    // The structures as the map is now (positions from the graph).
+    structures_.update(landmarks_);
+
     for (const auto& track : confirmed) {
         // 1. A track that is already followed.
         auto followed = std::find_if(
@@ -202,6 +208,26 @@ void RetainedLandmarks::update(
                 ? std::max(gate, config_.plausibility_radius_m)
                 : gate;
 
+        // 2a. Structure-aware: a track near a filled slot of a structure
+        // (within half the distance to the next member of the drawing) is
+        // that member seen badly. It takes that landmark over, even when
+        // the covariance or the adoption radius would make a new object.
+        if (const int member =
+                structures_.filled_slot_landmark(track.class_key, position);
+            member >= 0) {
+            auto it = std::find_if(landmarks_.begin(), landmarks_.end(),
+                                   [&](const auto& l) { return l.id == member; });
+            if (it != landmarks_.end()) {
+                if (it->live_track_id < 0) {
+                    ambiguous_since_.erase(track.id);
+                    update_from_track(*it, track, now);
+                } else {
+                    ++rejected_;  // a second track on a followed member
+                }
+                continue;
+            }
+        }
+
         // 2. A remembered landmark of the same class takes the track over.
         RetainedLandmark* best = nullptr;
         double best_dist = std::numeric_limits<double>::infinity();
@@ -211,7 +237,9 @@ void RetainedLandmarks::update(
             if (lm.key != track.class_key || lm.derived) {
                 continue;
             }
-            ++instances;
+            if (!rule.count_only_in_structure || structures_.in_structure(lm.id)) {
+                ++instances;
+            }
             const double d = (lm.position - position).norm();
             if (lm.live_track_id >= 0) {
                 // A second live track on an object that is already followed

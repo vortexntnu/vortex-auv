@@ -156,6 +156,8 @@ void apply_rule_fields(const YAML::Node& node,
     rule.min_distance_to_large_structures_m =
         get_or<double>(node, "min_distance_to_large_structures_m",
                        rule.min_distance_to_large_structures_m);
+    rule.count_only_in_structure = get_or<bool>(
+        node, "count_only_in_structure", rule.count_only_in_structure);
 }
 
 }  // namespace
@@ -355,6 +357,7 @@ LandmarkMapConfig parse_map_config(const YAML::Node& root) {
     }
 
     if (const auto rules = root["rules"]) {
+        cfg.structures = parse_structures(rules["structures"]);
         cfg.plausibility_radius_m = get_or<double>(
             rules, "plausibility_radius_m", cfg.plausibility_radius_m);
         if (const auto adoption = rules["adoption"]) {

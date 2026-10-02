@@ -10,13 +10,14 @@ add_executable(test_landmark_map
   test_retained_landmarks.cpp
   test_course_frame.cpp
   test_map_rules.cpp
+  test_structures.cpp
 )
 target_link_libraries(test_landmark_map PRIVATE
   landmark_server_core
   GTest::GTest
   GTest::Main
 )
-gtest_discover_tests(test_landmark_map)
+gtest_discover_tests(test_landmark_map DISCOVERY_MODE PRE_TEST)
 
 add_executable(test_landmark_graph test_landmark_graph.cpp)
 target_link_libraries(test_landmark_graph PRIVATE
@@ -24,4 +25,4 @@ target_link_libraries(test_landmark_graph PRIVATE
   GTest::GTest
   GTest::Main
 )
-gtest_discover_tests(test_landmark_graph)
+gtest_discover_tests(test_landmark_graph DISCOVERY_MODE PRE_TEST)
