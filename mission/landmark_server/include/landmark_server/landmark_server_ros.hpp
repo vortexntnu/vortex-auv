@@ -197,6 +197,11 @@ class LandmarkServerNode : public rclcpp::Node {
     /// Smallest prediction step, for measurements older than the filter time.
     static constexpr double min_step_dt_seconds_{1e-3};
     std::string target_frame_;
+    /// Frame of what is in the graph frame (graph/start_frame_path,
+    /// odom_path, landmarks, pose): odom at the first keyframe. Parameter
+    /// graph.frame_id, default target_frame; the drift simulation sets the
+    /// true world frame so Foxglove draws them where they are.
+    std::string graph_frame_;
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
 

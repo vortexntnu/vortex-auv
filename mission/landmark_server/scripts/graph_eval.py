@@ -90,6 +90,7 @@ class GraphEval(Node):
         )
         self.declare_parameter("truth_seed", -1)
         self.declare_parameter("frame_id", "nautilus/odom")
+        self.declare_parameter("graph_frame_id", "")
         self.declare_parameter(
             "graph_path", "/nautilus/landmark_server/graph/start_frame_path"
         )
@@ -158,6 +159,9 @@ class GraphEval(Node):
         header += ["traj_graph_mean", "traj_graph_max", "traj_odom_mean", "traj_odom_max"]
         self._w.writerow(header)
         self._frame = g("frame_id").value
+        # The true path is in the graph frame (odom at the first keyframe, the
+        # true world in the drift simulation): its own frame for display.
+        self._graph_frame = g("graph_frame_id").value or self._frame
         self._marker_pub = self.create_publisher(
             MarkerArray, "/landmark_eval/markers", 1
         )
@@ -216,7 +220,7 @@ class GraphEval(Node):
     def _publish_true_path(self):
         """The true trajectory in the graph frame, every 10 cm."""
         path = Path()
-        path.header.frame_id = self._frame
+        path.header.frame_id = self._graph_frame
         path.header.stamp = self.get_clock().now().to_msg()
         if len(self._true_p) < 2:
             self._true_path_pub.publish(path)
@@ -229,7 +233,7 @@ class GraphEval(Node):
         keep.append(len(pts) - 1)
         for i, q in zip(keep, self._true_in_graph(pts[keep])):
             ps = PoseStamped()
-            ps.header.frame_id = self._frame
+            ps.header.frame_id = self._graph_frame
             ps.header.stamp = Time(seconds=self._true_t[i]).to_msg()
             ps.pose.position.x, ps.pose.position.y, ps.pose.position.z = (
                 float(v) for v in q
@@ -332,6 +336,9 @@ class GraphEval(Node):
                 if err < 0.3:
                     if prev is not None and prev != truth:
                         self._swaps[lab] += 1
+                        self.get_logger().warn(
+                            f"{lab}: id {lid} moved from {prev} to {truth}"
+                        )
                     self._assign[lab][lid] = truth
             ret = [r[3] for r in rows if r[2]]
             allv = [r[3] for r in rows]

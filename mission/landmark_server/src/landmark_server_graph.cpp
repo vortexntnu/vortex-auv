@@ -219,15 +219,16 @@ void LandmarkServerNode::publish_graph_state() {
     // Each pose carries its keyframe's stamp, so it can be compared with the
     // true pose at that time (graph_eval.py).
     const std::vector<double> stamps = graph_->keyframe_stamps();
-    const auto to_path = [&](const std::vector<Eigen::Isometry3d>& poses) {
+    const auto to_path = [&](const std::vector<Eigen::Isometry3d>& poses,
+                             const std::string& frame) {
         nav_msgs::msg::Path path;
         path.header.stamp = stamp;
-        path.header.frame_id = target_frame_;
+        path.header.frame_id = frame;
         path.poses.reserve(poses.size());
         for (std::size_t i = 0; i < poses.size(); ++i) {
             const auto& T = poses[i];
             geometry_msgs::msg::PoseStamped p;
-            p.header.frame_id = target_frame_;
+            p.header.frame_id = frame;
             p.header.stamp = rclcpp::Time(
                 static_cast<int64_t>(stamps[i] * 1e9), RCL_ROS_TIME);
             p.pose.position.x = T.translation().x();
@@ -242,14 +243,18 @@ void LandmarkServerNode::publish_graph_state() {
         }
         return path;
     };
-    graph_path_pub_->publish(to_path(graph_->keyframes_in_odom()));
-    graph_start_path_pub_->publish(to_path(graph_->keyframes_in_graph()));
+    // The smoothed path in the current odom frame; what is in the graph frame
+    // (smoothed from the start, the raw odometry, the graph's landmarks and
+    // pose) in graph_frame_.
+    graph_path_pub_->publish(to_path(graph_->keyframes_in_odom(), target_frame_));
+    graph_start_path_pub_->publish(
+        to_path(graph_->keyframes_in_graph(), graph_frame_));
 
     // The graph's own estimates with their marginal covariances, in the
     // graph frame (odom at the first keyframe): for consistency checks.
     vortex_msgs::msg::LandmarkArray landmarks;
     landmarks.header.stamp = stamp;
-    landmarks.header.frame_id = target_frame_;
+    landmarks.header.frame_id = graph_frame_;
     for (const auto& lm : graph_->landmarks_in_graph()) {
         vortex_msgs::msg::Landmark msg;
         msg.header = landmarks.header;
@@ -274,7 +279,7 @@ void LandmarkServerNode::publish_graph_state() {
         geometry_msgs::msg::PoseWithCovarianceStamped pose;
         // Stamped with the keyframe's time, so it can be compared with the
         // true pose then.
-        pose.header.frame_id = target_frame_;
+        pose.header.frame_id = graph_frame_;
         pose.header.stamp =
             rclcpp::Time(static_cast<int64_t>(stamps.back() * 1e9), RCL_ROS_TIME);
         const auto& [T, P] = *latest;
@@ -295,7 +300,7 @@ void LandmarkServerNode::publish_graph_state() {
         }
         graph_pose_pub_->publish(pose);
     }
-    graph_odom_path_pub_->publish(to_path(graph_->keyframes_raw()));
+    graph_odom_path_pub_->publish(to_path(graph_->keyframes_raw(), graph_frame_));
 
     const Eigen::Isometry3d c = graph_->correction();
     std_msgs::msg::Float64MultiArray stats;

@@ -212,6 +212,11 @@ void LandmarkServerNode::create_map() {
         {"intake", "course_frame", "classes", "rules", "markers", "graph"});
     map_config_ = parse_map_config(tree);
     graph_ = std::make_unique<LandmarkGraph>(parse_graph_config(tree["graph"]));
+    graph_frame_ = target_frame_;
+    if (tree["graph"] && tree["graph"]["frame_id"] &&
+        !tree["graph"]["frame_id"].as<std::string>().empty()) {
+        graph_frame_ = tree["graph"]["frame_id"].as<std::string>();
+    }
     if (graph_->config().enable) {
         spdlog::info("LandmarkServer: iSAM2 smoothing backend enabled");
     }
