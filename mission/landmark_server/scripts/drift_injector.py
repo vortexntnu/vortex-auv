@@ -21,6 +21,8 @@ correct. This node plays a drifting state estimator:
   another frame (a real detector in the camera frame) is first put in
   world_frame with the true TF at its stamp.
 - drift (PoseStamped): odom_drift <- world, for evaluation.
+- TF world_frame -> frame_id (when they differ): the drift, so what is
+  built on the drifted data is drawn where it is in the world.
 - Optional camera noise on the detections (the dummy's are exact): along
   the line of sight from the true vehicle position std = depth_std_base +
   depth_std_per_m * d, across it lateral_std_base + lateral_std_per_m * d,
@@ -38,13 +40,18 @@ import math
 
 import numpy as np
 import rclpy
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from rclpy.time import Time
-from tf2_ros import Buffer, TransformException, TransformListener
+from tf2_ros import (
+    Buffer,
+    TransformBroadcaster,
+    TransformException,
+    TransformListener,
+)
 from vortex_msgs.msg import LandmarkArray
 
 
@@ -113,6 +120,9 @@ class DriftInjector(Node):
         self.declare_parameter("odom_out", "/nautilus/odom_drift")
         self.declare_parameter("landmarks_in", "/nautilus/landmarks_true")
         self.declare_parameter("landmarks_out", "/nautilus/landmarks_drift")
+        # Frame of the drifted odometry and detections. A name other than
+        # world_frame gets a TF world_frame -> frame_id (the drift), so the
+        # map built on the drifted data is drawn where it is in the world.
         self.declare_parameter("frame_id", "nautilus/odom")
         # The simulator's true odom frame (TF), for detections in other frames.
         self.declare_parameter("world_frame", "nautilus/odom")
@@ -150,6 +160,9 @@ class DriftInjector(Node):
         self._world_frame = g("world_frame").value
         self._tf = Buffer()
         self._tf_listener = TransformListener(self._tf, self, spin_thread=True)
+        self._tf_broadcaster = (
+            TransformBroadcaster(self) if self._frame != self._world_frame else None
+        )
 
         self._true_prev = None
         self._odom = None  # drifted pose (4x4)
@@ -206,6 +219,21 @@ class DriftInjector(Node):
         d.header = out.header
         mat_to_pose(self._c, d.pose)
         self._drift_pub.publish(d)
+
+        if self._tf_broadcaster is not None:
+            # world <- odom_drift: a point of the drifted frame in the world.
+            inv = np.linalg.inv(self._c)
+            p = Pose()
+            mat_to_pose(inv, p)
+            tf = TransformStamped()
+            tf.header.stamp = msg.header.stamp
+            tf.header.frame_id = self._world_frame
+            tf.child_frame_id = self._frame
+            tf.transform.translation.x = p.position.x
+            tf.transform.translation.y = p.position.y
+            tf.transform.translation.z = p.position.z
+            tf.transform.rotation = p.orientation
+            self._tf_broadcaster.sendTransform(tf)
 
     def _gyro_step(self, dt):
         """Heading error [rad] over dt: bias, Gauss-Markov bias, ARW."""
