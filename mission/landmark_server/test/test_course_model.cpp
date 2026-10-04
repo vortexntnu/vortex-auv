@@ -428,6 +428,17 @@ TEST(CourseModel, WithoutGroupsTheFitFindsTheVersion) {
     EXPECT_EQ(icons, 4);
 }
 
+TEST(CourseModel, BeforeTheVersionIsDecidedAnIconShowsWhatWasSeen) {
+    World w;
+    TrackVotes votes;
+    votes[11] = {{{LT::TORPEDO_BOARD, LS::TORPEDO_ICON_BLOOD}, 3}};  // too few to decide
+    w.tick(board_tracks(), votes);
+    const auto& board = w.task("torpedo");
+    ASSERT_TRUE(board.placed);
+    EXPECT_FALSE(board.variant_fixed);
+    EXPECT_EQ(w.in_slot("torpedo/fire")->key.subtype, LS::TORPEDO_ICON_BLOOD);
+}
+
 TEST(CourseModel, AMislabelledIconCannotRemoveAnother) {
     // Blood seen as fire and a phantom fire 1.6 m away: one kind, one slot
     // each, and a track outside its slot's gate maps nothing.

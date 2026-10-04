@@ -391,13 +391,26 @@ Eigen::Vector3d CourseModel::slot_position(const Task& t, std::size_t slot) cons
 LandmarkClassKey CourseModel::slot_class(const Task& t, std::size_t slot) const {
     const Slot& s = t.slots[slot];
     const auto& m = t.tmpl->variants[t.variant].members[s.member[t.variant]];
-    if (m.classes.size() == 1) {
-        return m.classes.front();
+    // The classes this part can have: of the variant in use, or, while the
+    // variant is not decided, of any variant (then the part shows what was
+    // seen there, not a guess of the variant).
+    std::vector<LandmarkClassKey> classes = m.classes;
+    if (t.tmpl->variants.size() > 1 && !t.variant_fixed && !t.committed) {
+        for (std::size_t vi = 0; vi < t.tmpl->variants.size(); ++vi) {
+            for (const auto& c : t.tmpl->variants[vi].members[s.member[vi]].classes) {
+                if (std::find(classes.begin(), classes.end(), c) == classes.end()) {
+                    classes.push_back(c);
+                }
+            }
+        }
+    }
+    if (classes.size() == 1) {
+        return classes.front();
     }
     LandmarkClassKey best = m.classes.front();
     int best_votes = 0;
     const auto votes = part_votes(t, slot);
-    for (const auto& c : m.classes) {
+    for (const auto& c : classes) {
         const auto it = votes.find(pair_of(c));
         const int n = it == votes.end() ? 0 : it->second;
         if (n > best_votes) {
