@@ -303,6 +303,9 @@ std::vector<StructureTemplate> parse_structures(const YAML::Node& node) {
         if (n["variant_margin_chi2"]) {
             t.variant_margin_chi2 = n["variant_margin_chi2"].as<double>();
         }
+        if (n["balanced_classes"]) {
+            t.balanced_classes = n["balanced_classes"].as<bool>();
+        }
         const Eigen::Vector3d sigma = n["sigma"]
                                           ? parse_vec3(n["sigma"], where + ".sigma")
                                           : Eigen::Vector3d(0.2, 0.2, 0.3);

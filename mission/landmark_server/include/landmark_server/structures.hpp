@@ -51,6 +51,10 @@ struct StructureTemplate {
     double fit_probability{0.99};
     /// With several variants, the best must be this much better (chi-square).
     double variant_margin_chi2{6.0};
+    /// The parts that allow several classes use each of them equally often
+    /// (one Search & Rescue and one Survey & Repair panel, two bins of each
+    /// role, each octagon image once): the classes are decided together.
+    bool balanced_classes{false};
     std::vector<StructureVariant> variants;
 
     bool has_member_class(const LandmarkClassKey& key) const;

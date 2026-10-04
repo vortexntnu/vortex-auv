@@ -168,6 +168,9 @@ class CourseModel {
         /// Reported classes of the tracks this part had before the one it
         /// has now (see part_votes).
         std::map<std::pair<uint16_t, uint16_t>, int> past_votes;
+        /// The class decided together with the task's other parts
+        /// (balanced_classes), if any.
+        std::optional<LandmarkClassKey> assigned;
     };
     struct Task {
         const TaskSpec* spec{nullptr};
@@ -295,6 +298,9 @@ class CourseModel {
     int tick_{0};
     /// A part lets go of its track: its votes stay with the part.
     void release(Slot& s);
+    /// balanced_classes: the class of each part that allows several, the
+    /// assignment with each class equally often that the votes support most.
+    void assign_balanced(Task& t);
     /// Detections associated to a track over its life.
     int detections(int track_id) const;
 };

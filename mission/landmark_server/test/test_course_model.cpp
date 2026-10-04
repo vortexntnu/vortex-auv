@@ -503,6 +503,48 @@ TEST(CourseModel, APipeOnAGatePostIsTheGatePost) {
     EXPECT_EQ(w.map.course().intake_reject(kPipe, v(0.05, 1.5), at_gate()), "other_task");
 }
 
+TEST(CourseModel, TheRolesAreDecidedTogether) {
+    // Two role panels, one of each role. Both were mostly seen as Search &
+    // Rescue (a phantom of the other role next to one): the one seen as it
+    // most keeps it, the other gets the other role, never two of a kind.
+    auto cfg = example_config();
+    cfg.course = parse_map_config(YAML::Load(R"(
+course:
+  enable: true
+  min_part_detections: 0
+  class_groups:
+    panels: [GATE_SEARCH_RESCUE, GATE_SURVEY_REPAIR]
+  templates:
+    gate:
+      balanced_classes: true
+      members:
+        whole: {class: GATE_WHOLE, offset: [0.0, 0.0, 0.0]}
+        panel_left: {class: [GATE_SEARCH_RESCUE, GATE_SURVEY_REPAIR], offset: [0.0, -0.78, -0.45]}
+        panel_right: {class: [GATE_SEARCH_RESCUE, GATE_SURVEY_REPAIR], offset: [0.0, 0.78, -0.45]}
+  tasks:
+    gate: {template: gate, prior: [0.0, 0.0, 0.0], region_radius_m: 2.0, min_parts: 1}
+)")).course;
+    RetainedLandmarks map(cfg);
+    RetainedLandmarks::CourseInput in;
+    in.geometry = at_gate();
+    const LandmarkClassKey panel{LT::GATE, LS::GATE_SEARCH_RESCUE};
+    const std::vector<Track> tracks = {
+        make_track(1, LT::GATE, LS::GATE_WHOLE, v(0.0, 0.0, 2.7), true, false),
+        make_track(2, panel.type, panel.subtype, v(0.0, -0.78, 2.25), true, false),
+        make_track(3, panel.type, panel.subtype, v(0.0, 0.78, 2.25), true, false)};
+    in.votes[2] = {{{LT::GATE, LS::GATE_SEARCH_RESCUE}, 10}};
+    in.votes[3] = {{{LT::GATE, LS::GATE_SEARCH_RESCUE}, 6}, {{LT::GATE, LS::GATE_SURVEY_REPAIR}, 2}};
+    map.update(tracks, 0.0, {}, in);
+    in.votes.clear();
+    map.update(tracks, 0.2, {}, in);
+    std::map<std::string, uint16_t> role;
+    for (const auto& l : map.landmarks()) {
+        role[l.course_slot] = l.key.subtype;
+    }
+    EXPECT_EQ(role["gate/panel_left"], LS::GATE_SEARCH_RESCUE);
+    EXPECT_EQ(role["gate/panel_right"], LS::GATE_SURVEY_REPAIR);
+}
+
 TEST(CourseModel, TheTrackerMakesNoMoreTracksThanThereArePartsPlusAFew) {
     World w;
     const auto limits = w.map.course().track_limits();

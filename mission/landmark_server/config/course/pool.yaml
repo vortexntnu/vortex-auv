@@ -52,6 +52,8 @@
         # post between the openings. Left/right as the vehicle comes from
         # the start (the gate's front faces the start: task yaw 180).
         gate:
+          # The roles: each class equally often (handbook), decided together.
+          balanced_classes: true
           sigma: [0.2, 0.2, 0.3]
           members:
             whole: {class: GATE_WHOLE, offset: [0.000, 0.000, 0.000]}
@@ -97,6 +99,8 @@
         # (no role), and the role icon on the floor of each (down camera;
         # which bin has which role is drawn per run: the votes decide).
         bins:
+          # The roles: each class equally often (handbook), decided together.
+          balanced_classes: true
           sigma: [0.15, 0.15, 0.3]
           members:
             rig: {class: BIN_STRUCTURE, offset: [0.000, 0.000, 0.000]}
@@ -111,6 +115,8 @@
         # Task 5: the table with its two baskets (roles drawn per run). The
         # items on it are moved during the run: free landmarks, not parts.
         table:
+          # The roles: each class equally often (handbook), decided together.
+          balanced_classes: true
           sigma: [0.15, 0.15, 0.3]
           members:
             table: {class: TABLE_WHOLE, offset: [0.000, 0.000, 0.000]}
@@ -119,6 +125,8 @@
         # Task 5: the octagon floating over the table and its four image
         # plates (which image is where is drawn per run).
         octagon:
+          # The roles: each class equally often (handbook), decided together.
+          balanced_classes: true
           sigma: [0.2, 0.2, 0.3]
           members:
             octagon: {class: OCTAGON_WHOLE, offset: [0.000, 0.000, 0.000]}

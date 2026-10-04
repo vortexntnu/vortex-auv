@@ -390,6 +390,9 @@ Eigen::Vector3d CourseModel::slot_position(const Task& t, std::size_t slot) cons
 
 LandmarkClassKey CourseModel::slot_class(const Task& t, std::size_t slot) const {
     const Slot& s = t.slots[slot];
+    if (s.assigned) {
+        return *s.assigned;
+    }
     const auto& m = t.tmpl->variants[t.variant].members[s.member[t.variant]];
     // The classes this part can have: of the variant in use, or, while the
     // variant is not decided, of any variant (then the part shows what was
@@ -430,6 +433,67 @@ int CourseModel::detections(int track_id) const {
         }
     }
     return n;
+}
+
+void CourseModel::assign_balanced(Task& t) {
+    // The parts that allow several classes, and those classes.
+    std::vector<std::size_t> multi;
+    std::vector<LandmarkClassKey> classes;
+    for (std::size_t i = 0; i < t.slots.size(); ++i) {
+        const auto& m = t.tmpl->variants[t.variant].members[t.slots[i].member[t.variant]];
+        if (m.classes.size() < 2) {
+            continue;
+        }
+        multi.push_back(i);
+        for (const auto& c : m.classes) {
+            if (std::find(classes.begin(), classes.end(), c) == classes.end()) {
+                classes.push_back(c);
+            }
+        }
+    }
+    if (multi.empty() || classes.empty() || multi.size() % classes.size() != 0) {
+        return;
+    }
+    const int per_class = static_cast<int>(multi.size() / classes.size());
+    std::vector<std::map<ClassPair, int>> votes;
+    int total = 0;
+    for (const auto i : multi) {
+        votes.push_back(part_votes(t, i));
+        for (const auto& [c, n] : votes.back()) {
+            total += n;
+        }
+    }
+    if (total == 0) {
+        return;  // nothing seen yet: keep what there is
+    }
+    // Every assignment with each class per_class times (at most 4! of them).
+    std::vector<int> used(classes.size(), 0);
+    std::vector<std::size_t> pick(multi.size(), 0);
+    std::vector<std::size_t> best_pick;
+    int best = -1;
+    const std::function<void(std::size_t, int)> search = [&](std::size_t k, int score) {
+        if (k == multi.size()) {
+            if (score > best) {
+                best = score;
+                best_pick = pick;
+            }
+            return;
+        }
+        for (std::size_t c = 0; c < classes.size(); ++c) {
+            if (used[c] == per_class) {
+                continue;
+            }
+            const auto it = votes[k].find(pair_of(classes[c]));
+            ++used[c];
+            pick[k] = c;
+            search(k + 1, score + (it == votes[k].end() ? 0 : it->second));
+            --used[c];
+        }
+    };
+    search(0, 0);
+    for (std::size_t k = 0; k < multi.size(); ++k) {
+        t.slots[multi[k]].assigned = classes[best_pick[k]];
+    }
 }
 
 void CourseModel::release(Slot& s) {
@@ -623,7 +687,7 @@ std::optional<std::string> CourseModel::intake_reject(
         }
         for (std::size_t i = 0; i < t.slots.size(); ++i) {
             if (t.slots[i].landmark_id >= 0 &&
-                (slot_position(t, i) - position).head<2>().norm() < t.slots[i].gate_m) {
+                slot_distance(slot_position(t, i), position) < t.slots[i].gate_m) {
                 return std::string("other_task");
             }
         }
@@ -729,6 +793,9 @@ std::set<int> CourseModel::update(const std::vector<KindTrack>& tracks,
     }
     // Classes follow the variant and the votes.
     for (auto& t : tasks_) {
+        if (t.tmpl->balanced_classes) {
+            assign_balanced(t);
+        }
         for (std::size_t i = 0; i < t.slots.size(); ++i) {
             if (RetainedLandmark* lm = t.slots[i].landmark_id >= 0
                                            ? store.find(t.slots[i].landmark_id)
