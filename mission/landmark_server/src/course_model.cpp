@@ -260,6 +260,7 @@ CourseConfig parse_course_config(const YAML::Node& node) {
                 get_d(n, "yaw_window_deg", t.yaw_window_rad * 180.0 / M_PI) *
                 M_PI / 180.0;
             t.symmetric = n["symmetric"] ? n["symmetric"].as<bool>() : false;
+            t.max_range_m = get_d(n, "max_range_m", t.max_range_m);
             const auto* tmpl = cfg.template_for(t);
             if (tmpl == nullptr) {
                 throw std::runtime_error(where + ": unknown template '" +
@@ -524,12 +525,14 @@ std::optional<Eigen::Isometry3d> CourseModel::working_pose(
 std::optional<std::string> CourseModel::intake_reject(
     const LandmarkClassKey& kind,
     const Eigen::Vector3d& position,
-    const CourseGeometry& geo) const {
+    const CourseGeometry& geo,
+    const std::optional<Eigen::Vector3d>& vehicle) const {
     if (!config_.enable) {
         return std::nullopt;
     }
     bool templated = false;
     bool in_locked = false;
+    bool too_far = false;
     for (const auto& t : tasks_) {
         bool has_kind = false;
         for (std::size_t i = 0; i < t.slots.size() && !has_kind; ++i) {
@@ -556,6 +559,11 @@ std::optional<std::string> CourseModel::intake_reject(
         if (!inside) {
             continue;
         }
+        if (t.spec->max_range_m > 0.0 && vehicle &&
+            (position - *vehicle).norm() > t.spec->max_range_m) {
+            too_far = true;
+            continue;
+        }
         if (!locked(t)) {
             return std::nullopt;
         }
@@ -567,7 +575,10 @@ std::optional<std::string> CourseModel::intake_reject(
     if (!geo.set) {
         return std::string("course_frame_unset");
     }
-    return std::string(in_locked ? "task_locked" : "outside_tasks");
+    if (in_locked) {
+        return std::string("task_locked");
+    }
+    return std::string(too_far ? "too_far" : "outside_tasks");
 }
 
 std::set<int> CourseModel::update(const std::vector<KindTrack>& tracks,

@@ -19,6 +19,14 @@ void LandmarkServerNode::gate_measurements(std::vector<Landmark>& measurements) 
     const CourseModel& course = map_->course();
     const CourseGeometry geo = course_geometry();
     const bool lane = course_->status() != CourseFrameStatus::UNSET;
+    std::optional<Eigen::Vector3d> vehicle;
+    {
+        std::lock_guard<std::mutex> lock(odom_mtx_);
+        if (last_odom_position_) {
+            vehicle = Eigen::Vector3d(last_odom_position_->x, last_odom_position_->y,
+                                      last_odom_position_->z);
+        }
+    }
     std::vector<Landmark> kept;
     kept.reserve(measurements.size());
     for (auto& m : measurements) {
@@ -30,7 +38,7 @@ void LandmarkServerNode::gate_measurements(std::vector<Landmark>& measurements) 
         }
         if (course.enabled()) {
             m.class_key = course.config().kind_of(m.class_key);
-            if (const auto reason = course.intake_reject(m.class_key, p, geo)) {
+            if (const auto reason = course.intake_reject(m.class_key, p, geo, vehicle)) {
                 ++drop_counts_[*reason];
                 continue;
             }

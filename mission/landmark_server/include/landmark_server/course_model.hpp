@@ -50,6 +50,10 @@ struct TaskSpec {
     bool symmetric{false};
     /// Parts needed to place the task. 1: the part alone, at the prior yaw.
     int min_parts{2};
+    /// Detections of its parts farther than this from the vehicle are not
+    /// taken [m] (0 = any range): far detections of small parts are noisy
+    /// and biased, and a part is kept for the whole run.
+    double max_range_m{0.0};
 };
 
 struct CourseConfig {
@@ -203,9 +207,11 @@ class CourseModel {
 
     /// Intake: may a detection of this kind at this position go to the
     /// tracker? Empty = yes, else the reason it is dropped.
-    std::optional<std::string> intake_reject(const LandmarkClassKey& kind,
-                                             const Eigen::Vector3d& position,
-                                             const CourseGeometry& geo) const;
+    std::optional<std::string> intake_reject(
+        const LandmarkClassKey& kind,
+        const Eigen::Vector3d& position,
+        const CourseGeometry& geo,
+        const std::optional<Eigen::Vector3d>& vehicle = std::nullopt) const;
 
     /// Focus: tasks the mission works on (empty = all), others frozen when
     /// lock_others. Unknown names give an error message.

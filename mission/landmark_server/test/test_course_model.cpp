@@ -282,6 +282,19 @@ TEST(CourseModel, AFalsePipeNextToAPlacedSetIsNoObject) {
     EXPECT_FALSE(course.intake_reject(kPipe, v(4.2, 0.1), at_gate()));
 }
 
+TEST(CourseModel, SmallPartsAreTakenOnlyUpClose) {
+    auto cfg = course_config();
+    for (auto& t : cfg.course.tasks) {
+        if (t.name == "torpedo") {
+            t.max_range_m = 5.0;
+        }
+    }
+    RetainedLandmarks map(cfg);
+    const auto icon = board_part(0.206, -0.214);
+    EXPECT_EQ(map.course().intake_reject(kHazard, icon, at_gate(), v(6.0, -5.0)), "too_far");
+    EXPECT_FALSE(map.course().intake_reject(kHazard, icon, at_gate(), v(10.0, -5.0)));
+}
+
 TEST(CourseModel, TheNextSetIsSearchedWhereTheFirstSaysItIs) {
     World w;
     // The first set stands 0.8 m to the right of its prior.
