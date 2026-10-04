@@ -95,9 +95,11 @@ struct LandmarkClassConfig {
     // no track of its class is closer than this [m]. 0 = off.
     double new_track_min_distance = 0.0;
 
-    // At most this many tracks of the class, confirmed or not: a measurement
-    // that goes to no track starts none when the class is full. 0 = no
-    // limit.
+    // At most this many confirmed tracks of the class, and twice as many in
+    // all: a measurement that goes to no track starts none when the class is
+    // full. Unconfirmed tracks are counted against the looser bound only,
+    // so a burst of clutter cannot keep a real object from getting a track.
+    // 0 = no limit.
     int max_tracks = 0;
 };
 

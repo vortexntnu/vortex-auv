@@ -81,19 +81,32 @@ TEST_F(PoseTrackManagerTests, a_full_class_starts_no_new_track) {
     cfg.default_class_config.max_tracks = 2;
     PoseTrackManager mgr(cfg);
 
-    // Three objects in one frame: two tracks, the third waits.
+    // Unconfirmed tracks: up to twice the limit (clutter cannot block a
+    // real object), then no more.
     std::vector<Landmark> first{make_landmark({0.0, 0.0, 0.0}),
                                 make_landmark({2.0, 0.0, 0.0}),
-                                make_landmark({4.0, 0.0, 0.0})};
+                                make_landmark({4.0, 0.0, 0.0}),
+                                make_landmark({6.0, 0.0, 0.0}),
+                                make_landmark({8.0, 0.0, 0.0})};
     mgr.step(first, 0.1);
-    EXPECT_EQ(mgr.get_tracks().size(), 2u);
+    EXPECT_EQ(mgr.get_tracks().size(), 4u);
 
-    // Unconfirmed tracks count too, and the known objects still update.
-    std::vector<Landmark> second{make_landmark({0.0, 0.0, 0.0}),
-                                 make_landmark({6.0, 0.0, 0.0})};
-    mgr.step(second, 0.1);
-    EXPECT_EQ(mgr.get_tracks().size(), 2u);
-    EXPECT_EQ(mgr.get_tracks()[0].hits(), 2);
+    // Two confirmed: the class is full, the known objects still update.
+    for (int i = 0; i < 5; ++i) {
+        std::vector<Landmark> f{make_landmark({0.0, 0.0, 0.0}),
+                                make_landmark({2.0, 0.0, 0.0})};
+        mgr.step(f, 0.1);
+    }
+    std::vector<Landmark> more{make_landmark({0.0, 0.0, 0.0}),
+                               make_landmark({2.0, 0.0, 0.0}),
+                               make_landmark({10.0, 0.0, 0.0})};
+    mgr.step(more, 0.1);
+    int confirmed = 0;
+    for (const auto& t : mgr.get_tracks()) {
+        confirmed += t.confirmed ? 1 : 0;
+        EXPECT_GT(std::abs(t.nominal_state.pos.x() - 10.0), 1e-9);
+    }
+    EXPECT_EQ(confirmed, 2);
 }
 
 TEST_F(PoseTrackManagerTests, the_reported_class_comes_back_with_the_association) {

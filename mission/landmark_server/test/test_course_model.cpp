@@ -493,6 +493,16 @@ TEST(CourseModel, ACommittedTaskKeepsItsPose) {
     EXPECT_LT((w.task("slalom_1").pose.translation() - before).norm(), 1e-9);
 }
 
+TEST(CourseModel, APipeOnAGatePostIsTheGatePost) {
+    World w;
+    for (int i = 0; i < 2; ++i) {
+        w.tick({make_track(30, LT::GATE, LS::GATE_WHOLE, v(0.0, 0.0, 2.7), true, false),
+                make_track(31, LT::GATE, LS::GATE_POLE_EDGE, v(0.0, 1.55, 2.7), true, false)});
+    }
+    ASSERT_TRUE(w.task("gate").placed);
+    EXPECT_EQ(w.map.course().intake_reject(kPipe, v(0.05, 1.5), at_gate()), "other_task");
+}
+
 TEST(CourseModel, TheTrackerMakesNoMoreTracksThanThereArePartsPlusAFew) {
     World w;
     const auto limits = w.map.course().track_limits();

@@ -608,6 +608,26 @@ std::optional<std::string> CourseModel::intake_reject(
     bool templated = false;
     bool in_locked = false;
     bool too_far = false;
+    // A detection on a part of a placed task that has no part of this kind
+    // (a gate post called a pipe) is that part, not an object of its own.
+    for (const auto& t : tasks_) {
+        if (!t.placed || !geo.set) {
+            continue;
+        }
+        bool has_kind = false;
+        for (std::size_t i = 0; i < t.slots.size() && !has_kind; ++i) {
+            has_kind = slot_accepts(t, i, kind);
+        }
+        if (has_kind) {
+            continue;
+        }
+        for (std::size_t i = 0; i < t.slots.size(); ++i) {
+            if (t.slots[i].landmark_id >= 0 &&
+                (slot_position(t, i) - position).head<2>().norm() < t.slots[i].gate_m) {
+                return std::string("other_task");
+            }
+        }
+    }
     for (const auto& t : tasks_) {
         bool has_kind = false;
         for (std::size_t i = 0; i < t.slots.size() && !has_kind; ++i) {
