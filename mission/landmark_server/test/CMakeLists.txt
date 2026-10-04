@@ -11,6 +11,7 @@ add_executable(test_landmark_map
   test_course_frame.cpp
   test_map_rules.cpp
   test_structures.cpp
+  test_course_model.cpp
 )
 target_link_libraries(test_landmark_map PRIVATE
   landmark_server_core

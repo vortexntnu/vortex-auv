@@ -40,6 +40,7 @@ set(CORE_LIB_NAME "${PROJECT_NAME}_core")
 add_library(${CORE_LIB_NAME} SHARED
   src/class_config.cpp
   src/course_frame.cpp
+  src/course_model.cpp
   src/map_rules.cpp
   src/retained_landmarks.cpp
   src/structures.cpp)
@@ -66,6 +67,7 @@ add_library(${LIB_NAME} SHARED
   src/landmark_server_publish.cpp
   src/landmark_server_ros_debug.cpp
   src/landmark_server_graph.cpp
+  src/landmark_server_course.cpp
   src/landmark_ros_conversion.cpp)
 
 target_link_libraries(${LIB_NAME} PUBLIC ${CORE_LIB_NAME} ${GRAPH_LIB_NAME})

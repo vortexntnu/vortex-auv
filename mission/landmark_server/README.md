@@ -4,8 +4,10 @@ The **Landmark Server** is the map. It receives detections (`LandmarkArray`), tr
 
 ```
 perception (position without orientation) ─ LandmarkArray ─▶ intake
-   ─▶ PoseTrackManager (live tracks, PDAF, N/M)
-   ─▶ RetainedLandmarks (stable ids, memory, class rules)
+   ─▶ intake gate (lane, course tasks, focus; confusable classes -> one kind)
+   ─▶ PoseTrackManager (live tracks, PDAF, N/M, tracks per class limited)
+   ─▶ CourseModel (one landmark per part of each task) + RetainedLandmarks
+      (stable ids, memory, class rules for the other classes)
    ─▶ LandmarkGraph (iSAM2: keyframes + landmarks, corrects odometry drift)
    ─▶ map rules (yaw, openings, roles, octagon) ─▶ object_map
 course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
@@ -18,12 +20,14 @@ course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
 | `landmarks` | topic in (`LandmarkArray`) | Detections. `header.stamp` = image time, `frame_id` = camera frame (TF to `target_frame` at that time) |
 | `odom` | topic in (`Odometry`) | Vehicle pose: pipe distance limit, which side of the gate is the front, and the keyframes of the graph. Its frame must be `target_frame` or have a static TF to it |
 | `landmark_server/object_map` | topic out (`LandmarkTrackArray`) | The map: stable ids, `retained`, `has_orientation`, `derived`, `first_seen`, `last_measurement`, `observations` |
-| `landmark_server/markers` | topic out (`visualization_msgs/MarkerArray`) | The map for Foxglove/RViz: a cube per landmark (faded if only remembered), its name with id, age and `derived` when a rule made it, an arrow along +X when the yaw is known, and the course direction and lane bounds in force. Classes in `markers.boxes` get their real size: PVC pipes (gate posts, slalom pipes) as solid pipes instead of the cube, large structures (gate, torpedo board, bin rig, table, octagon) as a see-through box around it (the whole gate gets no cube: only its two poster plates do). Colour per type, except the torpedo board parts: openings (`TORPEDO_TARGET_*`) as yellow spheres (large or small), icons as flat magenta squares on the board face |
+| `landmark_server/markers` | topic out (`visualization_msgs/MarkerArray`) | The map for Foxglove/RViz: each course task (placed: lines to its parts, parts never seen as spheres; not placed: its search circle; name, parts seen, variant, locked/committed), a cube per landmark (faded if only remembered), its name with id, age and `derived` when a rule made it, an arrow along +X when the yaw is known, and the course direction and lane bounds in force. Classes in `markers.boxes` get their real size: PVC pipes (gate posts, slalom pipes) as solid pipes instead of the cube, large structures (gate, torpedo board, bin rig, table, octagon) as a see-through box around it (the whole gate gets no cube: only its two poster plates do). Colour per type, except the torpedo board parts: openings (`TORPEDO_TARGET_*`) as yellow spheres (large or small), icons as flat magenta squares on the board face |
 | `landmark_server/live_tracks` | topic out (`LandmarkTrackArray`) | The live tracks of the tracker (always on) |
 | `landmark_server/course_frame_state` | topic out (`CourseFrameState`, latched) | `UNSET` / `COARSE` / `GATE_LOCKED` |
 | TF `nautilus/course` | TF (child of `target_frame`) | Course frame: x through the gate, y to the right, z down. Not published while `UNSET` |
 | `landmark_server/set_course_frame` | service (`SetCourseFrame`) | Start value from the start pose and the coin flip (0, ±π/2 or π). Rejects NaN and illegal angles |
 | `landmark_server/clear` | service (`std_srvs/Empty`) | Empty the map and the live tracks |
+| `landmark_server/set_focus` | service (`SetMapFocus`) | The tasks the mission works on (empty = all), `lock_others` freezes the rest, `commit`/`uncommit` freeze a task's pose and variant. BT node `SetMapFocus` (vortex_bt_nodes) |
+| `landmark_server/course_state` | topic out (`CourseState`, latched) | Every task: placed or not, locked, committed, variant, pose, its parts (class now, landmark id, live, where the template puts it, class votes), and the detections dropped at intake by reason |
 | `mission/wipe` | topic in (`Empty`) | Clear everything, including the course frame |
 | `LandmarkPolling` | action server | Wait for a confirmed live track of a type/subtype (unchanged) |
 
@@ -44,14 +48,63 @@ course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
 | Torpedo board | Icons more than `board.icon_radius_m` from the board (the measured board, else the median of the icons) are ignored. Yaw and centre from the icon pairs (the normals of both pairs are added; only within `board.yaw_max_distance_m` when set). Version from the icon heights: fire above blood or firetruck above ambulance = 1; a pair votes only with `board.version_min_dz_m` height difference, pairs that disagree give no vote, and `board.version_lock_votes` agreeing votes lock it. `TORPEDO_TARGET_*` from icon + `torpedo_targets_from_icons` offsets (board frame; placeholder values, to be measured on our board); the opening of an ignored icon is hidden |
 | Bins | The role icon seen by the down camera gives the role of the nearest bin; the roleless duplicate is hidden |
 | Table and octagon | One xy for both, from `table_octagon.primary`: `table`, `octagon` or `midpoint`. The missing one is derived: the octagon over the table, or (with `z_lock` on) the table `table_height_m` above the floor under the octagon. With `z_lock` on the octagon floats at `surface_z` |
-| Structures | `rules.structures`: rigid arrangements from the task drawings (a slalom set: white, red, white 1.52 m apart; members with class, offset and `sigma` in the structure frame). Fitted to the mapped landmarks every tick (pairs with the right spacing, least squares, joint chi-square), kept refitted, new members join open slots. Drawn in the markers (lines to every member, open slots as spheres, name). A new task is a new entry, live like the other rules |
-| Structure-aware initialisation | A new track near a filled slot of a structure (within half the distance to the next member of the drawing, 0.76 m for slalom) takes that member over: a bad view of a pipe is that pipe, not a second one. `count_only_in_structure` (on for slalom pipes): only pipes in a set count against `max_instances`, so a false pipe cannot block a real one |
-| Overlapping classes | `rules.exclusive_groups`: classes that cannot stand at one place (white and red pipe). Two landmarks of a group closer than `distance_m` are one object seen as two classes: the one in a structure slot stays (the drawing says which colour stands there), else the one seen more often; the other is removed and its track ignored while it lives |
 | Large structures | A new large structure within `large_structure_separation_m` (xy) of one of another type is not mapped: one object seen as two classes keeps the class seen first |
 | Depth lock | `rules.z_lock`: floor classes get `floor_z`, surface classes `surface_z` (odom z, down positive). Entries can be a type (`OCTAGON`) or one subtype (`OCTAGON_WHOLE`). The table is not locked: its top is ~0.7 m above the floor. Off by default in code, on in the config with the simulator's pool depth: measure the real one |
 | Detector covariance | `intake.measurement_covariance.use`: the position covariance of the detection (rotated into `target_frame`) replaces the class noise and the distance noise, in the tracker and the graph. `scale` multiplies it (testing), `min_std_m` is a floor. Off by default |
 | Distance noise | `intake.distance_noise`: the tracker adds `base + per_meter * distance` to the position variance along the line of sight (depth) and `lateral_ratio` times that across it, so far detections weigh less and the depth, which a camera knows worst, weighs least. The covariance from perception is not used for the position |
 | Association | One tracker update per camera frame (same stamp), in time order; hits and misses are counted once per tick. Per class, global nearest neighbour: squared Mahalanobis distance as the cost, the gate (`gate.max_pos_error`, `mahalanobis_gate_threshold`) as the limit, the Hungarian algorithm for the one-to-one assignment. Each track is then updated by PDAF with its own measurement |
+
+## Course model (config `course`, `config/course/<env>.yaml`)
+
+The course layout is known before a run: which tasks there are, what each
+looks like and roughly where it is. The map does not discover objects from
+scratch; it places the known tasks and fills in their parts.
+
+- **Templates** (`course.templates`): a task's parts as classes at offsets in
+  the task frame (+X out of the front, +Y right, +Z down), with `sigma` (how
+  well the prop and the detector follow the drawing). A part can allow
+  several classes (bin roles, baskets, octagon images: the votes decide), and
+  a template can have variants that differ only in classes (the torpedo
+  decal versions, decided by the votes, then fixed).
+- **Tasks** (`course.tasks`): a template at a prior `[x, y, yaw_deg]` in the
+  course frame (origin at the gate, x through it), `region_radius_m` (how far
+  the prior may be off), `yaw_window_deg` (`symmetric` for a template that
+  looks the same turned around), `min_parts` to place it (1: the part alone
+  at the prior yaw), `part_radius_m` (after placing). `course.start`: the
+  start position in that frame, since the course frame starts at the start
+  pose and moves to the gate when the gate locks it.
+- **Class groups** (`course.class_groups`): classes a detector mixes up
+  (white/red pipe, fire/blood, firetruck/ambulance, the role images). They
+  are tracked as one kind; a part's class comes from the template (the red
+  stands in the middle) or the votes, never from one detection.
+- **Intake** (before the tracker): a detection outside the lane box, or of a
+  class that is a part of some task but far from every task that has it
+  (outside the region of a task not placed yet, more than `part_radius_m`
+  from the part of a placed one), or only in locked tasks, is dropped and
+  counted (`course_state.drop_reasons`). Without a course frame no task class
+  is taken. Classes in no template (table items, path markers) go on as free
+  landmarks under `classes`.
+- **Tracker limit**: per kind the parts in the course plus
+  `extra_tracks_per_kind`; per other class `max_instances` plus that.
+- **Placing a task**: its template is fitted to the confirmed tracks of its
+  kinds in its region: yaw within the window, centre within the region, at
+  least `min_parts` parts, reported classes not against the template. A task
+  not placed is searched where its nearest placed neighbour says (the prior
+  moved by that task's offset).
+- **Parts**: one landmark per part, stable id, never forgotten, never more.
+  A part follows a track while it stays within the part's gate (half the
+  distance to the next part, at least `min_slot_gate_m`, horizontally); a
+  free part takes the nearest unclaimed track of its kind in the gate (a
+  remembered part keeps its id, so the graph sees it again). A track that
+  fits no part is no object. The task pose is refitted to its parts (within
+  the yaw window) and moves with the graph correction.
+- **Focus** (`set_focus`): outside the focus with `lock_others`, a task is
+  frozen (no new parts, no refit) and its detections are dropped. `commit`
+  freezes a task's pose and variant.
+
+`course.enable: false` (no layout yet, e.g. `pool.yaml` until it is
+measured): every class is mapped as a free landmark, as before the course
+model. The layout is read at start (`course` is not live).
 
 ## Changing rules while it runs
 
@@ -191,11 +244,13 @@ ros2 launch landmark_server landmark_server.launch.py env:=pool
 |---|---|
 | `config/sim.yaml` | The simulator's pool floor (`z_lock` on, 3.432 m), torpedo board offsets from its textures, lane limits. Noise values: the common ones (do not tune them in the simulator) |
 | `config/pool.yaml` | The tuning sheet for a real pool: every value that must be measured, marked `MEASURE`, with the test it comes from. `z_lock` is off until the floor depth is measured |
+| `config/course/sim.yaml` | The simulator's course layout (every task, its template and prior), from the course meshes |
+| `config/course/pool.yaml` | The course layout for a real pool: the handbook templates, priors marked `MEASURE`, `enable: false` until measured. `course:=<name or path>` loads another layout |
 
 ## Files
 
-- ROS-free (gtest): `class_config`, `retained_landmarks`, `course_frame`, `map_rules`, `landmark_graph` (own library, the only one that includes GTSAM)
-- ROS: `landmark_server_ros.cpp` (intake, tick, polling, reset), `landmark_server_publish.cpp` (map, live tracks, course frame, services), `landmark_server_graph.cpp` (odometry, measurements to the graph, smoothed positions into the map)
+- ROS-free (gtest): `class_config`, `retained_landmarks`, `course_model` (tasks, parts, intake regions, focus), `structures` (template fitting), `course_frame`, `map_rules`, `landmark_graph` (own library, the only one that includes GTSAM)
+- ROS: `landmark_server_ros.cpp` (intake, tick, polling, reset), `landmark_server_publish.cpp` (map, live tracks, course frame, services), `landmark_server_graph.cpp` (odometry, measurements to the graph, smoothed positions into the map), `landmark_server_course.cpp` (intake gate, tracker limits, set_focus, course_state)
 
 ```bash
 ros2 topic echo /nautilus/landmark_server/object_map

@@ -2,10 +2,11 @@
 #define LANDMARK_SERVER__STRUCTURES_HPP_
 
 #include <yaml-cpp/yaml.h>
+#include <cmath>
 #include <cstddef>
-#include <deque>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
+#include <limits>
 #include <optional>
 #include <pose_filtering/lib/typedefs.hpp>
 #include <string>
@@ -14,7 +15,6 @@
 
 namespace vortex::mission {
 
-struct RetainedLandmark;
 using vortex::filtering::LandmarkClassKey;
 
 /// One part of a structure in the structure frame (+X out of the front, +Y
@@ -90,73 +90,39 @@ double member_chi2(const StructureMember& m,
                    const Eigen::Isometry3d& pose,
                    const FitLandmark& lm);
 
+/// Where a placement may lie: yaw within a window around a prior yaw (also
+/// turned 180 deg for a template that looks the same both ways), position
+/// (xy) within a radius of a prior point.
+struct FitPrior {
+    double yaw{0.0};
+    double yaw_window{M_PI};
+    bool symmetric{false};
+    Eigen::Vector2d center{Eigen::Vector2d::Zero()};
+    double radius{std::numeric_limits<double>::infinity()};
+
+    bool allows(const Eigen::Isometry3d& pose) const;
+};
+
 /**
  * @brief Best placement of a template on free landmarks: hypotheses from
  * every pair that fits two members with a horizontal baseline, the other
  * members by chi-square, yaw and position by weighted least squares, worst
  * members dropped until the whole placement passes chi-square. Needs
- * min_members. With several variants the best must be clearly better.
+ * min_members (or @p min_members when > 0). With several variants the best
+ * must be clearly better. With a prior, placements outside it are not
+ * considered.
  */
-std::optional<StructureFit> fit_structure(const StructureTemplate& tmpl,
-                                          const std::vector<FitLandmark>& free);
+std::optional<StructureFit> fit_structure(
+    const StructureTemplate& tmpl,
+    const std::vector<FitLandmark>& free,
+    const std::optional<FitPrior>& prior = std::nullopt,
+    int min_members = 0);
 
 /// Refit the yaw and position of a placement to its members.
 Eigen::Isometry3d refit_pose(const StructureVariant& variant,
                              const Eigen::Isometry3d& pose,
                              const std::vector<std::pair<std::size_t, FitLandmark>>&
                                  members);
-
-/**
- * @brief The structures in the map (slalom sets ...), kept from tick to
- * tick on top of RetainedLandmarks. ROS-free.
- *
- * Each tick (update): an instance is refitted to its members' current
- * positions (members whose landmark is gone are dropped), landmarks that fit
- * an open slot join it, and free landmarks that fit a template make a new
- * instance.
- *
- * Structure-aware initialisation (queried by RetainedLandmarks for a new
- * track): where a structure stands, its drawing says where the members are.
- * A track near a filled slot, within half the distance to the next member
- * of the drawing, is that member seen badly: it takes that landmark over
- * instead of becoming a new object.
- */
-class StructureMap {
-   public:
-    struct Instance {
-        int id{-1};
-        StructureTemplate tmpl;
-        std::size_t variant{0};
-        Eigen::Isometry3d pose{Eigen::Isometry3d::Identity()};
-        /// Landmark id per member of the variant, -1 = open.
-        std::vector<int> members;
-    };
-
-    void set_templates(std::vector<StructureTemplate> templates) {
-        templates_ = std::move(templates);
-    }
-
-    void update(const std::deque<RetainedLandmark>& landmarks);
-
-    /// The landmark of a filled slot that accepts @p key and lies within the
-    /// slot's exclusion radius of @p position, or -1.
-    int filled_slot_landmark(const LandmarkClassKey& key,
-                             const Eigen::Vector3d& position) const;
-
-    bool in_structure(int landmark_id) const;
-
-    /// Where every member of an instance should be (odom).
-    std::vector<Eigen::Vector3d> member_positions(const Instance& s) const;
-
-    const std::vector<Instance>& instances() const { return instances_; }
-
-    void clear() { instances_.clear(); }
-
-   private:
-    std::vector<StructureTemplate> templates_;
-    std::vector<Instance> instances_;
-    int next_id_{0};
-};
 
 }  // namespace vortex::mission
 

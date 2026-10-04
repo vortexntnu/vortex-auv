@@ -156,8 +156,6 @@ void apply_rule_fields(const YAML::Node& node,
     rule.min_distance_to_large_structures_m =
         get_or<double>(node, "min_distance_to_large_structures_m",
                        rule.min_distance_to_large_structures_m);
-    rule.count_only_in_structure = get_or<bool>(
-        node, "count_only_in_structure", rule.count_only_in_structure);
 }
 
 }  // namespace
@@ -231,11 +229,6 @@ bool in_class_list(const std::vector<std::pair<uint16_t, uint16_t>>& list,
 }
 
 }  // namespace
-
-bool LandmarkMapConfig::ExclusiveGroup::contains(
-    const LandmarkClassKey& key) const {
-    return in_class_list(classes, key);
-}
 
 bool ZLockConfig::is_floor(const LandmarkClassKey& key) const {
     return enable && in_class_list(floor_classes, key);
@@ -361,8 +354,9 @@ LandmarkMapConfig parse_map_config(const YAML::Node& root) {
         }
     }
 
+    cfg.course = parse_course_config(root["course"]);
+
     if (const auto rules = root["rules"]) {
-        cfg.structures = parse_structures(rules["structures"]);
         cfg.plausibility_radius_m = get_or<double>(
             rules, "plausibility_radius_m", cfg.plausibility_radius_m);
         if (const auto adoption = rules["adoption"]) {
@@ -467,27 +461,6 @@ LandmarkMapConfig parse_map_config(const YAML::Node& root) {
             load(targets["version_1"], mr.torpedo_version_1);
             load(targets["version_2"], mr.torpedo_version_2);
         }
-        if (const auto groups = rules["exclusive_groups"]) {
-            for (const auto& kv : groups) {
-                LandmarkMapConfig::ExclusiveGroup g;
-                g.name = kv.first.as<std::string>();
-                const std::string where = "rules.exclusive_groups." + g.name;
-                for (const auto& item : kv.second["classes"]) {
-                    const auto parsed = parse_class_name(item.as<std::string>());
-                    if (!parsed) {
-                        throw std::runtime_error(where + ": unknown class " +
-                                                 item.as<std::string>());
-                    }
-                    g.classes.push_back(*parsed);
-                }
-                g.distance_m = get_or<double>(kv.second, "distance_m", 0.0);
-                if (g.classes.size() < 2 || !(g.distance_m > 0.0)) {
-                    throw std::runtime_error(
-                        where + " needs two or more classes and distance_m > 0");
-                }
-                cfg.exclusive_groups.push_back(std::move(g));
-            }
-        }
         if (const auto ls = rules["large_structures"]) {
             for (const auto& item : ls) {
                 const auto parsed = parse_class_name(item.as<std::string>());
@@ -572,6 +545,7 @@ parse_per_class_track_config(
             get_or<double>(n, "clutter_intensity", c.clutter_intensity);
         c.new_track_min_distance = get_or<double>(n, "new_track_min_distance_m",
                                                   c.new_track_min_distance);
+        c.max_tracks = get_or<int>(n, "max_tracks", c.max_tracks);
     };
 
     for (int pass = 0; pass < 2; ++pass) {

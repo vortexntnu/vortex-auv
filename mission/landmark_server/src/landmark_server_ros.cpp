@@ -257,6 +257,8 @@ void LandmarkServerNode::timer_callback() {
         measurements_snapshot = std::move(measurements_);
         measurements_.clear();
     }
+    apply_pending_map_config();
+    gate_measurements(measurements_snapshot);
 
     // One tracker update per camera frame (same stamp), in time order, so
     // two frames of the same object are fused one after the other instead
@@ -312,6 +314,7 @@ void LandmarkServerNode::timer_callback() {
     update_map();
     publish_map();
     publish_course_frame();
+    publish_course_state();
 
     if (debug_) {
         publish_debug_tracks();

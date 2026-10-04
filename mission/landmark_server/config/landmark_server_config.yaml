@@ -107,9 +107,6 @@
         retain_sec: 15.0
         keep_after_observations: 30
         min_distance_to_large_structures_m: 1.5
-        # Only pipes in a slalom set (rules.structures) count against
-        # max_instances: a false pipe cannot block a real one.
-        count_only_in_structure: true
       PATH_MARKER: {max_instances: 2, retain_sec: 15.0}
       TORPEDO_BOARD: {max_instances: 1, retain: forever}
       # Handbook 3.2.4: two bins per role (blood, fire).
@@ -158,33 +155,10 @@
       # rules.torpedo_targets_from_icons (icon -> opening offsets) is per
       # environment.
 
-      # Classes that cannot stand at the same place: two landmarks of a
-      # group closer than distance_m are one object seen as two classes (a
-      # pipe called white in some frames, red in others). The one in a
-      # structure slot is kept (the drawing says which colour stands there),
-      # else the one seen more often; the other is removed.
-      exclusive_groups:
-        slalom_pipes: {classes: [SLALOM_PIPE_WHITE, SLALOM_PIPE_RED], distance_m: 0.7}
-
-      # Structures from the task drawings. Structure frame: +X out of the
-      # front, +Y right, +Z down; offset per member, sigma how well the prop
-      # and the detector follow the drawing [m]. Used for initialisation: a
-      # new track near a filled slot (within half the distance to the next
-      # member) is that member seen badly, not a new object. A new task is a
-      # new entry here (ros2 param set / load works while running).
-      structures:
-        # Task 2: three sets of WHITE-RED-WHITE across the course, the red on
-        # a tee in the middle of two 60" (1.52 m) bars (Task02_Debris).
-        slalom_set:
-          max_instances: 3
-          min_members: 2
-          # The drawing is followed to ~0.07 m, but the slalom detector's
-          # range is off by 0.2-0.3 m up close.
-          sigma: [0.2, 0.2, 0.3]
-          members:
-            white_left: {class: SLALOM_PIPE_WHITE, offset: [0.0, -1.52, 0.0]}
-            red: {class: SLALOM_PIPE_RED, offset: [0.0, 0.0, 0.0]}
-            white_right: {class: SLALOM_PIPE_WHITE, offset: [0.0, 1.52, 0.0]}
+    # The course layout (tasks, their parts and where they are) is per
+    # environment: config/course/<env>.yaml, loaded by the launch file. With
+    # it, the classes that are parts of a task are mapped only as those
+    # parts; `classes` then applies to the other classes only.
 
     # Boxes of the real size in the markers, from the simulator's meshes.
     # size: [x out of the front, y right, z down] [m]; offset: box centre

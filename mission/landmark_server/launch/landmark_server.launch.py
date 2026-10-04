@@ -22,6 +22,16 @@ def launch_setup(context, *args, **kwargs):
         raise RuntimeError(f"env must be sim or pool, not '{env}'")
     # Loaded after the common file: its values win.
     env_config = os.path.join(config_dir, f"{env}.yaml")
+    # The course layout: config/course/<env>.yaml unless course:= names
+    # another file (a path, or a name in config/course).
+    course = LaunchConfiguration("course").perform(context) or env
+    course_config = (
+        course
+        if os.path.isabs(course)
+        else os.path.join(config_dir, "course", f"{course}.yaml")
+    )
+    if not os.path.isfile(course_config):
+        raise RuntimeError(f"no course layout file {course_config}")
 
     drone_params = os.path.join(
         get_package_share_directory("auv_setup"),
@@ -39,6 +49,7 @@ def launch_setup(context, *args, **kwargs):
             parameters=[
                 landmark_config,
                 env_config,
+                course_config,
                 drone_params,
                 {
                     "use_sim_time": False,
@@ -57,6 +68,12 @@ def generate_launch_description():
                 "env",
                 default_value="sim",
                 description="sim (simulator values) or pool (values measured in the pool)",
+            ),
+            DeclareLaunchArgument(
+                "course",
+                default_value="",
+                description="Course layout: a file in config/course (without .yaml) "
+                "or an absolute path; empty = the one of env",
             ),
             OpaqueFunction(function=launch_setup),
         ]

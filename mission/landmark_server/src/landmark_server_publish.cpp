@@ -87,7 +87,9 @@ YAML::Node overrides_to_yaml(
 const std::vector<std::string> kLiveRoots = {"intake", "course_frame",
                                              "classes", "rules", "markers"};
 /// Tracker and graph settings: read once at start.
-const std::vector<std::string> kRestartRoots = {"track_config", "graph"};
+/// Tracker, graph and course layout: read once at start.
+const std::vector<std::string> kRestartRoots = {"track_config", "graph",
+                                                "course"};
 
 std::string root_of(const std::string& name) {
     return name.substr(0, name.find('.'));
@@ -198,6 +200,7 @@ void LandmarkServerNode::apply_pending_map_config() {
     if (!pending) {
         return;
     }
+    pending->course = map_config_.course;  // read at start only
     map_config_ = std::move(*pending);
     map_->set_config(map_config_);
     course_->set_config(map_config_.course_frame);
@@ -209,7 +212,8 @@ void LandmarkServerNode::create_map() {
         this->get_node_parameters_interface()->get_parameter_overrides();
     const YAML::Node tree = overrides_to_yaml(
         overrides,
-        {"intake", "course_frame", "classes", "rules", "markers", "graph"});
+        {"intake", "course_frame", "classes", "rules", "markers", "graph",
+         "course"});
     map_config_ = parse_map_config(tree);
     graph_ = std::make_unique<LandmarkGraph>(parse_graph_config(tree["graph"]));
     graph_frame_ = target_frame_;
@@ -261,6 +265,22 @@ void LandmarkServerNode::create_map() {
     }
 
     map_ = std::make_unique<RetainedLandmarks>(map_config_);
+    // The tracker makes no more tracks of a class than the map can use.
+    apply_track_limits();
+    track_manager_ = std::make_unique<vortex::filtering::PoseTrackManager>(
+        track_manager_config_);
+    if (map_config_.course.enable) {
+        std::string tasks;
+        for (const auto& t : map_config_.course.tasks) {
+            tasks += (tasks.empty() ? "" : ", ") + t.name;
+        }
+        spdlog::info("LandmarkServer: course layout with {} tasks: {}",
+                     map_config_.course.tasks.size(), tasks);
+    } else {
+        spdlog::warn(
+            "LandmarkServer: no course layout (course.enable false): every "
+            "class is mapped as a free landmark");
+    }
     course_ = std::make_unique<CourseFrameTracker>(map_config_.course_frame);
     intake_config_ = map_config_.intake;
     declare_config_parameters(overrides);
@@ -307,6 +327,17 @@ void LandmarkServerNode::create_map() {
             handle_clear(req, res);
         },
         rmw_qos_profile_services_default, timer_cb_group_);
+    set_focus_srv_ = this->create_service<vortex_msgs::srv::SetMapFocus>(
+        "landmark_server/set_focus",
+        [this](const std::shared_ptr<vortex_msgs::srv::SetMapFocus::Request> req,
+               std::shared_ptr<vortex_msgs::srv::SetMapFocus::Response> res) {
+            handle_set_focus(req, res);
+        },
+        rmw_qos_profile_services_default, timer_cb_group_);
+    course_state_pub_ = this->create_publisher<vortex_msgs::msg::CourseState>(
+        this->declare_parameter<std::string>("topics.course_state",
+                                             "landmark_server/course_state"),
+        rclcpp::QoS(1).reliable().transient_local());
 
     publish_course_frame();
 }
@@ -338,6 +369,7 @@ void LandmarkServerNode::handle_clear(
     // The map and the live tracks: a track that is still confirmed would
     // otherwise put its landmark straight back.
     map_->clear();
+    drop_counts_.clear();
     clear_graph();
     track_manager_ = std::make_unique<vortex::filtering::PoseTrackManager>(
         track_manager_config_);
@@ -347,6 +379,7 @@ void LandmarkServerNode::handle_clear(
 
 void LandmarkServerNode::reset_map() {
     map_->clear();
+    drop_counts_.clear();
     clear_graph();
     course_->reset();
     publish_course_frame();
@@ -368,7 +401,15 @@ void LandmarkServerNode::update_map() {
         }
     }
     const double now = this->now().seconds();
-    map_->update(confirmed, now, filter);
+    // The classes the detector reported for each track this tick, and the
+    // course frame, for the course model.
+    RetainedLandmarks::CourseInput course_input;
+    for (const auto& a : tick_associations_) {
+        const auto& c = a.measurement.reported_class;
+        ++course_input.votes[a.track_id][{c.type, c.subtype}];
+    }
+    course_input.geometry = course_geometry();
+    map_->update(confirmed, now, filter, course_input);
     // Smoothed positions replace the tracker's before the rules use them.
     update_graph();
 
@@ -701,11 +742,12 @@ void LandmarkServerNode::publish_markers() {
         }
     }
 
-    // Structures (rules.structures): the drawing over the map. Lines from
-    // the structure origin to every member, an open slot (not seen yet) as a
-    // small sphere where the drawing expects it, and the name.
-    for (const auto& s : map_->structures().instances()) {
-        const auto positions = map_->structures().member_positions(s);
+    // Course tasks: a placed task as lines from its origin to every part
+    // and the parts never seen as spheres where the template expects them;
+    // a task not placed yet as the circle it is searched in. Name, parts
+    // seen, variant, locked / committed.
+    {
+        const CourseModel& course = map_->course();
         const auto point = [](const Eigen::Vector3d& v) {
             geometry_msgs::msg::Point p;
             p.x = v.x();
@@ -713,48 +755,86 @@ void LandmarkServerNode::publish_markers() {
             p.z = v.z();
             return p;
         };
-        visualization_msgs::msg::Marker lines;
-        lines.header.frame_id = target_frame_;
-        lines.header.stamp = stamp;
-        lines.ns = "structure";
-        lines.id = s.id;
-        lines.action = visualization_msgs::msg::Marker::ADD;
-        lines.type = visualization_msgs::msg::Marker::LINE_LIST;
-        lines.pose.orientation.w = 1.0;
-        lines.scale.x = 0.03;
-        lines.color.r = 0.2F;
-        lines.color.g = 0.9F;
-        lines.color.b = 0.9F;
-        lines.color.a = 0.9F;
-        auto open = lines;
-        open.ns = "structure_open_slots";
-        open.type = visualization_msgs::msg::Marker::SPHERE_LIST;
-        open.scale.x = open.scale.y = open.scale.z = 0.15;
-        open.color.a = 0.35F;
-        for (std::size_t i = 0; i < positions.size(); ++i) {
-            lines.points.push_back(point(s.pose.translation()));
-            lines.points.push_back(point(positions[i]));
-            if (s.members[i] < 0) {
-                open.points.push_back(point(positions[i]));
+        int task_id = 0;
+        for (const auto& t : course.tasks()) {
+            if (!t.placed && course_->status() == CourseFrameStatus::UNSET) {
+                continue;
             }
+            const bool locked = course.locked(t);
+            visualization_msgs::msg::Marker lines;
+            lines.header.frame_id = target_frame_;
+            lines.header.stamp = stamp;
+            lines.ns = "course_task";
+            lines.id = task_id;
+            lines.action = visualization_msgs::msg::Marker::ADD;
+            lines.type = visualization_msgs::msg::Marker::LINE_LIST;
+            lines.pose.orientation.w = 1.0;
+            lines.scale.x = 0.03;
+            lines.color.r = locked ? 0.5F : 0.2F;
+            lines.color.g = locked ? 0.5F : 0.9F;
+            lines.color.b = locked ? 0.5F : 0.9F;
+            lines.color.a = t.placed ? 0.9F : 0.4F;
+            auto open = lines;
+            open.ns = "course_open_parts";
+            open.type = visualization_msgs::msg::Marker::SPHERE_LIST;
+            open.scale.x = open.scale.y = open.scale.z = 0.15;
+            open.color.a = 0.35F;
+            int seen = 0;
+            if (t.placed) {
+                for (std::size_t i = 0; i < t.slots.size(); ++i) {
+                    const Eigen::Vector3d p = course.slot_position(t, i);
+                    lines.points.push_back(point(t.pose.translation()));
+                    lines.points.push_back(point(p));
+                    if (t.slots[i].landmark_id < 0) {
+                        open.points.push_back(point(p));
+                    } else {
+                        ++seen;
+                    }
+                }
+            } else {
+                // The search region: a circle around the prior.
+                lines.type = visualization_msgs::msg::Marker::LINE_STRIP;
+                const double r = t.spec->region_radius_m;
+                for (int k = 0; k <= 36; ++k) {
+                    const double a = 2.0 * M_PI * k / 36.0;
+                    lines.points.push_back(point(
+                        t.pose.translation() +
+                        Eigen::Vector3d(r * std::cos(a), r * std::sin(a), 0.0)));
+                }
+            }
+            array.markers.push_back(lines);
+            if (!open.points.empty()) {
+                array.markers.push_back(open);
+            }
+            auto label = lines;
+            label.ns = "course_task_label";
+            label.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
+            label.points.clear();
+            label.pose.position = point(t.pose.translation() -
+                                        Eigen::Vector3d(0.0, 0.0, 0.7));
+            label.scale.z = 0.2;
+            label.color.a = 1.0F;
+            std::string text = t.spec->name;
+            if (t.placed) {
+                text += " (" + std::to_string(seen) + "/" +
+                        std::to_string(t.slots.size()) + ")";
+                const auto v = course.variant_name(t);
+                if (t.tmpl->variants.size() > 1) {
+                    text += v.empty() ? " ?" : " " + v;
+                }
+            } else {
+                text += " (searching)";
+            }
+            if (locked) {
+                text += " locked";
+            }
+            if (t.committed) {
+                text += " committed";
+            }
+            label.text = text;
+            array.markers.push_back(label);
+            ++task_id;
         }
-        array.markers.push_back(lines);
-        if (!open.points.empty()) {
-            array.markers.push_back(open);
-        }
-        auto label = lines;
-        label.ns = "structure_label";
-        label.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
-        label.points.clear();
-        label.pose.position = point(s.pose.translation() -
-                                    Eigen::Vector3d(0.0, 0.0, 0.7));
-        label.scale.z = 0.2;
-        label.color.a = 1.0F;
-        const auto filled = std::count_if(s.members.begin(), s.members.end(),
-                                          [](int m) { return m >= 0; });
-        label.text = s.tmpl.name + " (" + std::to_string(filled) + "/" +
-                     std::to_string(s.members.size()) + ")";
-        array.markers.push_back(label);
     }
 
     // The course frame: its origin, the direction through the gate and the

@@ -6,7 +6,6 @@
 #include <stdexcept>
 #include <tuple>
 #include "landmark_server/class_config.hpp"
-#include "landmark_server/retained_landmarks.hpp"
 
 namespace vortex::mission {
 
@@ -201,7 +200,9 @@ bool better(const Hypothesis& a, const Hypothesis& b) {
 
 std::optional<Hypothesis> best_for_variant(const StructureTemplate& tmpl,
                                            const StructureVariant& v,
-                                           const std::vector<FitLandmark>& lms) {
+                                           const std::vector<FitLandmark>& lms,
+                                           const std::optional<FitPrior>& prior,
+                                           int min_members) {
     std::optional<Hypothesis> best;
     for (std::size_t s1 = 0; s1 < v.members.size(); ++s1) {
         for (std::size_t s2 = 0; s2 < v.members.size(); ++s2) {
@@ -237,7 +238,10 @@ std::optional<Hypothesis> best_for_variant(const StructureTemplate& tmpl,
                     assign(tmpl, v, lms, h);
                     refine(v, lms, h);
                     enforce_joint_fit(tmpl, v, lms, h);
-                    if (static_cast<int>(h.members.size()) < tmpl.min_members) {
+                    if (static_cast<int>(h.members.size()) < min_members) {
+                        continue;
+                    }
+                    if (prior && !prior->allows(make_pose(h.yaw, h.t))) {
                         continue;
                     }
                     if (!best || better(h, *best)) {
@@ -335,11 +339,26 @@ double member_chi2(const StructureMember& m,
     return r.dot(member_cov(m, pose.linear(), lm).ldlt().solve(r));
 }
 
+bool FitPrior::allows(const Eigen::Isometry3d& pose) const {
+    if ((pose.translation().head<2>() - center).norm() > radius) {
+        return false;
+    }
+    const double yaw_dev = std::abs(std::remainder(yaw_of(pose) - yaw, 2.0 * M_PI));
+    if (yaw_dev <= yaw_window) {
+        return true;
+    }
+    return symmetric && std::abs(M_PI - yaw_dev) <= yaw_window;
+}
+
 std::optional<StructureFit> fit_structure(const StructureTemplate& tmpl,
-                                          const std::vector<FitLandmark>& free) {
+                                          const std::vector<FitLandmark>& free,
+                                          const std::optional<FitPrior>& prior,
+                                          int min_members) {
+    const int need = min_members > 0 ? min_members : tmpl.min_members;
     std::vector<std::pair<std::size_t, Hypothesis>> bests;
     for (std::size_t vi = 0; vi < tmpl.variants.size(); ++vi) {
-        if (auto h = best_for_variant(tmpl, tmpl.variants[vi], free)) {
+        if (auto h = best_for_variant(tmpl, tmpl.variants[vi], free, prior,
+                                      need)) {
             bests.emplace_back(vi, std::move(*h));
         }
     }
@@ -382,166 +401,6 @@ Eigen::Isometry3d refit_pose(
     }
     refine(variant, lms, h);
     return make_pose(h.yaw, h.t);
-}
-
-namespace {
-
-FitLandmark to_fit(const RetainedLandmark& l) {
-    FitLandmark f;
-    f.id = l.id;
-    f.key = l.key;
-    f.position = l.position;
-    const Eigen::Matrix3d P = l.covariance.topLeftCorner<3, 3>();
-    // A floor: the tracker's covariance shrinks to nothing on a static object.
-    f.covariance = P + Eigen::Matrix3d::Identity() * 0.05 * 0.05;
-    return f;
-}
-
-}  // namespace
-
-void StructureMap::update(const std::deque<RetainedLandmark>& landmarks) {
-    const auto find = [&](int id) -> const RetainedLandmark* {
-        for (const auto& l : landmarks) {
-            if (l.id == id) {
-                return &l;
-            }
-        }
-        return nullptr;
-    };
-
-    // Existing instances: drop members that are gone, refit the pose.
-    for (auto& s : instances_) {
-        const auto& v = s.tmpl.variants[s.variant];
-        std::vector<std::pair<std::size_t, FitLandmark>> members;
-        for (std::size_t mi = 0; mi < s.members.size(); ++mi) {
-            const RetainedLandmark* l = s.members[mi] >= 0 ? find(s.members[mi])
-                                                           : nullptr;
-            if (l == nullptr) {
-                s.members[mi] = -1;
-                continue;
-            }
-            members.emplace_back(mi, to_fit(*l));
-        }
-        s.pose = refit_pose(v, s.pose, members);
-    }
-    // An instance with fewer than two members left is gone.
-    std::erase_if(instances_, [](const Instance& s) {
-        return std::count_if(s.members.begin(), s.members.end(),
-                             [](int m) { return m >= 0; }) < 2;
-    });
-
-    std::vector<FitLandmark> free;
-    for (const auto& l : landmarks) {
-        if (!l.derived && !in_structure(l.id)) {
-            free.push_back(to_fit(l));
-        }
-    }
-    const auto take = [&](int id) {
-        std::erase_if(free, [id](const FitLandmark& f) { return f.id == id; });
-    };
-
-    // Open slots of existing instances.
-    for (auto& s : instances_) {
-        const auto& v = s.tmpl.variants[s.variant];
-        std::vector<std::tuple<double, std::size_t, int>> pairs;
-        for (std::size_t mi = 0; mi < s.members.size(); ++mi) {
-            if (s.members[mi] >= 0) {
-                continue;
-            }
-            for (const auto& f : free) {
-                if (!v.members[mi].accepts(f.key)) {
-                    continue;
-                }
-                const double c = member_chi2(v.members[mi], s.pose, f);
-                if (c <= s.tmpl.member_gate_chi2) {
-                    pairs.emplace_back(c, mi, f.id);
-                }
-            }
-        }
-        std::sort(pairs.begin(), pairs.end());
-        for (const auto& [c, mi, id] : pairs) {
-            const bool still_free = std::any_of(
-                free.begin(), free.end(), [&](const auto& f) { return f.id == id; });
-            if (s.members[mi] < 0 && still_free) {
-                s.members[mi] = id;
-                take(id);
-            }
-        }
-    }
-
-    // New instances.
-    for (const auto& tmpl : templates_) {
-        int count = static_cast<int>(std::count_if(
-            instances_.begin(), instances_.end(),
-            [&](const Instance& s) { return s.tmpl.name == tmpl.name; }));
-        while (count < tmpl.max_instances) {
-            std::vector<FitLandmark> cands;
-            for (const auto& f : free) {
-                if (tmpl.has_member_class(f.key)) {
-                    cands.push_back(f);
-                }
-            }
-            if (static_cast<int>(cands.size()) < tmpl.min_members) {
-                break;
-            }
-            const auto fit = fit_structure(tmpl, cands);
-            if (!fit) {
-                break;
-            }
-            Instance s;
-            s.id = next_id_++;
-            s.tmpl = tmpl;
-            s.variant = fit->variant;
-            s.pose = fit->pose;
-            s.members.assign(tmpl.variants[fit->variant].members.size(), -1);
-            for (const auto& [mi, id] : fit->members) {
-                s.members[mi] = id;
-                take(id);
-            }
-            instances_.push_back(std::move(s));
-            ++count;
-        }
-    }
-}
-
-int StructureMap::filled_slot_landmark(const LandmarkClassKey& key,
-                                       const Eigen::Vector3d& position) const {
-    for (const auto& s : instances_) {
-        const auto& members = s.tmpl.variants[s.variant].members;
-        for (std::size_t mi = 0; mi < members.size(); ++mi) {
-            if (s.members[mi] < 0 || !members[mi].accepts(key)) {
-                continue;
-            }
-            // Half the distance to the next member of the drawing.
-            double nearest = std::numeric_limits<double>::infinity();
-            for (std::size_t o = 0; o < members.size(); ++o) {
-                if (o != mi) {
-                    nearest = std::min(
-                        nearest, (members[o].offset - members[mi].offset).norm());
-                }
-            }
-            if ((s.pose * members[mi].offset - position).norm() < 0.5 * nearest) {
-                return s.members[mi];
-            }
-        }
-    }
-    return -1;
-}
-
-bool StructureMap::in_structure(int landmark_id) const {
-    return std::any_of(instances_.begin(), instances_.end(), [&](const auto& s) {
-        return std::find(s.members.begin(), s.members.end(), landmark_id) !=
-               s.members.end();
-    });
-}
-
-std::vector<Eigen::Vector3d> StructureMap::member_positions(
-    const Instance& s) const {
-    std::vector<Eigen::Vector3d> out;
-    for (const auto& m : s.tmpl.variants[s.variant].members) {
-        out.push_back(s.pose * m.offset);
-    }
-    return out;
 }
 
 }  // namespace vortex::mission

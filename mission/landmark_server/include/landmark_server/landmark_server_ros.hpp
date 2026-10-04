@@ -26,7 +26,9 @@
 #include <vortex_msgs/msg/course_frame_state.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include <vortex_msgs/msg/landmark_track_array.hpp>
+#include <vortex_msgs/msg/course_state.hpp>
 #include <vortex_msgs/srv/set_course_frame.hpp>
+#include <vortex_msgs/srv/set_map_focus.hpp>
 
 #include <pose_filtering/lib/pose_track_manager.hpp>
 #include "landmark_server/class_config.hpp"
@@ -126,6 +128,23 @@ class LandmarkServerNode : public rclcpp::Node {
         std::shared_ptr<vortex_msgs::srv::SetCourseFrame::Response> res);
     void handle_clear(const std::shared_ptr<std_srvs::srv::Empty::Request> req,
                       std::shared_ptr<std_srvs::srv::Empty::Response> res);
+    void handle_set_focus(
+        const std::shared_ptr<vortex_msgs::srv::SetMapFocus::Request> req,
+        std::shared_ptr<vortex_msgs::srv::SetMapFocus::Response> res);
+
+    /// How the course frame maps to odom now (for the course model).
+    CourseGeometry course_geometry() const;
+    /**
+     * @brief Intake before the tracker: lane bounds, the course model's
+     * regions and focus. Confusable classes become their kind
+     * (reported_class keeps what the detector said). Dropped detections are
+     * counted per reason.
+     */
+    void gate_measurements(std::vector<Landmark>& measurements);
+    /// Tracker limits per class: the course's parts per kind, max_instances
+    /// for the other classes, plus the extra tracks.
+    void apply_track_limits();
+    void publish_course_state();
     vortex_msgs::msg::LandmarkTrack retained_to_msg(
         const RetainedLandmark& lm) const;
     vortex_msgs::msg::LandmarkTrack live_track_to_msg(
@@ -258,6 +277,12 @@ class LandmarkServerNode : public rclcpp::Node {
     rclcpp::Service<vortex_msgs::srv::SetCourseFrame>::SharedPtr
         set_course_frame_srv_;
     rclcpp::Service<std_srvs::srv::Empty>::SharedPtr clear_srv_;
+    rclcpp::Service<vortex_msgs::srv::SetMapFocus>::SharedPtr set_focus_srv_;
+    rclcpp::Publisher<vortex_msgs::msg::CourseState>::SharedPtr
+        course_state_pub_;
+    /// Detections dropped at intake, by reason (since start or clear).
+    std::map<std::string, int64_t> drop_counts_;
+    int course_warn_ticks_{0};
 
     bool debug_{false};
     rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr

@@ -12,14 +12,11 @@ double RetainedLandmark::yaw() const {
 }
 
 RetainedLandmarks::RetainedLandmarks(LandmarkMapConfig config)
-    : config_(std::move(config)) {
-    structures_.set_templates(config_.structures);
-}
+    : config_(std::move(config)), course_(config_.course) {}
 
 void RetainedLandmarks::clear() {
     landmarks_.clear();
-    structures_.clear();
-    suppressed_tracks_.clear();
+    course_.clear();
     ambiguous_since_.clear();
     rejected_ = 0;
     ambiguous_ = 0;
@@ -45,6 +42,7 @@ void RetainedLandmarks::apply_correction(
             lm.position = delta * lm.position;
         }
     }
+    course_.apply_correction(delta);
 }
 
 const RetainedLandmark* RetainedLandmarks::find(int id) const {
@@ -127,7 +125,8 @@ void RetainedLandmarks::forget_expired(double now) {
     landmarks_.erase(
         std::remove_if(landmarks_.begin(), landmarks_.end(),
                        [&](const RetainedLandmark& l) {
-                           if (l.derived || l.live_track_id >= 0) {
+                           if (l.derived || l.live_track_id >= 0 ||
+                               !l.course_slot.empty()) {
                                return false;
                            }
                            const ClassRule& rule = config_.rule_for(l.key);
@@ -143,10 +142,58 @@ void RetainedLandmarks::forget_expired(double now) {
         landmarks_.end());
 }
 
+void RetainedLandmarks::update_course(
+    const std::vector<vortex::filtering::Track>& confirmed,
+    double now,
+    const CourseInput& input) {
+    const auto kinds = course_.config().templated_kinds();
+    std::vector<KindTrack> tracks;
+    for (const auto& t : confirmed) {
+        if (!kinds.contains({t.class_key.type, t.class_key.subtype})) {
+            continue;
+        }
+        KindTrack k;
+        k.id = t.id;
+        k.kind = t.class_key;
+        k.position = t.nominal_state.pos;
+        k.covariance = t.error_state.cov().topLeftCorner<3, 3>();
+        tracks.push_back(k);
+    }
+    CourseModel::Store store;
+    store.find = [this](int id) -> RetainedLandmark* {
+        const auto it = std::find_if(landmarks_.begin(), landmarks_.end(),
+                                     [&](const auto& l) { return l.id == id; });
+        return it == landmarks_.end() ? nullptr : &*it;
+    };
+    store.create = [this, now](const LandmarkClassKey& key,
+                               const std::string& slot) -> RetainedLandmark& {
+        RetainedLandmark lm;
+        lm.id = next_id_++;
+        lm.key = key;
+        lm.course_slot = slot;
+        lm.first_seen = now;
+        lm.last_measurement = now;
+        landmarks_.push_back(std::move(lm));
+        return landmarks_.back();
+    };
+    store.follow = [&](RetainedLandmark& lm, int track_id) {
+        for (const auto& t : confirmed) {
+            if (t.id == track_id) {
+                const LandmarkClassKey key = lm.key;  // the slot decides
+                update_from_track(lm, t, now);
+                lm.key = key;
+                return;
+            }
+        }
+    };
+    course_.update(tracks, input.votes, input.geometry, store);
+}
+
 void RetainedLandmarks::update(
     const std::vector<vortex::filtering::Track>& confirmed,
     double now,
-    const PositionFilter& position_allowed) {
+    const PositionFilter& position_allowed,
+    const CourseInput& course_input) {
     // Landmarks whose live track is gone are only remembered from now on.
     for (auto& lm : landmarks_) {
         if (lm.live_track_id < 0) {
@@ -159,12 +206,6 @@ void RetainedLandmarks::update(
             lm.live_track_id = -1;
         }
     }
-
-    // Suppressed tracks that are gone.
-    std::erase_if(suppressed_tracks_, [&](int id) {
-        return std::none_of(confirmed.begin(), confirmed.end(),
-                            [&](const auto& t) { return t.id == id; });
-    });
 
     // Waits of tracks that are gone.
     for (auto it = ambiguous_since_.begin(); it != ambiguous_since_.end();) {
@@ -179,17 +220,20 @@ void RetainedLandmarks::update(
         landmarks_.erase(
             std::remove_if(landmarks_.begin(), landmarks_.end(),
                            [&](const RetainedLandmark& l) {
-                               return !l.derived &&
+                               return !l.derived && l.course_slot.empty() &&
                                       !position_allowed(l.position);
                            }),
             landmarks_.end());
     }
 
-    // The structures as the map is now (positions from the graph).
-    structures_.update(landmarks_);
+    // Parts of the course: only the course model maps them.
+    const auto templated = course_.config().templated_kinds();
+    if (course_.enabled()) {
+        update_course(confirmed, now, course_input);
+    }
 
     for (const auto& track : confirmed) {
-        if (suppressed_tracks_.contains(track.id)) {
+        if (templated.contains({track.class_key.type, track.class_key.subtype})) {
             continue;
         }
         // 1. A track that is already followed.
@@ -218,38 +262,17 @@ void RetainedLandmarks::update(
                 ? std::max(gate, config_.plausibility_radius_m)
                 : gate;
 
-        // 2a. Structure-aware: a track near a filled slot of a structure
-        // (within half the distance to the next member of the drawing) is
-        // that member seen badly. It takes that landmark over, even when
-        // the covariance or the adoption radius would make a new object.
-        if (const int member =
-                structures_.filled_slot_landmark(track.class_key, position);
-            member >= 0) {
-            auto it = std::find_if(landmarks_.begin(), landmarks_.end(),
-                                   [&](const auto& l) { return l.id == member; });
-            if (it != landmarks_.end()) {
-                if (it->live_track_id < 0) {
-                    ambiguous_since_.erase(track.id);
-                    update_from_track(*it, track, now);
-                } else {
-                    ++rejected_;  // a second track on a followed member
-                }
-                continue;
-            }
-        }
-
         // 2. A remembered landmark of the same class takes the track over.
         RetainedLandmark* best = nullptr;
         double best_dist = std::numeric_limits<double>::infinity();
         bool duplicate = false;
         int instances = 0;
         for (auto& lm : landmarks_) {
-            if (lm.key != track.class_key || lm.derived) {
+            if (lm.key != track.class_key || lm.derived ||
+                !lm.course_slot.empty()) {
                 continue;
             }
-            if (!rule.count_only_in_structure || structures_.in_structure(lm.id)) {
-                ++instances;
-            }
+            ++instances;
             const double d = (lm.position - position).norm();
             if (lm.live_track_id >= 0) {
                 // A second live track on an object that is already followed
@@ -270,7 +293,7 @@ void RetainedLandmarks::update(
             double second = std::numeric_limits<double>::infinity();
             for (const auto& lm : landmarks_) {
                 if (&lm != best && lm.key == track.class_key && !lm.derived &&
-                    lm.live_track_id < 0) {
+                    lm.course_slot.empty() && lm.live_track_id < 0) {
                     second = std::min(second, (lm.position - position).norm());
                 }
             }
@@ -330,7 +353,8 @@ void RetainedLandmarks::update(
     for (const auto& lm : landmarks_) {
         const double d =
             config_.rule_for(lm.key).min_distance_to_large_structures_m;
-        if (!lm.derived && d > 0.0 && near_large_structure(lm.position, d)) {
+        if (!lm.derived && lm.course_slot.empty() && d > 0.0 &&
+            near_large_structure(lm.position, d)) {
             too_close.push_back(lm.id);
         }
     }
@@ -341,49 +365,7 @@ void RetainedLandmarks::update(
         });
     }
 
-    resolve_overlaps();
     forget_expired(now);
-}
-
-void RetainedLandmarks::resolve_overlaps() {
-    std::set<int> drop;
-    for (const auto& g : config_.exclusive_groups) {
-        for (std::size_t i = 0; i < landmarks_.size(); ++i) {
-            const auto& a = landmarks_[i];
-            if (a.derived || drop.contains(a.id) || !g.contains(a.key)) {
-                continue;
-            }
-            for (std::size_t j = i + 1; j < landmarks_.size(); ++j) {
-                const auto& b = landmarks_[j];
-                if (b.derived || drop.contains(b.id) || !g.contains(b.key) ||
-                    a.key == b.key ||
-                    (a.position - b.position).norm() >= g.distance_m) {
-                    continue;
-                }
-                // The drawing decides when one of them is in a structure
-                // slot (a member is only placed in a slot of its class);
-                // else the one seen more often.
-                const bool a_in = structures_.in_structure(a.id);
-                const bool b_in = structures_.in_structure(b.id);
-                const bool keep_a = a_in != b_in ? a_in
-                                                 : a.observations >= b.observations;
-                const auto& loser = keep_a ? b : a;
-                drop.insert(loser.id);
-                if (loser.live_track_id >= 0) {
-                    suppressed_tracks_.insert(loser.live_track_id);
-                }
-                if (!keep_a) {
-                    break;
-                }
-            }
-        }
-    }
-    if (!drop.empty()) {
-        overlaps_ += static_cast<int>(drop.size());
-        std::erase_if(landmarks_, [&](const RetainedLandmark& l) {
-            return drop.contains(l.id);
-        });
-    }
 }
 
 }  // namespace vortex::mission

@@ -5,12 +5,11 @@
 #include <eigen3/Eigen/Dense>
 #include <functional>
 #include <map>
-#include <set>
 #include <pose_filtering/lib/typedefs.hpp>
 #include <string>
 #include <vector>
 #include "landmark_server/class_config.hpp"
-#include "landmark_server/structures.hpp"
+#include "landmark_server/course_model.hpp"
 
 namespace vortex::mission {
 
@@ -44,6 +43,9 @@ struct RetainedLandmark {
     /// Stable name of a derived landmark ("gate_whole", "torpedo_target_fire"
     /// ...), so a rule updates the same landmark every tick.
     std::string derived_slot;
+    /// The course slot this landmark fills ("slalom_1/red"), or empty for a
+    /// free landmark. Slot landmarks are kept for the rest of the run.
+    std::string course_slot;
     /// Hidden from the published map because another landmark describes the
     /// same object better (id of that landmark), or -1.
     int absorbed_by{-1};
@@ -72,6 +74,11 @@ struct RetainedLandmark {
  * ids and memory, following the class rules (max instances, adoption radius,
  * retention). ROS-free.
  *
+ * With a course layout (config `course`), the classes that are parts of a
+ * task are mapped only by the course model: one landmark per slot, never
+ * forgotten, no landmark outside a slot (see CourseModel). The rest below
+ * applies to the other classes (free landmarks).
+ *
  * Live track -> landmark:
  *  - a track that is already followed updates its landmark;
  *  - a new track takes over the nearest remembered landmark of the same class
@@ -96,9 +103,16 @@ class RetainedLandmarks {
      * @param position_allowed Optional lane bounds; landmarks outside are
      * rejected (new) or dropped (existing).
      */
+    /// What the course model needs each tick besides the tracks.
+    struct CourseInput {
+        TrackVotes votes;
+        CourseGeometry geometry;
+    };
+
     void update(const std::vector<vortex::filtering::Track>& confirmed,
                 double now,
-                const PositionFilter& position_allowed = {});
+                const PositionFilter& position_allowed = {},
+                const CourseInput& course = {});
 
     /// Forget everything. Ids keep counting up.
     void clear();
@@ -106,13 +120,13 @@ class RetainedLandmarks {
     /// New rules (live parameter change). The landmarks stay; the new rules
     /// apply from the next update (a lower max_instances does not remove
     /// landmarks that are already there).
-    void set_config(LandmarkMapConfig config) {
-        structures_.set_templates(config.structures);
-        config_ = std::move(config);
-    }
+    /// The course layout is read at start: a change of `course` here is
+    /// ignored.
+    void set_config(LandmarkMapConfig config) { config_ = std::move(config); }
 
-    /// The structures (slalom sets ...) on the map.
-    const StructureMap& structures() const { return structures_; }
+    /// The course model (tasks and their slots).
+    const CourseModel& course() const { return course_; }
+    CourseModel& course() { return course_; }
 
     /**
      * @brief The odom frame moved under the map (the smoothing graph changed
@@ -150,10 +164,6 @@ class RetainedLandmarks {
     /// near (ambiguous take-over).
     int ambiguous_count() const { return ambiguous_; }
 
-    /// Landmarks removed because another of their exclusive group was on
-    /// top of them.
-    int overlap_count() const { return overlaps_; }
-
    private:
     void update_from_track(RetainedLandmark& lm,
                            const vortex::filtering::Track& track,
@@ -166,21 +176,20 @@ class RetainedLandmarks {
                                     double distance) const;
     void forget_expired(double now);
 
+    /// The course model's tracks and slots this tick.
+    void update_course(const std::vector<vortex::filtering::Track>& confirmed,
+                       double now,
+                       const CourseInput& input);
+
     LandmarkMapConfig config_;
     std::deque<RetainedLandmark> landmarks_;
-    StructureMap structures_;
+    CourseModel course_;
     int next_id_{0};
     int rejected_{0};
     int ambiguous_{0};
-    int overlaps_{0};
     /// Tracks waiting for an ambiguous take-over to resolve: track id -> time
     /// the wait started.
     std::map<int, double> ambiguous_since_;
-    /// Tracks whose landmark lost an overlap (exclusive_groups): ignored
-    /// while they live, so they do not make it again.
-    std::set<int> suppressed_tracks_;
-    /// Two landmarks of one exclusive group too close: keep one.
-    void resolve_overlaps();
 };
 
 }  // namespace vortex::mission
