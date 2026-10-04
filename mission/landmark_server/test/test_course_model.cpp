@@ -56,6 +56,9 @@ course:
             firetruck: {class: TORPEDO_ICON_FIRETRUCK, offset: [0.0, -0.186, -0.193]}
             blood: {class: TORPEDO_ICON_BLOOD, offset: [0.0, -0.219, 0.058]}
             ambulance: {class: TORPEDO_ICON_AMBULANCE, offset: [0.0, 0.182, 0.202]}
+          points:
+            opening_fire: {class: TORPEDO_TARGET_LARGE_SURVEY_REPAIR, from: fire, offset: [0.0, 0.004, 0.150]}
+            aim: {class: TORPEDO_TARGET_SMALL_SEARCH_RESCUE, offset: [-1.5, 0.0, 0.0], yaw_deg: 180.0}
         version_2:
           members:
             board: {class: TORPEDO_BOARD_WHOLE, offset: [0.0, 0.0, 0.0]}
@@ -437,6 +440,43 @@ TEST(CourseModel, BeforeTheVersionIsDecidedAnIconShowsWhatWasSeen) {
     ASSERT_TRUE(board.placed);
     EXPECT_FALSE(board.variant_fixed);
     EXPECT_EQ(w.in_slot("torpedo/fire")->key.subtype, LS::TORPEDO_ICON_BLOOD);
+}
+
+TEST(CourseModel, PointsFollowTheTaskOnceTheVersionIsKnown) {
+    World w;
+    TrackVotes votes;
+    votes[11] = {{{LT::TORPEDO_BOARD, LS::TORPEDO_ICON_FIRE}, 6}};  // version 1
+    w.tick(board_tracks(), votes);
+    ASSERT_TRUE(w.task("torpedo").placed);
+    // Not decided yet: no opening.
+    for (const auto& l : w.map.landmarks()) {
+        EXPECT_NE(l.derived_slot, "torpedo/opening_fire");
+    }
+    for (int i = 0; i < 5; ++i) {
+        w.tick(board_tracks(), votes);
+    }
+    ASSERT_TRUE(w.task("torpedo").variant_fixed);
+    const RetainedLandmark* opening = nullptr;
+    const RetainedLandmark* aim = nullptr;
+    for (const auto& l : w.map.landmarks()) {
+        opening = l.derived_slot == "torpedo/opening_fire" ? &l : opening;
+        aim = l.derived_slot == "torpedo/aim" ? &l : aim;
+    }
+    ASSERT_NE(opening, nullptr);
+    ASSERT_NE(aim, nullptr);
+    // From the fire icon, the board facing -x (board +Y = -y).
+    EXPECT_LT((opening->position - (board_part(0.206, -0.214) + Eigen::Vector3d(0.0, -0.004, 0.150)))
+                  .norm(), 1e-6);
+    EXPECT_EQ(opening->key.subtype, LS::TORPEDO_TARGET_LARGE_SURVEY_REPAIR);
+    EXPECT_TRUE(opening->derived);
+    // 1.5 m in front of the board (+X out of the front = -x), facing it.
+    EXPECT_LT((aim->position - (board_part(0, 0) + Eigen::Vector3d(1.5, 0.0, 0.0))).norm(), 1e-6);
+    EXPECT_NEAR(std::abs(aim->yaw()), 0.0, 1e-6);
+    // The parts have the board's yaw (+X out of the front: -x).
+    EXPECT_TRUE(w.in_slot("torpedo/board")->has_orientation);
+    EXPECT_NEAR(std::abs(w.in_slot("torpedo/board")->yaw()), M_PI, 1e-6);
+    EXPECT_TRUE(w.map.course().covers_type(LT::TORPEDO_BOARD));
+    EXPECT_FALSE(w.map.course().covers_type(LT::BIN));
 }
 
 TEST(CourseModel, AMislabelledIconCannotRemoveAnother) {

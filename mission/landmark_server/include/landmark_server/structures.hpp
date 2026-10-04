@@ -30,9 +30,24 @@ struct StructureMember {
     bool accepts(const LandmarkClassKey& key) const;
 };
 
+/// A point of a task that is not detected but follows from where the task
+/// is (a torpedo opening next to its icon, an approach point): published
+/// as a derived landmark.
+struct DerivedPoint {
+    std::string name;
+    LandmarkClassKey cls;
+    /// Task frame; from the part `from` (its mapped position) when set,
+    /// else from the task origin.
+    Eigen::Vector3d offset{Eigen::Vector3d::Zero()};
+    std::string from;
+    /// Yaw of the point's +X relative to the task's [rad].
+    double yaw{0.0};
+};
+
 struct StructureVariant {
     std::string name;
     std::vector<StructureMember> members;
+    std::vector<DerivedPoint> points;
 };
 
 /**

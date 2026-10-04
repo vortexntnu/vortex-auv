@@ -90,6 +90,14 @@
                 firetruck: {class: TORPEDO_ICON_FIRETRUCK, offset: [0.000, -0.186, -0.193]}
                 blood: {class: TORPEDO_ICON_BLOOD, offset: [0.000, -0.219, 0.058]}
                 ambulance: {class: TORPEDO_ICON_AMBULANCE, offset: [0.000, 0.182, 0.202]}
+              # The openings: from each icon (its mapped position), board
+              # frame offsets as rules.torpedo_targets_from_icons. Published
+              # once the version is decided.
+              points:
+                opening_fire: {class: TORPEDO_TARGET_LARGE_SURVEY_REPAIR, from: fire, offset: [0.000, 0.004, 0.150]}
+                opening_blood: {class: TORPEDO_TARGET_LARGE_SEARCH_RESCUE, from: blood, offset: [0.000, 0.005, 0.158]}
+                opening_firetruck: {class: TORPEDO_TARGET_SMALL_SURVEY_REPAIR, from: firetruck, offset: [0.000, 0.189, 0.002]}
+                opening_ambulance: {class: TORPEDO_TARGET_SMALL_SEARCH_RESCUE, from: ambulance, offset: [0.000, -0.176, -0.002]}
             version_2:
               members:
                 board: {class: TORPEDO_BOARD_WHOLE, offset: [0.0, 0.0, 0.0]}
@@ -97,6 +105,14 @@
                 ambulance: {class: TORPEDO_ICON_AMBULANCE, offset: [0.000, -0.178, -0.204]}
                 fire: {class: TORPEDO_ICON_FIRE, offset: [0.000, -0.213, 0.056]}
                 firetruck: {class: TORPEDO_ICON_FIRETRUCK, offset: [0.000, 0.183, 0.183]}
+              # The openings: from each icon (its mapped position), board
+              # frame offsets as rules.torpedo_targets_from_icons. Published
+              # once the version is decided.
+              points:
+                opening_fire: {class: TORPEDO_TARGET_LARGE_SURVEY_REPAIR, from: fire, offset: [0.000, -0.001, 0.160]}
+                opening_blood: {class: TORPEDO_TARGET_LARGE_SEARCH_RESCUE, from: blood, offset: [0.000, 0.000, 0.158]}
+                opening_firetruck: {class: TORPEDO_TARGET_SMALL_SURVEY_REPAIR, from: firetruck, offset: [0.000, -0.178, 0.017]}
+                opening_ambulance: {class: TORPEDO_TARGET_SMALL_SEARCH_RESCUE, from: ambulance, offset: [0.000, 0.181, 0.012]}
         # Task 3: the bin rig, the four bins as the front camera sees them
         # (no role), and the role icon on the floor of each (down camera;
         # which bin has which role is drawn per run: the votes decide).

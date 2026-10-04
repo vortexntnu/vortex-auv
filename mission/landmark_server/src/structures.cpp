@@ -45,6 +45,40 @@ LandmarkClassKey parse_key(const std::string& name, const std::string& where) {
     return {parsed->first, parsed->second};
 }
 
+std::vector<DerivedPoint> parse_points(const YAML::Node& node,
+                                       const std::vector<StructureMember>& members,
+                                       const std::string& where) {
+    std::vector<DerivedPoint> out;
+    if (!node) {
+        return out;
+    }
+    for (const auto& kv : node) {
+        DerivedPoint p;
+        p.name = kv.first.as<std::string>();
+        const std::string w = where + "." + p.name;
+        if (!kv.second["class"]) {
+            throw std::runtime_error(w + ": missing class");
+        }
+        p.cls = parse_key(kv.second["class"].as<std::string>(), w);
+        if (kv.second["offset"]) {
+            p.offset = parse_vec3(kv.second["offset"], w + ".offset");
+        }
+        if (kv.second["from"]) {
+            p.from = kv.second["from"].as<std::string>();
+            const bool known = std::any_of(members.begin(), members.end(),
+                                           [&](const auto& m) { return m.name == p.from; });
+            if (!known) {
+                throw std::runtime_error(w + ".from: no part '" + p.from + "'");
+            }
+        }
+        if (kv.second["yaw_deg"]) {
+            p.yaw = kv.second["yaw_deg"].as<double>() * M_PI / 180.0;
+        }
+        out.push_back(std::move(p));
+    }
+    return out;
+}
+
 std::vector<StructureMember> parse_members(const YAML::Node& node,
                                            const Eigen::Vector3d& sigma,
                                            const std::string& where) {
@@ -315,12 +349,18 @@ std::vector<StructureTemplate> parse_structures(const YAML::Node& node) {
                 var.name = v.first.as<std::string>();
                 var.members = parse_members(v.second["members"], sigma,
                                             where + ".variants." + var.name);
+                var.points = parse_points(v.second["points"], var.members,
+                                          where + ".variants." + var.name + ".points");
+                // Points of the whole template go with every variant.
+                auto common = parse_points(n["points"], var.members, where + ".points");
+                var.points.insert(var.points.end(), common.begin(), common.end());
                 t.variants.push_back(std::move(var));
             }
         } else {
             StructureVariant var;
             var.name = "default";
             var.members = parse_members(n["members"], sigma, where + ".members");
+            var.points = parse_points(n["points"], var.members, where + ".points");
             t.variants.push_back(std::move(var));
         }
         for (const auto& v : t.variants) {

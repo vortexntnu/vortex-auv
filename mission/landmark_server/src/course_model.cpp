@@ -496,6 +496,71 @@ void CourseModel::assign_balanced(Task& t) {
     }
 }
 
+void CourseModel::publish_pose(Task& t, Store& store) {
+    const double yaw = yaw_of(t.pose);
+    const Eigen::Quaterniond q(Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ()));
+    bool any_live = false;
+    const auto& variant = t.tmpl->variants[t.variant];
+    std::map<std::string, const RetainedLandmark*> by_member;
+    for (std::size_t i = 0; i < t.slots.size(); ++i) {
+        RetainedLandmark* lm =
+            t.slots[i].landmark_id >= 0 ? store.find(t.slots[i].landmark_id) : nullptr;
+        if (lm == nullptr) {
+            continue;
+        }
+        // A part's yaw is the task's (+X out of the front of the prop).
+        lm->orientation = q;
+        lm->has_orientation = true;
+        lm->yaw_locked = true;
+        any_live = any_live || lm->is_live();
+        by_member[variant.members[t.slots[i].member[t.variant]].name] = lm;
+    }
+    // Points only once the variant is known: an opening of a guessed decal
+    // version would be a wrong target.
+    if (t.tmpl->variants.size() > 1 && !t.variant_fixed && !t.committed) {
+        return;
+    }
+    for (const auto& p : variant.points) {
+        Eigen::Vector3d base = t.pose.translation();
+        double last = 0.0;
+        bool live = any_live;
+        if (!p.from.empty()) {
+            const auto it = by_member.find(p.from);
+            if (it != by_member.end()) {
+                base = it->second->position;
+                last = it->second->last_measurement;
+                live = it->second->is_live();
+            } else {
+                for (std::size_t i = 0; i < t.slots.size(); ++i) {
+                    if (variant.members[t.slots[i].member[t.variant]].name == p.from) {
+                        base = slot_position(t, i);
+                    }
+                }
+            }
+        }
+        RetainedLandmark& lm = store.derived(t.spec->name + "/" + p.name, p.cls);
+        lm.position = base + q * p.offset;
+        lm.orientation = Eigen::Quaterniond(
+            Eigen::AngleAxisd(yaw + p.yaw, Eigen::Vector3d::UnitZ()));
+        lm.has_orientation = true;
+        lm.yaw_locked = true;
+        lm.derived_live = live;
+        lm.absorbed_by = -1;
+        if (last > 0.0) {
+            lm.last_measurement = last;
+        }
+    }
+}
+
+bool CourseModel::covers_type(uint16_t type) const {
+    for (const auto& k : config_.templated_kinds()) {
+        if (k.first == type) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void CourseModel::release(Slot& s) {
     const auto it = track_votes_.find(s.track_id);
     if (it != track_votes_.end()) {
@@ -791,10 +856,14 @@ std::set<int> CourseModel::update(const std::vector<KindTrack>& tracks,
             place(t, tracks, claimed, geo, store);
         }
     }
-    // Classes follow the variant and the votes.
+    // Classes follow the variant and the votes; parts and points follow
+    // the task pose.
     for (auto& t : tasks_) {
         if (t.tmpl->balanced_classes) {
             assign_balanced(t);
+        }
+        if (t.placed) {
+            publish_pose(t, store);
         }
         for (std::size_t i = 0; i < t.slots.size(); ++i) {
             if (RetainedLandmark* lm = t.slots[i].landmark_id >= 0

@@ -191,6 +191,10 @@ class CourseModel {
             create;
         /// Follow a track (position, covariance, observations).
         std::function<void(RetainedLandmark&, int track_id)> follow;
+        /// The derived landmark with this name, created on first use.
+        std::function<RetainedLandmark&(const std::string& slot,
+                                        const LandmarkClassKey& key)>
+            derived;
     };
 
     explicit CourseModel(CourseConfig config = {});
@@ -259,6 +263,9 @@ class CourseModel {
     /// How the layout is turned and moved to fit the tasks found (layout
     /// frame, a rotation about the origin then a translation).
     Eigen::Isometry2d alignment(const CourseGeometry& geo) const;
+    /// Whether the course maps this type (then the hand-written map rules
+    /// for it are not needed).
+    bool covers_type(uint16_t type) const;
     /// Tracker limit per kind (parts in the course + extra).
     std::map<std::pair<uint16_t, uint16_t>, int> track_limits() const;
 
@@ -298,6 +305,8 @@ class CourseModel {
     int tick_{0};
     /// A part lets go of its track: its votes stay with the part.
     void release(Slot& s);
+    /// The parts' yaw and the derived points, from the task pose.
+    void publish_pose(Task& t, Store& store);
     /// balanced_classes: the class of each part that allows several, the
     /// assignment with each class equally often that the votes support most.
     void assign_balanced(Task& t);

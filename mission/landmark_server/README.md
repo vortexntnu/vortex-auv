@@ -105,6 +105,21 @@ scratch; it places the known tasks and fills in their parts.
   remembered part keeps its id, so the graph sees it again). A track that
   fits no part is no object. The task pose is refitted to its parts (within
   the yaw window) and moves with the graph correction.
+- **Derived points** (`points` in a template or a variant): points of a task
+  that are not detected but follow from where it is, `{class, offset, from,
+  yaw_deg}`: at the mapped position of the part `from` (else the task
+  origin) plus `offset` turned with the task, facing the task's +X turned by
+  `yaw_deg`. Published as derived landmarks with a stable id; for a
+  template with variants only once the variant is decided. The torpedo
+  openings are four of them per decal version. A new target of a task (an
+  approach point, a passage) is a new entry, no code.
+- **Orientation**: every part of a placed task has the task's yaw (+X out
+  of the front of the prop), from the fit of all its parts. The course frame
+  still locks to the gate from the two panels, only while both are being
+  seen (the task pose is refitted from remembered parts every tick and
+  looks consistent even when wrong); a lock a few degrees off is taken out
+  by the alignment. The hand-written gate and torpedo board rules
+  (`rules.*` below) apply only when the course does not map those types.
 - **Focus** (`set_focus`): outside the focus with `lock_others`, a task is
   frozen (no new parts, no refit) and its detections are dropped. `commit`
   freezes a task's pose and variant.
@@ -112,6 +127,16 @@ scratch; it places the known tasks and fills in their parts.
 `course.enable: false` (no layout yet, e.g. `pool.yaml` until it is
 measured): every class is mapped as a free landmark, as before the course
 model. The layout is read at start (`course` is not live).
+
+### A new or changed task
+
+- Moved, more or fewer of a known task: edit `tasks` (and measure the priors).
+- A new arrangement of known classes: a new template (parts, `sigma`,
+  variants, `balanced_classes`, `points`) and a task using it.
+- A new kind of object: one constant in `vortex_msgs` (`LandmarkType` /
+  `LandmarkSubtype`, subtypes named `<TYPE>_<NAME>`), rebuild; the class
+  names are generated from the messages (`scripts/generate_class_names.py`),
+  so the config knows it by name. The detector has to report it.
 
 ## Changing rules while it runs
 

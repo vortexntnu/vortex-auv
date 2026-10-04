@@ -107,6 +107,38 @@ void absorb_derived_into_measured(RetainedLandmarks& map,
 
 // --- Gate -------------------------------------------------------------------
 
+/// The course frame's gate estimate from the two panels, taken only while
+/// both are being seen. Without the rest of the gate rule: used when the
+/// course layout maps the gate (the panels are fresh measurements; the gate
+/// task's pose is refitted from remembered parts every tick and would look
+/// consistent even when it is wrong).
+void feed_course_frame_from_panels(RetainedLandmarks& map,
+                                   const MapRulesConfig& cfg,
+                                   const Eigen::Vector3d& vehicle,
+                                   CourseFrameTracker* course) {
+    if (course == nullptr || !cfg.gate_yaw_from_panels) {
+        return;
+    }
+    RetainedLandmark* survey = find_measured(map, {LT::GATE, LS::GATE_SURVEY_REPAIR});
+    RetainedLandmark* rescue = find_measured(map, {LT::GATE, LS::GATE_SEARCH_RESCUE});
+    if (survey == nullptr || rescue == nullptr || !is_fresh(*survey) || !is_fresh(*rescue)) {
+        return;
+    }
+    const Eigen::Vector2d a = survey->position.head<2>();
+    const Eigen::Vector2d b = rescue->position.head<2>();
+    const double separation = (b - a).norm();
+    if (separation < cfg.min_panel_separation_m ||
+        (cfg.max_panel_separation_m > 0.0 && separation > cfg.max_panel_separation_m)) {
+        return;
+    }
+    const Eigen::Vector3d midpoint = 0.5 * (survey->position + rescue->position);
+    // The front faces the vehicle that first saw it: the course direction
+    // (through the gate) points away from the start.
+    const Eigen::Vector2d reference = (vehicle - midpoint).head<2>();
+    course->add_gate_estimate(midpoint.head<2>(),
+                              yaw_of_direction(normal_towards(a, b, reference)));
+}
+
 void apply_gate_rules(RetainedLandmarks& map,
                       const MapRulesConfig& cfg,
                       const Eigen::Vector3d& vehicle,
@@ -500,8 +532,17 @@ void apply_map_rules(RetainedLandmarks& map,
                      const Eigen::Vector3d& vehicle_position,
                      double now,
                      CourseFrameTracker* course) {
-    apply_gate_rules(map, config, vehicle_position, now, course);
-    apply_board_rules(map, config, vehicle_position, now);
+    // A course task that maps the gate or the board gives their pose, yaw,
+    // roles and targets from its template: the rules below are for a map
+    // without a course layout.
+    if (!map.course().covers_type(LT::GATE)) {
+        apply_gate_rules(map, config, vehicle_position, now, course);
+    } else {
+        feed_course_frame_from_panels(map, config, vehicle_position, course);
+    }
+    if (!map.course().covers_type(LT::TORPEDO_BOARD)) {
+        apply_board_rules(map, config, vehicle_position, now);
+    }
     apply_bin_rules(map, config);
     apply_octagon_rules(map, config, now);
 }

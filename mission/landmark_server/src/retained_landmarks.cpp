@@ -186,6 +186,10 @@ void RetainedLandmarks::update_course(
             }
         }
     };
+    store.derived = [this, now](const std::string& slot,
+                                const LandmarkClassKey& key) -> RetainedLandmark& {
+        return upsert_derived(slot, key, now);
+    };
     course_.update(tracks, input.votes, input.geometry, store);
 }
 
