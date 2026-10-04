@@ -75,6 +75,38 @@ TEST_F(PoseTrackManagerTests, no_new_track_close_to_a_track_of_its_class) {
     EXPECT_EQ(at(1.5), 1);
 }
 
+TEST_F(PoseTrackManagerTests, a_full_class_starts_no_new_track) {
+    auto cfg = make_default_config();
+    cfg.default_class_config.max_pos_error = 0.2;
+    cfg.default_class_config.max_tracks = 2;
+    PoseTrackManager mgr(cfg);
+
+    // Three objects in one frame: two tracks, the third waits.
+    std::vector<Landmark> first{make_landmark({0.0, 0.0, 0.0}),
+                                make_landmark({2.0, 0.0, 0.0}),
+                                make_landmark({4.0, 0.0, 0.0})};
+    mgr.step(first, 0.1);
+    EXPECT_EQ(mgr.get_tracks().size(), 2u);
+
+    // Unconfirmed tracks count too, and the known objects still update.
+    std::vector<Landmark> second{make_landmark({0.0, 0.0, 0.0}),
+                                 make_landmark({6.0, 0.0, 0.0})};
+    mgr.step(second, 0.1);
+    EXPECT_EQ(mgr.get_tracks().size(), 2u);
+    EXPECT_EQ(mgr.get_tracks()[0].hits(), 2);
+}
+
+TEST_F(PoseTrackManagerTests, the_reported_class_comes_back_with_the_association) {
+    PoseTrackManager mgr(make_default_config());
+    Landmark m = make_landmark({0.0, 0.0, 0.0});
+    m.reported_class = LandmarkClassKey{7, 2};
+    std::vector<Landmark> frame{m};
+    mgr.update(frame, 0.1);
+    ASSERT_EQ(mgr.last_associations().size(), 1u);
+    EXPECT_EQ(mgr.last_associations()[0].measurement.reported_class,
+              (LandmarkClassKey{7, 2}));
+}
+
 TEST_F(PoseTrackManagerTests, track_confirms_after_n_hits) {
     auto cfg = make_default_config();
     cfg.default_class_config.nm.confirm_n = 3;

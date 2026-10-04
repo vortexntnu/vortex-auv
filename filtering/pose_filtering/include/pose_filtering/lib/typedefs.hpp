@@ -94,6 +94,11 @@ struct LandmarkClassConfig {
     // A measurement that is associated to no track starts a new one only if
     // no track of its class is closer than this [m]. 0 = off.
     double new_track_min_distance = 0.0;
+
+    // At most this many tracks of the class, confirmed or not: a measurement
+    // that goes to no track starts none when the class is full. 0 = no
+    // limit.
+    int max_tracks = 0;
 };
 
 /**
@@ -129,6 +134,10 @@ struct NominalState {
 struct Landmark {
     vortex::utils::types::Pose pose{};
     LandmarkClassKey class_key{};
+    /// The class the detector reported, when the caller tracks several
+    /// classes as one (class_key is then the shared one). Not used by the
+    /// tracker; it comes back with the association.
+    LandmarkClassKey reported_class{};
     /// Measurement time [s], taken from the message header (0 if unknown).
     double stamp_sec{0.0};
     /// False when the detector gives position only (the orientation of `pose`

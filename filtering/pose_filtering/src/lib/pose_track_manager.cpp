@@ -357,6 +357,14 @@ void PoseTrackManager::create_tracks(
     };
 
     for (const Landmark& m : measurements) {
+        // The class is full: no new track, whatever the measurement is.
+        const int max_tracks = cfg_for(m).max_tracks;
+        if (max_tracks > 0 &&
+            std::ranges::count_if(tracks_, [&](const Track& t) {
+                return t.class_key == m.class_key;
+            }) >= max_tracks) {
+            continue;
+        }
         // A measurement that went to no track, close to a track of its class:
         // a noisy look at that object, not a new one.
         const double min_distance = cfg_for(m).new_track_min_distance;
