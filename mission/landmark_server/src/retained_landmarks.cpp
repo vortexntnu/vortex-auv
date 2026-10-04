@@ -233,7 +233,8 @@ void RetainedLandmarks::update(
     }
 
     for (const auto& track : confirmed) {
-        if (templated.contains({track.class_key.type, track.class_key.subtype})) {
+        if (templated.contains({track.class_key.type, track.class_key.subtype}) ||
+            config_.rule_for(track.class_key).live_only) {
             continue;
         }
         // 1. A track that is already followed.

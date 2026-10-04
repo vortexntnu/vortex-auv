@@ -153,6 +153,7 @@ void apply_rule_fields(const YAML::Node& node,
     }
     rule.keep_after_observations = get_or<int>(node, "keep_after_observations",
                                                rule.keep_after_observations);
+    rule.live_only = get_or<bool>(node, "live_only", rule.live_only);
     rule.min_distance_to_large_structures_m =
         get_or<double>(node, "min_distance_to_large_structures_m",
                        rule.min_distance_to_large_structures_m);

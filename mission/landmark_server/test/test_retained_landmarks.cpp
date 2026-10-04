@@ -489,4 +489,17 @@ TEST(RetainedLandmarks, ClearForgetsEverythingButNeverReusesIds) {
     EXPECT_GT(map.landmarks()[0].id, id);
 }
 
+TEST(RetainedLandmarks, LiveOnlyClassesAreNeverLandmarks) {
+    auto cfg = example_config();
+    cfg.class_rules[{LT::TABLE, LS::TABLE_ITEM_PILL}].live_only = true;
+    RetainedLandmarks map(cfg);
+    for (int i = 0; i < 5; ++i) {
+        map.update({make_track(1, LT::TABLE, LS::TABLE_ITEM_PILL, {19.0, 0.0, 2.6}),
+                    make_track(2, LT::TABLE, LS::TABLE_WHOLE, {19.2, 0.1, 2.7})},
+                   0.2 * i);
+    }
+    ASSERT_EQ(map.landmarks().size(), 1u);
+    EXPECT_EQ(map.landmarks().front().key.subtype, LS::TABLE_WHOLE);
+}
+
 }  // namespace vortex::mission

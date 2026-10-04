@@ -77,6 +77,10 @@ struct ClassRule {
     /// Landmarks with at least this many observations are never forgotten
     /// (0 = off).
     int keep_after_observations{0};
+    /// Never a landmark: only followed live (landmark_server/live_tracks).
+    /// For things that are moved during the run (the items on the table):
+    /// a remembered position would be wrong once they are moved.
+    bool live_only{false};
     /// New landmarks closer than this to a large structure are rejected [m]
     /// (0 = off). Keeps gate legs from becoming slalom pipes.
     double min_distance_to_large_structures_m{0.0};

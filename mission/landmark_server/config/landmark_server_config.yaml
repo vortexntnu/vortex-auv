@@ -117,6 +117,12 @@
         instance_gate_m: 0.25
         retain_sec: 15.0
       TABLE: {max_instances: 1, retain: forever}
+      # The items on the table are moved during the run: followed live only
+      # (landmark_server/live_tracks), never a landmark in the map.
+      TABLE_ITEM_NUTBOLT: {live_only: true}
+      TABLE_ITEM_ELECTRIC: {live_only: true}
+      TABLE_ITEM_PILL: {live_only: true}
+      TABLE_ITEM_BANDAID: {live_only: true}
       OCTAGON: {max_instances: 1, retain: forever}
 
     rules:
