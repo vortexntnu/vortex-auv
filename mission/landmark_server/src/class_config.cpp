@@ -1,4 +1,5 @@
 #include "landmark_server/class_config.hpp"
+#include "landmark_server/landmark_classes.hpp"
 #include <algorithm>
 #include <stdexcept>
 #include <vortex_msgs/msg/landmark_subtype.hpp>
@@ -8,93 +9,11 @@ namespace vortex::mission {
 
 namespace {
 
-using LT = vortex_msgs::msg::LandmarkType;
-using LS = vortex_msgs::msg::LandmarkSubtype;
 
-struct TypeName {
-    const char* name;
-    uint16_t value;
-};
-
-struct SubtypeName {
-    uint16_t type;
-    const char* full;
-    const char* short_name;
-    uint16_t value;
-};
-
-const TypeName kTypes[] = {{"ARUCO_MARKER", LT::ARUCO_MARKER},
-                           {"ARUCO_BOARD", LT::ARUCO_BOARD},
-                           {"PIPELINE_START", LT::PIPELINE_START},
-                           {"PIPELINE_END", LT::PIPELINE_END},
-                           {"VALVE", LT::VALVE},
-                           {"GATE", LT::GATE},
-                           {"SLALOM_PIPE", LT::SLALOM_PIPE},
-                           {"TORPEDO_BOARD", LT::TORPEDO_BOARD},
-                           {"BIN", LT::BIN},
-                           {"PATH_MARKER", LT::PATH_MARKER},
-                           {"TABLE", LT::TABLE},
-                           {"OCTAGON", LT::OCTAGON},
-                           {"PINGER", LT::PINGER}};
-
-const SubtypeName kSubtypes[] = {
-    {LT::VALVE, "VALVE_VERTICAL", "VERTICAL", LS::VALVE_VERTICAL},
-    {LT::VALVE, "VALVE_HORIZONTAL", "HORIZONTAL", LS::VALVE_HORIZONTAL},
-    {LT::PIPELINE_START, "PIPELINE_START_CAMERA", "CAMERA",
-     LS::PIPELINE_START_CAMERA},
-    {LT::PIPELINE_START, "PIPELINE_START_SONAR", "SONAR",
-     LS::PIPELINE_START_SONAR},
-    {LT::GATE, "GATE_SEARCH_RESCUE", "SEARCH_RESCUE", LS::GATE_SEARCH_RESCUE},
-    {LT::GATE, "GATE_SURVEY_REPAIR", "SURVEY_REPAIR", LS::GATE_SURVEY_REPAIR},
-    {LT::GATE, "GATE_WHOLE", "WHOLE", LS::GATE_WHOLE},
-    {LT::GATE, "GATE_POLE_EDGE", "POLE_EDGE", LS::GATE_POLE_EDGE},
-    {LT::GATE, "GATE_POLE_MIDDLE", "POLE_MIDDLE", LS::GATE_POLE_MIDDLE},
-    {LT::SLALOM_PIPE, "SLALOM_PIPE_WHITE", "WHITE", LS::SLALOM_PIPE_WHITE},
-    {LT::SLALOM_PIPE, "SLALOM_PIPE_RED", "RED", LS::SLALOM_PIPE_RED},
-    {LT::TORPEDO_BOARD, "TORPEDO_BOARD_WHOLE", "WHOLE",
-     LS::TORPEDO_BOARD_WHOLE},
-    {LT::TORPEDO_BOARD, "TORPEDO_TARGET_LARGE_SEARCH_RESCUE",
-     "TARGET_LARGE_SEARCH_RESCUE", LS::TORPEDO_TARGET_LARGE_SEARCH_RESCUE},
-    {LT::TORPEDO_BOARD, "TORPEDO_TARGET_LARGE_SURVEY_REPAIR",
-     "TARGET_LARGE_SURVEY_REPAIR", LS::TORPEDO_TARGET_LARGE_SURVEY_REPAIR},
-    {LT::TORPEDO_BOARD, "TORPEDO_TARGET_SMALL_SEARCH_RESCUE",
-     "TARGET_SMALL_SEARCH_RESCUE", LS::TORPEDO_TARGET_SMALL_SEARCH_RESCUE},
-    {LT::TORPEDO_BOARD, "TORPEDO_TARGET_SMALL_SURVEY_REPAIR",
-     "TARGET_SMALL_SURVEY_REPAIR", LS::TORPEDO_TARGET_SMALL_SURVEY_REPAIR},
-    {LT::TORPEDO_BOARD, "TORPEDO_ICON_FIRE", "ICON_FIRE",
-     LS::TORPEDO_ICON_FIRE},
-    {LT::TORPEDO_BOARD, "TORPEDO_ICON_BLOOD", "ICON_BLOOD",
-     LS::TORPEDO_ICON_BLOOD},
-    {LT::TORPEDO_BOARD, "TORPEDO_ICON_FIRETRUCK", "ICON_FIRETRUCK",
-     LS::TORPEDO_ICON_FIRETRUCK},
-    {LT::TORPEDO_BOARD, "TORPEDO_ICON_AMBULANCE", "ICON_AMBULANCE",
-     LS::TORPEDO_ICON_AMBULANCE},
-    {LT::BIN, "BIN_SEARCH_RESCUE", "SEARCH_RESCUE", LS::BIN_SEARCH_RESCUE},
-    {LT::BIN, "BIN_SURVEY_REPAIR", "SURVEY_REPAIR", LS::BIN_SURVEY_REPAIR},
-    {LT::BIN, "BIN_UNCLASSIFIED", "UNCLASSIFIED", LS::BIN_UNCLASSIFIED},
-    {LT::BIN, "BIN_STRUCTURE", "STRUCTURE", LS::BIN_STRUCTURE},
-    {LT::PATH_MARKER, "PATH_MARKER_WHOLE", "WHOLE", LS::PATH_MARKER_WHOLE},
-    {LT::TABLE, "TABLE_WHOLE", "WHOLE", LS::TABLE_WHOLE},
-    {LT::TABLE, "TABLE_ITEM_NUTBOLT", "ITEM_NUTBOLT", LS::TABLE_ITEM_NUTBOLT},
-    {LT::TABLE, "TABLE_ITEM_ELECTRIC", "ITEM_ELECTRIC",
-     LS::TABLE_ITEM_ELECTRIC},
-    {LT::TABLE, "TABLE_ITEM_PILL", "ITEM_PILL", LS::TABLE_ITEM_PILL},
-    {LT::TABLE, "TABLE_ITEM_BANDAID", "ITEM_BANDAID", LS::TABLE_ITEM_BANDAID},
-    {LT::TABLE, "TABLE_BASKET_SURVEY_REPAIR", "BASKET_SURVEY_REPAIR",
-     LS::TABLE_BASKET_SURVEY_REPAIR},
-    {LT::TABLE, "TABLE_BASKET_SEARCH_RESCUE", "BASKET_SEARCH_RESCUE",
-     LS::TABLE_BASKET_SEARCH_RESCUE},
-    {LT::OCTAGON, "OCTAGON_WHOLE", "WHOLE", LS::OCTAGON_WHOLE},
-    {LT::OCTAGON, "OCTAGON_IMAGE_REPAIR", "IMAGE_REPAIR",
-     LS::OCTAGON_IMAGE_REPAIR},
-    {LT::OCTAGON, "OCTAGON_IMAGE_RESCUE", "IMAGE_RESCUE",
-     LS::OCTAGON_IMAGE_RESCUE},
-    {LT::OCTAGON, "OCTAGON_IMAGE_SEARCH", "IMAGE_SEARCH",
-     LS::OCTAGON_IMAGE_SEARCH},
-    {LT::OCTAGON, "OCTAGON_IMAGE_SURVEY", "IMAGE_SURVEY",
-     LS::OCTAGON_IMAGE_SURVEY},
-    {LT::PINGER, "PINGER_DEPLOY", "DEPLOY", LS::PINGER_DEPLOY},
-    {LT::PINGER, "PINGER_RESTORE", "RESTORE", LS::PINGER_RESTORE}};
+// The names of the classes, generated from vortex_msgs at build time
+// (scripts/generate_class_names.py).
+using generated::kSubtypes;
+using generated::kTypes;
 
 template <typename T>
 T get_or(const YAML::Node& node, const char* key, T fallback) {

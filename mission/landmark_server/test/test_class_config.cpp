@@ -206,4 +206,19 @@ BIN_STRUCTURE: {dyn_mod_std_dev: 0.5}
     EXPECT_EQ(find(LT::BIN, LS::BIN_STRUCTURE).nm.confirm_n, 3);
 }
 
+TEST(ClassConfig, EveryClassOfTheMessageIsKnownByName) {
+    // The names come from vortex_msgs at build time: the ArUco board
+    // subtypes were never written into a table here.
+    const auto key = parse_class_name("ARUCO_BOARD_CAMERA");
+    ASSERT_TRUE(key);
+    EXPECT_EQ(key->first, vortex_msgs::msg::LandmarkType::ARUCO_BOARD);
+    EXPECT_EQ(key->second, vortex_msgs::msg::LandmarkSubtype::ARUCO_BOARD_CAMERA);
+    // Subtypes named after the first word of their type.
+    const auto icon = parse_class_name("TORPEDO_ICON_FIRE");
+    ASSERT_TRUE(icon);
+    EXPECT_EQ(icon->first, vortex_msgs::msg::LandmarkType::TORPEDO_BOARD);
+    EXPECT_EQ(parse_landmark_subtype(vortex_msgs::msg::LandmarkType::TORPEDO_BOARD, "ICON_FIRE"),
+              vortex_msgs::msg::LandmarkSubtype::TORPEDO_ICON_FIRE);
+}
+
 }  // namespace vortex::mission

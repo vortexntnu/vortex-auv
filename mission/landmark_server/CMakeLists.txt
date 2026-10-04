@@ -36,6 +36,20 @@ include_directories(include)
 set(LIB_NAME "${PROJECT_NAME}_component")
 set(CORE_LIB_NAME "${PROJECT_NAME}_core")
 
+# The class names from vortex_msgs (LandmarkType / LandmarkSubtype): a new
+# class there is known by name in the config without a change here.
+set(VORTEX_MSGS_MSG_DIR "${vortex_msgs_DIR}/../msg")
+set(CLASS_NAMES_HPP "${CMAKE_CURRENT_BINARY_DIR}/generated/landmark_server/landmark_classes.hpp")
+add_custom_command(
+  OUTPUT ${CLASS_NAMES_HPP}
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/generated/landmark_server"
+  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_class_names.py
+          ${VORTEX_MSGS_MSG_DIR}/LandmarkType.msg ${VORTEX_MSGS_MSG_DIR}/LandmarkSubtype.msg
+          ${CLASS_NAMES_HPP}
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_class_names.py
+          ${VORTEX_MSGS_MSG_DIR}/LandmarkType.msg ${VORTEX_MSGS_MSG_DIR}/LandmarkSubtype.msg
+  COMMENT "Landmark class names from vortex_msgs")
+
 # ROS-free map logic (class config, retained landmarks, course frame, rules)
 add_library(${CORE_LIB_NAME} SHARED
   src/class_config.cpp
@@ -43,7 +57,9 @@ add_library(${CORE_LIB_NAME} SHARED
   src/course_model.cpp
   src/map_rules.cpp
   src/retained_landmarks.cpp
-  src/structures.cpp)
+  src/structures.cpp
+  ${CLASS_NAMES_HPP})
+target_include_directories(${CORE_LIB_NAME} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 ament_target_dependencies(${CORE_LIB_NAME} PUBLIC
   vortex_msgs
