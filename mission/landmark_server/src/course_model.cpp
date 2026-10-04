@@ -169,6 +169,9 @@ CourseConfig parse_course_config(const YAML::Node& node) {
     cfg.min_slot_gate_m = get_d(node, "min_slot_gate_m", cfg.min_slot_gate_m);
     cfg.min_class_agreement =
         get_d(node, "min_class_agreement", cfg.min_class_agreement);
+    if (node["min_part_detections"]) {
+        cfg.min_part_detections = node["min_part_detections"].as<int>();
+    }
 
     if (const auto groups = node["class_groups"]) {
         for (const auto& kv : groups) {
@@ -295,6 +298,7 @@ void CourseModel::reset(CourseConfig config) {
 void CourseModel::clear() {
     build_tasks();
     track_votes_.clear();
+    track_last_vote_.clear();
 }
 
 void CourseModel::build_tasks() {
@@ -380,15 +384,51 @@ LandmarkClassKey CourseModel::slot_class(const Task& t, std::size_t slot) const 
     }
     LandmarkClassKey best = m.classes.front();
     int best_votes = 0;
+    const auto votes = part_votes(t, slot);
     for (const auto& c : m.classes) {
-        const auto it = s.votes.find(pair_of(c));
-        const int n = it == s.votes.end() ? 0 : it->second;
+        const auto it = votes.find(pair_of(c));
+        const int n = it == votes.end() ? 0 : it->second;
         if (n > best_votes) {
             best_votes = n;
             best = c;
         }
     }
     return best;
+}
+
+int CourseModel::detections(int track_id) const {
+    const auto it = track_votes_.find(track_id);
+    int n = 0;
+    if (it != track_votes_.end()) {
+        for (const auto& [c, k] : it->second) {
+            n += k;
+        }
+    }
+    return n;
+}
+
+void CourseModel::release(Slot& s) {
+    const auto it = track_votes_.find(s.track_id);
+    if (it != track_votes_.end()) {
+        for (const auto& [c, n] : it->second) {
+            s.past_votes[c] += n;
+        }
+    }
+    s.track_id = -1;
+}
+
+std::map<ClassPair, int> CourseModel::part_votes(const Task& t, std::size_t slot) const {
+    const Slot& s = t.slots[slot];
+    auto out = s.past_votes;
+    if (s.track_id >= 0) {
+        const auto it = track_votes_.find(s.track_id);
+        if (it != track_votes_.end()) {
+            for (const auto& [c, n] : it->second) {
+                out[c] += n;
+            }
+        }
+    }
+    return out;
 }
 
 bool CourseModel::slot_accepts(const Task& t,
@@ -535,18 +575,26 @@ std::set<int> CourseModel::update(const std::vector<KindTrack>& tracks,
                                   const CourseGeometry& geo,
                                   Store& store) {
     std::set<int> claimed;
-    // Votes per track for as long as the track lives.
+    // Votes per track over its whole life, confirmed or not; a track
+    // without detections for a while is gone.
+    ++tick_;
+    for (const auto& [id, by_class] : votes) {
+        for (const auto& [c, n] : by_class) {
+            track_votes_[id][c] += n;
+        }
+        track_last_vote_[id] = tick_;
+    }
     std::set<int> alive;
     for (const auto& k : tracks) {
         alive.insert(k.id);
     }
-    std::erase_if(track_votes_, [&](const auto& kv) { return !alive.contains(kv.first); });
-    for (const auto& [id, by_class] : votes) {
-        if (!alive.contains(id)) {
-            continue;
-        }
-        for (const auto& [c, n] : by_class) {
-            track_votes_[id][c] += n;
+    constexpr int kForgetTicks = 100;
+    for (auto it = track_last_vote_.begin(); it != track_last_vote_.end();) {
+        if (!alive.contains(it->first) && tick_ - it->second > kForgetTicks) {
+            track_votes_.erase(it->first);
+            it = track_last_vote_.erase(it);
+        } else {
+            ++it;
         }
     }
     if (!config_.enable || !geo.set) {
@@ -559,18 +607,6 @@ std::set<int> CourseModel::update(const std::vector<KindTrack>& tracks,
             continue;
         }
         keep_and_fill(t, tracks, claimed, store);
-        for (auto& s : t.slots) {
-            if (s.track_id < 0) {
-                continue;
-            }
-            const auto it = votes.find(s.track_id);
-            if (it == votes.end()) {
-                continue;
-            }
-            for (const auto& [c, n] : it->second) {
-                s.votes[c] += n;
-            }
-        }
         if (!locked(t) && !t.committed) {
             refit(t, geo, store);
             decide_variant(t);
@@ -641,7 +677,7 @@ void CourseModel::keep_and_fill(Task& t,
         if (RetainedLandmark* lm = s.landmark_id >= 0 ? store.find(s.landmark_id) : nullptr) {
             lm->live_track_id = -1;  // remembered where it was
         }
-        s.track_id = -1;
+        release(s);
     }
     if (locked(t)) {
         return;
@@ -655,7 +691,8 @@ void CourseModel::keep_and_fill(Task& t,
         }
         const Eigen::Vector3d expected = slot_position(t, i);
         for (const auto& k : tracks) {
-            if (!slot_accepts(t, i, k.kind) || claimed.contains(k.id)) {
+            if (!slot_accepts(t, i, k.kind) || claimed.contains(k.id) ||
+                detections(k.id) < config_.min_part_detections) {
                 continue;
             }
             const double d = slot_distance(k.position, expected);
@@ -716,9 +753,9 @@ void CourseModel::decide_variant(Task& t) {
     }
     std::vector<int> score(variants.size(), 0);
     for (std::size_t vi = 0; vi < variants.size(); ++vi) {
-        for (const auto& s : t.slots) {
-            const auto& m = variants[vi].members[s.member[vi]];
-            for (const auto& [c, n] : s.votes) {
+        for (std::size_t i = 0; i < t.slots.size(); ++i) {
+            const auto& m = variants[vi].members[t.slots[i].member[vi]];
+            for (const auto& [c, n] : part_votes(t, i)) {
                 if (std::find(m.classes.begin(), m.classes.end(),
                               LandmarkClassKey{c.first, c.second}) != m.classes.end()) {
                     score[vi] += n;
@@ -786,6 +823,7 @@ void CourseModel::place(Task& t,
     std::vector<KindTrack> cands;
     for (const auto& k : tracks) {
         if (claimed.contains(k.id) ||
+            detections(k.id) < config_.min_part_detections ||
             (k.position - prior.translation()).head<2>().norm() > reach) {
             continue;
         }

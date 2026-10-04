@@ -29,6 +29,7 @@ course:
   start: [-4.0, 0.0]
   extra_tracks_per_kind: 2
   variant_votes: 20
+  min_part_detections: 0
   class_groups:
     slalom_pipes: [SLALOM_PIPE_WHITE, SLALOM_PIPE_RED]
     torpedo_hazards: [TORPEDO_ICON_FIRE, TORPEDO_ICON_BLOOD]
@@ -233,6 +234,27 @@ TEST(CourseModel, APipeSeenAgainKeepsItsIdWhateverItIsCalled) {
     EXPECT_EQ(w.in_slot("slalom_1/red")->live_track_id, 9);
     EXPECT_EQ(w.in_slot("slalom_1/red")->key.subtype, LS::SLALOM_PIPE_RED);
     EXPECT_EQ(w.count(LT::SLALOM_PIPE), 3);
+}
+
+TEST(CourseModel, ATrackFillsAPartOnlyAfterEnoughDetections) {
+    auto cfg = course_config();
+    cfg.course.min_part_detections = 8;
+    RetainedLandmarks map(cfg);
+    RetainedLandmarks::CourseInput in;
+    in.geometry = at_gate();
+    const auto votes = [](int n) {
+        TrackVotes v;
+        for (int id : {1, 2, 3}) {
+            v[id] = {{{LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE}, n}};
+        }
+        return v;
+    };
+    in.votes = votes(3);
+    map.update(set_1(), 0.0, {}, in);
+    EXPECT_FALSE(map.course().tasks()[1].placed);  // 3 detections each
+    in.votes = votes(5);
+    map.update(set_1(), 0.2, {}, in);
+    EXPECT_TRUE(map.course().tasks()[1].placed);   // 8 each
 }
 
 TEST(CourseModel, PartsAreRememberedForTheWholeRun) {

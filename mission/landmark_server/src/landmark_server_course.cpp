@@ -158,7 +158,7 @@ void LandmarkServerNode::publish_course_state() {
             sm.landmark_id = s.landmark_id;
             sm.live = s.track_id >= 0;
             sm.expected = point(course.slot_position(t, i));
-            for (const auto& [c, n] : s.votes) {
+            for (const auto& [c, n] : course.part_votes(t, i)) {
                 if (c.first == key.type && c.second == key.subtype) {
                     sm.votes += n;
                 } else {

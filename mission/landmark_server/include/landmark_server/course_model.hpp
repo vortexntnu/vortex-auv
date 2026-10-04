@@ -77,6 +77,10 @@ struct CourseConfig {
     /// To place a task, the parts' reported classes must agree with the
     /// template at least this much (parts with >= 5 votes).
     double min_class_agreement{0.5};
+    /// A track fills a part (or places a task) only after this many
+    /// detections: a part is kept for the whole run, a few far, noisy
+    /// detections must not decide where it is.
+    int min_part_detections{8};
 
     const TaskSpec* task(const std::string& name) const;
     const StructureTemplate* template_for(const TaskSpec& t) const;
@@ -151,7 +155,9 @@ class CourseModel {
         double gate_m{0.5};
         int landmark_id{-1};
         int track_id{-1};
-        std::map<std::pair<uint16_t, uint16_t>, int> votes;
+        /// Reported classes of the tracks this part had before the one it
+        /// has now (see part_votes).
+        std::map<std::pair<uint16_t, uint16_t>, int> past_votes;
     };
     struct Task {
         const TaskSpec* spec{nullptr};
@@ -217,6 +223,11 @@ class CourseModel {
     Eigen::Vector3d slot_position(const Task& t, std::size_t slot) const;
     /// The class a slot has now (variant, or the vote among its classes).
     LandmarkClassKey slot_class(const Task& t, std::size_t slot) const;
+    /// Reported classes of everything this part was seen as: its past
+    /// tracks and the whole life of its track now (from its first
+    /// detection, before it was confirmed).
+    std::map<std::pair<uint16_t, uint16_t>, int> part_votes(const Task& t,
+                                                            std::size_t slot) const;
     /// Whether a track of this kind can be the slot's part: of the variant
     /// in use once it is fixed, of any variant before.
     bool slot_accepts(const Task& t, std::size_t slot, const LandmarkClassKey& kind) const;
@@ -255,8 +266,15 @@ class CourseModel {
     std::vector<Task> tasks_;
     std::vector<std::string> focus_;
     bool lock_others_{false};
-    /// Reported classes per live track, summed over its life.
+    /// Reported classes per track, summed over its life (also before it is
+    /// confirmed), and the tick it last had a detection.
     TrackVotes track_votes_;
+    std::map<int, int> track_last_vote_;
+    int tick_{0};
+    /// A part lets go of its track: its votes stay with the part.
+    void release(Slot& s);
+    /// Detections associated to a track over its life.
+    int detections(int track_id) const;
 };
 
 }  // namespace vortex::mission

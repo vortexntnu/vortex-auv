@@ -24,6 +24,9 @@
       variant_ratio: 3.0
       min_slot_gate_m: 0.2
       min_class_agreement: 0.5
+      # A track fills a part only after this many detections (a part is
+      # kept for the whole run).
+      min_part_detections: 8
       # Classes a detector mixes up: tracked as one kind, the class comes
       # from the template (or the votes where the template allows several).
       # Only for parts of a kind that stand well apart (> ~1 m): the tracker
@@ -124,7 +127,7 @@
       # parts needed to place it (1: the part alone, at the prior yaw).
       tasks:
         gate: {template: gate, prior: [0.0, 0.0, 180.0], region_radius_m: 3.0,
-               part_radius_m: 1.0, yaw_window_deg: 30.0, min_parts: 1}
+               part_radius_m: 1.0, yaw_window_deg: 30.0, min_parts: 2}
         slalom_1: {template: slalom_set, prior: [4.101, 0.362, 0.0], region_radius_m: 1.5,
                     part_radius_m: 0.8, yaw_window_deg: 20.0, symmetric: true, min_parts: 3}
         slalom_2: {template: slalom_set, prior: [6.105, 0.957, 0.0], region_radius_m: 1.2,
