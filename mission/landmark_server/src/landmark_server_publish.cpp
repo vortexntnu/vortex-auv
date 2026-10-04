@@ -389,9 +389,16 @@ void LandmarkServerNode::update_map() {
     apply_pending_map_config();
     RetainedLandmarks::PositionFilter filter;
     if (course_->status() != CourseFrameStatus::UNSET) {
-        filter = [this](const Eigen::Vector3d& p) {
-            return course_->position_allowed(p);
-        };
+        if (map_->course().enabled()) {
+            const CourseGeometry geo = course_geometry();
+            filter = [this, geo](const Eigen::Vector3d& p) {
+                return map_->course().lane_allows(p, geo);
+            };
+        } else {
+            filter = [this](const Eigen::Vector3d& p) {
+                return course_->position_allowed(p);
+            };
+        }
     }
 
     std::vector<vortex::filtering::Track> confirmed;
@@ -864,12 +871,20 @@ void LandmarkServerNode::publish_markers() {
         lane.color.g = locked ? 0.9F : 0.9F;
         lane.color.b = 0.2F;
         lane.color.a = 0.8F;
-        for (const auto& c : {Eigen::Vector2d(box.x_min, box.y_min),
-                              Eigen::Vector2d(box.x_max, box.y_min),
-                              Eigen::Vector2d(box.x_max, box.y_max),
-                              Eigen::Vector2d(box.x_min, box.y_max),
-                              Eigen::Vector2d(box.x_min, box.y_min)}) {
-            lane.points.push_back(point3(course_->from_course(c)));
+        const auto layout_lane = map_->course().lane_corners(course_geometry());
+        if (!layout_lane.empty()) {
+            // The area the course layout covers, aligned to the tasks found.
+            for (std::size_t k = 0; k <= layout_lane.size(); ++k) {
+                lane.points.push_back(point3(layout_lane[k % layout_lane.size()]));
+            }
+        } else {
+            for (const auto& c : {Eigen::Vector2d(box.x_min, box.y_min),
+                                  Eigen::Vector2d(box.x_max, box.y_min),
+                                  Eigen::Vector2d(box.x_max, box.y_max),
+                                  Eigen::Vector2d(box.x_min, box.y_max),
+                                  Eigen::Vector2d(box.x_min, box.y_min)}) {
+                lane.points.push_back(point3(course_->from_course(c)));
+            }
         }
         array.markers.push_back(lane);
 

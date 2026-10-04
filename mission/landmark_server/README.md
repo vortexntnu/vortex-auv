@@ -35,7 +35,7 @@ course frame: set_course_frame ─▶ TF nautilus/course + course_frame_state
 
 - **Landmark frame**: origin in the object, +X out of the front, +Z down (NED). For the gate the front is the side the vehicle first saw it from (toward the start); the yaw is then locked after `yaw_lock.consistent_estimates` consistent estimates and never flips.
 - **No orientation**: a rotation variance >= `intake.no_orientation_rot_variance` (1000) means position only. The tracker then leaves the orientation alone and `has_orientation` stays false.
-- **Course frame**: odom X is the heading the ESKF started with, not the course direction. Nothing here uses fixed odom coordinates; the lane limits are boxes in the course frame (generous before the gate is locked, tight after). When the gate yaw is consistent for 10 estimates the frame moves to the gate; more than `warn_start_vs_gate_deg` off the start value gives a warning and the gate wins.
+- **Course frame**: odom X is the heading the ESKF started with, not the course direction. Nothing here uses fixed odom coordinates. With a course layout the lane is the area the layout covers (every task's search region and the start, plus `course.lane_margin_m`), turned and moved with the tasks found, so it does not jump when the gate locks the frame. Without one, the lane limits are the boxes in `course_frame.lane` (generous before the gate is locked, tight after). When the gate yaw is consistent for 10 estimates the frame moves to the gate; more than `warn_start_vs_gate_deg` off the start value gives a warning and the gate wins.
 
 ## Map rules (config `rules`, `classes`)
 
@@ -88,9 +88,15 @@ scratch; it places the known tasks and fills in their parts.
   `extra_tracks_per_kind`; per other class `max_instances` plus that.
 - **Placing a task**: its template is fitted to the confirmed tracks of its
   kinds in its region: yaw within the window, centre within the region, at
-  least `min_parts` parts, reported classes not against the template. A task
-  not placed is searched where its nearest placed neighbour says (the prior
-  moved by that task's offset).
+  least `min_parts` parts, reported classes not against the template.
+- **Alignment**: the layout is turned and moved to fit the tasks found
+  (least squares on their positions against their priors; one task gives
+  the translation, two or more also the rotation, at most
+  `course.max_align_deg`). A task not placed is searched there. A gate yaw a
+  few degrees off (the panels are only 1.6 m apart) would otherwise put a
+  task 14 m away 2 m beside its region.
+- **Lane**: see the course frame above; detections outside are dropped at
+  intake (`outside_lane`).
 - **Parts**: one landmark per part, stable id, never forgotten, never more.
   A part follows a track while it stays within the part's gate (half the
   distance to the next part, at least `min_slot_gate_m`, horizontally); a

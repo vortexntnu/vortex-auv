@@ -24,6 +24,8 @@
     course_frame:
       # MEASURE: the course in this pool, in the course frame (x through the
       # gate, y right), with some margin. Generous until measured.
+      # Only without a course layout (config/course/<env>.yaml enable:
+      # false); with one, the lane is the area the layout covers.
       lane:
         before_gate: {x: [-10.0, 45.0], y: [-12.0, 12.0]}
         after_gate: {x: [-5.0, 40.0], y: [-6.0, 6.0]}

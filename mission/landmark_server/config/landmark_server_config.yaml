@@ -86,8 +86,9 @@
                      max_pending_per_track: 50}
 
     # Course frame: TF nautilus/course (child of target_frame).
-    # x through the gate, y to the right, z down. Lane limits (course_frame.lane)
-    # are in this frame, per environment (sim.yaml / pool.yaml).
+    # x through the gate, y to the right, z down. With a course layout
+    # (config/course) the lane is the area the layout covers; the boxes in
+    # course_frame.lane (sim.yaml / pool.yaml) are only used without one.
     course_frame:
       publish_tf: true
       frame_id: "nautilus/course"

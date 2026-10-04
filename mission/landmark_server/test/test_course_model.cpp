@@ -305,6 +305,39 @@ TEST(CourseModel, TheNextSetIsSearchedWhereTheFirstSaysItIs) {
     EXPECT_NEAR(pose->translation().y(), 0.5 + 0.8, 1e-6);
 }
 
+TEST(CourseModel, TheLayoutIsTurnedToFitTheTasksFound) {
+    // The course frame is 10 deg off (a gate yaw estimated badly): the gate
+    // and the first set are found turned 10 deg about the gate. The board,
+    // 14 m on, is then searched where the turned layout puts it, not 2.4 m
+    // beside it.
+    World w;
+    const Eigen::Matrix3d R =
+        Eigen::AngleAxisd(10.0 * M_PI / 180.0, Eigen::Vector3d::UnitZ()).toRotationMatrix();
+    const auto turned = [&](double x, double y) { return Eigen::Vector3d(R * v(x, y)); };
+    for (int i = 0; i < 2; ++i) {
+        w.tick({make_track(30, LT::GATE, LS::GATE_WHOLE, turned(0.0, 0.0), true, false),
+                pipe(1, turned(4.0, -1.52)), pipe(2, turned(4.0, 0.0)), pipe(3, turned(4.0, 1.52))});
+    }
+    ASSERT_TRUE(w.task("gate").placed);
+    ASSERT_TRUE(w.task("slalom_1").placed);
+    const auto board = w.map.course().working_pose(w.task("torpedo"), at_gate());
+    ASSERT_TRUE(board);
+    EXPECT_LT((board->translation() - turned(13.0, -5.0)).head<2>().norm(), 0.05);
+    // and the lane turns with it
+    EXPECT_TRUE(w.map.course().lane_allows(turned(13.0, -5.0), at_gate()));
+}
+
+TEST(CourseModel, TheLaneIsWhatTheLayoutCoversPlusAMargin) {
+    World w;
+    const auto& course = w.map.course();
+    EXPECT_TRUE(course.lane_allows(v(2.0, 0.0), at_gate()));
+    EXPECT_TRUE(course.lane_allows(v(13.0, -5.0), at_gate()));
+    EXPECT_FALSE(course.lane_allows(v(30.0, 0.0), at_gate()));    // past the board
+    EXPECT_FALSE(course.lane_allows(v(6.0, 12.0), at_gate()));    // the next lane
+    EXPECT_TRUE(course.lane_allows(v(30.0, 0.0), CourseGeometry{}));  // no frame yet
+    EXPECT_EQ(course.lane_corners(at_gate()).size(), 4u);
+}
+
 TEST(CourseModel, BeforeTheGateThePriorsAreFromTheStart) {
     World w;
     CourseGeometry g = at_gate();

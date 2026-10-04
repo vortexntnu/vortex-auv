@@ -20,6 +20,14 @@
       variant_votes: 40
       variant_ratio: 3.0
       min_slot_gate_m: 0.2
+      # The lane: the area this layout covers (every task's region and the
+      # start) plus this margin, turned and moved with the tasks found.
+      # Detections outside are dropped before the tracker. Replaces the
+      # course_frame.lane boxes while a layout is loaded.
+      lane_margin_m: 2.0
+      # The layout is turned at most this much to fit the tasks found (a
+      # gate yaw estimated a few degrees off turns everything far away).
+      max_align_deg: 20.0
       min_class_agreement: 0.5
       # A track fills a part only after this many detections (a part is
       # kept for the whole run).
@@ -124,13 +132,13 @@
       # placing, this far from where the template puts a part; min_parts:
       # parts needed to place it (1: the part alone, at the prior yaw);
       # max_range_m: detections of its parts farther from the vehicle are
-      # not taken (far detections of small parts are noisy and biased).
+      # not taken: only for small parts (icons), whose far detections are
+      # noisy and biased. Large props are found from afar.
       # MEASURE every prior (tape / from the competition map), and widen
       # region_radius_m to about 2x the error of the measurement.
       tasks:
         gate: {template: gate, prior: [0.0, 0.0, 180.0], region_radius_m: 3.0,
-               part_radius_m: 1.0, yaw_window_deg: 30.0, min_parts: 2,
-               max_range_m: 9.0}
+               part_radius_m: 1.0, yaw_window_deg: 30.0, min_parts: 2}
         slalom_1: {template: slalom_set, prior: [4.101, 0.362, 0.0], region_radius_m: 1.5,
                     part_radius_m: 0.8, yaw_window_deg: 20.0, symmetric: true, min_parts: 3,
                     max_range_m: 7.0}
@@ -142,13 +150,10 @@
                     max_range_m: 7.0}
         torpedo: {template: torpedo_board, prior: [13.043, -5.187, 180.0], region_radius_m: 2.5,
                  part_radius_m: 0.5, yaw_window_deg: 30.0, min_parts: 3,
-                 max_range_m: 5.0}
-        bins: {template: bins, prior: [12.544, 4.223, 0.0], region_radius_m: 2.5,
-                 part_radius_m: 0.6, yaw_window_deg: 30.0, min_parts: 2,
-                 max_range_m: 4.0}
-        table: {template: table, prior: [15.254, 0.130, 0.0], region_radius_m: 2.5,
-                 part_radius_m: 1.0, yaw_window_deg: 45.0, symmetric: true, min_parts: 1,
-                 max_range_m: 5.0}
-        octagon: {template: octagon, prior: [15.254, 0.131, 0.0], region_radius_m: 2.5,
-                 part_radius_m: 1.5, yaw_window_deg: 45.0, min_parts: 1,
                  max_range_m: 6.0}
+        bins: {template: bins, prior: [12.544, 4.223, 0.0], region_radius_m: 2.5,
+                 part_radius_m: 0.6, yaw_window_deg: 30.0, min_parts: 2}
+        table: {template: table, prior: [15.254, 0.130, 0.0], region_radius_m: 2.5,
+                 part_radius_m: 1.0, yaw_window_deg: 45.0, symmetric: true, min_parts: 1}
+        octagon: {template: octagon, prior: [15.254, 0.131, 0.0], region_radius_m: 2.5,
+                 part_radius_m: 1.5, yaw_window_deg: 45.0, min_parts: 1}

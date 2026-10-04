@@ -32,7 +32,11 @@ void LandmarkServerNode::gate_measurements(std::vector<Landmark>& measurements) 
     for (auto& m : measurements) {
         m.reported_class = m.class_key;
         const Eigen::Vector3d p = m.pose.pos_vector();
-        if (lane && !course_->position_allowed(p)) {
+        // The lane: the area the course layout covers, else the boxes of
+        // course_frame.lane.
+        const bool in_lane = course.enabled() ? course.lane_allows(p, geo)
+                                              : course_->position_allowed(p);
+        if (lane && !in_lane) {
             ++drop_counts_["outside_lane"];
             continue;
         }

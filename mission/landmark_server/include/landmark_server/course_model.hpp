@@ -81,6 +81,12 @@ struct CourseConfig {
     /// To place a task, the parts' reported classes must agree with the
     /// template at least this much (parts with >= 5 votes).
     double min_class_agreement{0.5};
+    /// The lane: the area the layout covers (every task's search region
+    /// and the start) plus this margin [m]. Detections outside are dropped.
+    double lane_margin_m{2.0};
+    /// The layout may be turned at most this much to fit the tasks found
+    /// [rad].
+    double max_align_rad{20.0 * M_PI / 180.0};
     /// A track fills a part (or places a task) only after this many
     /// detections: a part is kept for the whole run, a few far, noisy
     /// detections must not decide where it is.
@@ -237,21 +243,31 @@ class CourseModel {
     /// Whether a track of this kind can be the slot's part: of the variant
     /// in use once it is fixed, of any variant before.
     bool slot_accepts(const Task& t, std::size_t slot, const LandmarkClassKey& kind) const;
-    /// Task pose (odom) used now: placed pose, else the prior moved by the
-    /// offset of the nearest placed task. Empty without a course frame.
+    /// Task pose (odom) used now: placed pose, else the prior in the layout
+    /// aligned to the tasks found so far. Empty without a course frame.
     std::optional<Eigen::Isometry3d> working_pose(const Task& t,
                                                   const CourseGeometry& geo) const;
     std::string variant_name(const Task& t) const;
+    /// Lane check: is an odom position inside the area the layout covers
+    /// (aligned to the tasks found)? True without a course frame.
+    bool lane_allows(const Eigen::Vector3d& position, const CourseGeometry& geo) const;
+    /// The lane's corners in odom (for the markers); empty without a frame.
+    std::vector<Eigen::Vector2d> lane_corners(const CourseGeometry& geo) const;
+    /// How the layout is turned and moved to fit the tasks found (layout
+    /// frame, a rotation about the origin then a translation).
+    Eigen::Isometry2d alignment(const CourseGeometry& geo) const;
     /// Tracker limit per kind (parts in the course + extra).
     std::map<std::pair<uint16_t, uint16_t>, int> track_limits() const;
 
    private:
     void build_tasks();
     Eigen::Isometry3d prior_pose(const Task& t, const CourseGeometry& geo) const;
-    /// Course-frame offset (placed - prior) of the placed task nearest to
-    /// @p t's prior, or zero.
-    Eigen::Vector2d neighbour_offset(const Task& t,
-                                     const CourseGeometry& geo) const;
+    /// Layout frame (priors, origin at the gate) <-> odom.
+    Eigen::Vector2d layout_to_odom(const Eigen::Vector2d& l, const CourseGeometry& geo) const;
+    Eigen::Vector2d odom_to_layout(const Eigen::Vector2d& o, const CourseGeometry& geo) const;
+    /// The layout's bounds plus the margin (layout frame), set at reset.
+    Eigen::Vector2d lane_min_{Eigen::Vector2d::Zero()};
+    Eigen::Vector2d lane_max_{Eigen::Vector2d::Zero()};
     void place(Task& t,
                const std::vector<KindTrack>& tracks,
                std::set<int>& claimed,

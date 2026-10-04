@@ -167,6 +167,9 @@ CourseConfig parse_course_config(const YAML::Node& node) {
     }
     cfg.variant_ratio = get_d(node, "variant_ratio", cfg.variant_ratio);
     cfg.min_slot_gate_m = get_d(node, "min_slot_gate_m", cfg.min_slot_gate_m);
+    cfg.lane_margin_m = get_d(node, "lane_margin_m", cfg.lane_margin_m);
+    cfg.max_align_rad =
+        get_d(node, "max_align_deg", cfg.max_align_rad * 180.0 / M_PI) * M_PI / 180.0;
     cfg.min_class_agreement =
         get_d(node, "min_class_agreement", cfg.min_class_agreement);
     if (node["min_part_detections"]) {
@@ -304,6 +307,14 @@ void CourseModel::clear() {
 
 void CourseModel::build_tasks() {
     tasks_.clear();
+    lane_min_ = lane_max_ = config_.start_xy;
+    for (const auto& spec : config_.tasks) {
+        const double r = spec.region_radius_m + extent(*config_.template_for(spec));
+        lane_min_ = lane_min_.cwiseMin(spec.prior_xy - Eigen::Vector2d::Constant(r));
+        lane_max_ = lane_max_.cwiseMax(spec.prior_xy + Eigen::Vector2d::Constant(r));
+    }
+    lane_min_ -= Eigen::Vector2d::Constant(config_.lane_margin_m);
+    lane_max_ += Eigen::Vector2d::Constant(config_.lane_margin_m);
     for (const auto& spec : config_.tasks) {
         Task t;
         t.spec = &spec;
@@ -475,39 +486,90 @@ std::map<ClassPair, int> CourseModel::track_limits() const {
     return out;
 }
 
+Eigen::Vector2d CourseModel::layout_to_odom(const Eigen::Vector2d& l,
+                                            const CourseGeometry& geo) const {
+    // Before the gate locks the course frame its origin is the start pose.
+    return geo.to_odom(geo.at_gate ? l : Eigen::Vector2d(l - config_.start_xy));
+}
+
+Eigen::Vector2d CourseModel::odom_to_layout(const Eigen::Vector2d& o,
+                                            const CourseGeometry& geo) const {
+    const Eigen::Vector2d c = geo.to_course(o);
+    return geo.at_gate ? c : Eigen::Vector2d(c + config_.start_xy);
+}
+
+Eigen::Isometry2d CourseModel::alignment(const CourseGeometry& geo) const {
+    // Where the placed tasks are (layout frame) against their priors: one
+    // gives the translation, two or more also the rotation (least squares).
+    std::vector<std::pair<Eigen::Vector2d, Eigen::Vector2d>> pairs;
+    for (const auto& t : tasks_) {
+        if (t.placed) {
+            pairs.emplace_back(t.spec->prior_xy,
+                               odom_to_layout(t.pose.translation().head<2>(), geo));
+        }
+    }
+    Eigen::Isometry2d A = Eigen::Isometry2d::Identity();
+    if (pairs.empty()) {
+        return A;
+    }
+    Eigen::Vector2d ps = Eigen::Vector2d::Zero();
+    Eigen::Vector2d qs = Eigen::Vector2d::Zero();
+    for (const auto& [p, q] : pairs) {
+        ps += p;
+        qs += q;
+    }
+    ps /= static_cast<double>(pairs.size());
+    qs /= static_cast<double>(pairs.size());
+    double angle = 0.0;
+    if (pairs.size() >= 2) {
+        double sin_sum = 0.0;
+        double cos_sum = 0.0;
+        for (const auto& [p, q] : pairs) {
+            const Eigen::Vector2d a = p - ps;
+            const Eigen::Vector2d b = q - qs;
+            sin_sum += a.x() * b.y() - a.y() * b.x();
+            cos_sum += a.dot(b);
+        }
+        angle = std::clamp(std::atan2(sin_sum, cos_sum), -config_.max_align_rad,
+                           config_.max_align_rad);
+    }
+    A.linear() = Eigen::Rotation2Dd(angle).toRotationMatrix();
+    A.translation() = qs - A.linear() * ps;
+    return A;
+}
+
 Eigen::Isometry3d CourseModel::prior_pose(const Task& t,
                                           const CourseGeometry& geo) const {
-    Eigen::Vector2d p = t.spec->prior_xy + neighbour_offset(t, geo);
-    if (!geo.at_gate) {
-        p -= config_.start_xy;  // the frame's origin is still the start pose
-    }
-    const Eigen::Vector2d odom = geo.to_odom(p);
-    return make_pose(geo.through_yaw + t.spec->prior_yaw,
+    const Eigen::Isometry2d A = alignment(geo);
+    const Eigen::Vector2d odom = layout_to_odom(A * t.spec->prior_xy, geo);
+    const double turn = std::atan2(A.linear()(1, 0), A.linear()(0, 0));
+    return make_pose(geo.through_yaw + t.spec->prior_yaw + turn,
                      Eigen::Vector3d(odom.x(), odom.y(), t.pose.translation().z()));
 }
 
-Eigen::Vector2d CourseModel::neighbour_offset(const Task& t,
-                                              const CourseGeometry& geo) const {
-    const Task* best = nullptr;
-    double best_d = std::numeric_limits<double>::infinity();
-    for (const auto& u : tasks_) {
-        if (&u == &t || !u.placed) {
-            continue;
-        }
-        const double d = (u.spec->prior_xy - t.spec->prior_xy).norm();
-        if (d < best_d) {
-            best_d = d;
-            best = &u;
-        }
+bool CourseModel::lane_allows(const Eigen::Vector3d& position,
+                              const CourseGeometry& geo) const {
+    if (!config_.enable || !geo.set) {
+        return true;
     }
-    if (best == nullptr) {
-        return Eigen::Vector2d::Zero();
+    const Eigen::Vector2d l =
+        alignment(geo).inverse() * odom_to_layout(position.head<2>(), geo);
+    return (l.array() >= lane_min_.array()).all() && (l.array() <= lane_max_.array()).all();
+}
+
+std::vector<Eigen::Vector2d> CourseModel::lane_corners(const CourseGeometry& geo) const {
+    if (!config_.enable || !geo.set) {
+        return {};
     }
-    Eigen::Vector2d placed = geo.to_course(best->pose.translation().head<2>());
-    if (!geo.at_gate) {
-        placed += config_.start_xy;
+    const Eigen::Isometry2d A = alignment(geo);
+    std::vector<Eigen::Vector2d> out;
+    for (const auto& c : {Eigen::Vector2d(lane_min_.x(), lane_min_.y()),
+                          Eigen::Vector2d(lane_max_.x(), lane_min_.y()),
+                          Eigen::Vector2d(lane_max_.x(), lane_max_.y()),
+                          Eigen::Vector2d(lane_min_.x(), lane_max_.y())}) {
+        out.push_back(layout_to_odom(A * c, geo));
     }
-    return placed - best->spec->prior_xy;
+    return out;
 }
 
 std::optional<Eigen::Isometry3d> CourseModel::working_pose(
