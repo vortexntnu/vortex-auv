@@ -22,8 +22,11 @@ def launch_setup(context, *args, **kwargs):
         raise RuntimeError(f"env must be sim or pool, not '{env}'")
     # Loaded after the common file: its values win.
     env_config = os.path.join(config_dir, f"{env}.yaml")
-    # The course layout: config/course/<env>.yaml unless course:= names
-    # another file (a path, or a name in config/course).
+    markers_config = os.path.join(config_dir, "markers.yaml")
+    # The props (the same everywhere), then where the tasks are:
+    # config/course/<env>.yaml unless course:= names another file (a path,
+    # or a name in config/course).
+    templates_config = os.path.join(config_dir, "course", "templates.yaml")
     course = LaunchConfiguration("course").perform(context) or env
     course_config = (
         course
@@ -48,7 +51,9 @@ def launch_setup(context, *args, **kwargs):
             namespace=namespace,
             parameters=[
                 landmark_config,
+                markers_config,
                 env_config,
+                templates_config,
                 course_config,
                 drone_params,
                 {

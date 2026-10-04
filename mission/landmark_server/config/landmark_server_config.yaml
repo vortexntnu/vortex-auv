@@ -1,194 +1,61 @@
-# Common landmark_server parameters. What differs between the simulator and a
-# real pool (depths, lane limits, torpedo board offsets, and the noise values
-# that must be measured) is in sim.yaml / pool.yaml, loaded after this file:
-#   ros2 launch landmark_server landmark_server.launch.py env:=sim|pool
+# landmark_server: the settings that are the same in every pool. Everything
+# not listed here has a default in the code (README, "All settings").
+#
+# The files, loaded in this order by the launch file (later files win):
+#   landmark_server_config.yaml  this file: tracker and map behaviour
+#   markers.yaml                 how the map is drawn in Foxglove (no tuning)
+#   <env>.yaml                   measured in that pool: floor, detector noise, drift
+#   course/templates.yaml        what each RoboSub prop looks like
+#   course/<env>.yaml            where the tasks are in that pool
 /**:
   ros__parameters:
     target_frame: "nautilus/odom"
-    timer_rate_ms: 200
 
+    # The tracker (pose_filtering). Read at start.
     track_config:
       default:
-        nm:
-          confirm_n: 3 # hits needed for confirmation
-          confirm_m: 5 # window size for confirmation
-          delete_n: 5  # misses needed for deletion
-          delete_m: 7  # window size for deletion
-
-        gate:
-          min_pos_error: 0.0 # in meters
-          # A camera's depth error at 6-7 m reaches 0.6 m: a tighter limit
-          # splits one object into several tracks (many duplicates).
-          max_pos_error: 1.5 # in meters
-          min_ori_error: 0.0 # in radians
-          max_ori_error: 0.5 # in radians
-
+        # A track is confirmed after confirm_n hits in confirm_m ticks
+        # (5 Hz), deleted after delete_n misses in delete_m ticks.
+        nm: {confirm_n: 3, confirm_m: 5, delete_n: 5, delete_m: 7}
+        # A detection farther than this from a track is not that track [m].
+        # A camera's depth error at 6-7 m reaches 0.6 m: smaller values split
+        # one object into several tracks.
+        gate: {max_pos_error: 1.5}
+        # How much a track may move per tick, and the class noise of a
+        # detection [m] (the detector noise of <env>.yaml comes on top).
         dyn_mod_std_dev: 0.2
         sens_mod_std_dev: 0.2
 
-        init_pos_std_dev: 0.1
-        init_ori_std_dev: 0.05
-
-        # sqrt(d^2) limit; 3.37 = 99 % of true detections in 3D (position only)
-        mahalanobis_gate_threshold: 3.4
-        # No PDAF weighting: association is global nearest neighbour, so each
-        # track gets at most one measurement, and with these two values the
-        # PDAF update is exactly the Kalman update with it (the no-detection
-        # weight clutter * (1 - p_detection) is 0). PDAF gave the same maps
-        # in the simulator.
-        prob_of_detection: 1.0
-        clutter_intensity: 0.0
-
       # Pipes stand at least 1.5 m apart. A detection within 0.5 m of a pipe
-      # track is that pipe, whatever the covariance says; one that goes to no
-      # track does not start a new pipe within 0.7 m of an existing one (a
-      # noisy look at it). Without these a pipe was split into a second track
-      # about 12 times a minute in the simulator. 5 hits in 7 ticks to
-      # confirm: with the wide gate, clutter next to a pipe could take the
-      # pipe's detections and get confirmed with 3 in 5 (short-lived false
-      # pipes with the erratic dummy profile).
+      # track is that pipe; one that goes to no track does not start a new
+      # pipe within 0.7 m of another. 5 hits in 7 ticks to confirm: clutter
+      # next to a pipe could otherwise take its detections and get confirmed.
       SLALOM_PIPE:
         nm: {confirm_n: 5, confirm_m: 7}
         gate: {min_pos_error: 0.5}
         new_track_min_distance_m: 0.7
 
-    topics:
-      object_map: "landmark_server/object_map"
-      live_tracks: "landmark_server/live_tracks"
-      course_frame_state: "landmark_server/course_frame_state"
-
-    intake:
-      max_pipe_distance_m: 7.0             # pipes farther away are discarded
-      no_orientation_rot_variance: 1000.0  # rotation variance >= this = no orientation
-      # Extra measurement variance [m^2] = base + per_meter * distance from the
-      # vehicle: far detections weigh less in the tracker.
-      # Along the line of sight (depth); across it: lateral_ratio * that.
-      distance_noise: {base_variance: 0.0, variance_per_meter: 0.005, lateral_ratio: 0.25}
-      # Use the detector's position covariance instead (when its diagonal is
-      # > 0): replaces the class noise and distance_noise. scale for testing.
-      measurement_covariance: {use: false, scale: 1.0, min_std_m: 0.02}
-
-    # Smoothing backend (iSAM2): vehicle keyframes + landmark positions in one
-    # factor graph. When a remembered landmark is seen again after the
-    # odometry has drifted, the whole map is corrected. Positions are published
-    # in target_frame (the current odom frame), relative to the vehicle as the
-    # graph sees it. Noise values are guesses until the drift is measured.
+    # Drift correction (iSAM2): vehicle keyframes and landmarks in one graph.
+    # The drift values are measured per pool (<env>.yaml). Read at start.
     graph:
       enable: true
-      keyframe: {distance_m: 0.5, angle_deg: 10.0, interval_sec: 5.0}
-      # std of one keyframe step; a bias needs more than the drift per metre
-      odom_noise: {pos_std_per_m: 0.02, yaw_std_deg_per_m: 1.0,
-                   yaw_std_deg_per_sec: 0.01, min_pos_std_m: 0.01,
-                   min_rot_std_deg: 0.1}
-      # IMU roll/pitch and pressure depth do not drift
-      absolute: {roll_pitch_std_deg: 1.0, depth_std_m: 0.05}
-      measurements: {huber_k: 2.0, max_per_keyframe: 3, min_observations: 3,
-                     max_pending_per_track: 50}
 
-    # Course frame: TF nautilus/course (child of target_frame).
-    # x through the gate, y to the right, z down. With a course layout
-    # (config/course) the lane is the area the layout covers; the boxes in
-    # course_frame.lane (sim.yaml / pool.yaml) are only used without one.
-    course_frame:
-      publish_tf: true
-      frame_id: "nautilus/course"
-      gate_lock: {consistent_estimates: 10, max_yaw_std_deg: 3.0}
-      warn_start_vs_gate_deg: 30.0
-
-    # Map rules per class.
-    # max_instances is per (type, subtype). retain: forever, or retain_sec.
+    # Classes that are no part of a course task (course/templates.yaml) are
+    # free landmarks: kept retain_sec after the last detection, at most
+    # max_instances of each. Classes not listed: 20, 15 s.
     classes:
-      GATE:
-        max_instances: {SEARCH_RESCUE: 1, SURVEY_REPAIR: 1, WHOLE: 1,
-                        POLE_EDGE: 2, POLE_MIDDLE: 1}
-        retain: forever
-      SLALOM_PIPE:
-        max_instances: {WHITE: 10, RED: 5}
-        instance_gate_m: 0.7
-        retain_sec: 15.0
-        keep_after_observations: 30
-        min_distance_to_large_structures_m: 1.5
-      PATH_MARKER: {max_instances: 2, retain_sec: 15.0}
-      TORPEDO_BOARD: {max_instances: 1, retain: forever}
-      # Handbook 3.2.4: two bins per role (blood, fire).
-      BIN:
-        max_instances: {SEARCH_RESCUE: 2, SURVEY_REPAIR: 2, UNCLASSIFIED: 4,
-                        STRUCTURE: 1}
-        instance_gate_m: 0.25
-        retain_sec: 15.0
-      TABLE: {max_instances: 1, retain: forever}
-      # The items on the table are moved during the run: followed live only
-      # (landmark_server/live_tracks), never a landmark in the map.
+      PATH_MARKER: {max_instances: 2}
+      # Moved during the run: followed live only (landmark_server/live_tracks),
+      # never a landmark in the map.
       TABLE_ITEM_NUTBOLT: {live_only: true}
       TABLE_ITEM_ELECTRIC: {live_only: true}
       TABLE_ITEM_PILL: {live_only: true}
       TABLE_ITEM_BANDAID: {live_only: true}
-      OCTAGON: {max_instances: 1, retain: forever}
 
     rules:
-      plausibility_radius_m: 3.0
-      # A remembered landmark takes a new track over only when it is clearly
-      # the nearest (the next of the class ambiguity_ratio times farther);
-      # otherwise the track waits wait_sec, then counts as a new object.
-      adoption: {ambiguity_ratio: 2.0, wait_sec: 2.0}
-      large_structures: [GATE, TABLE, TORPEDO_BOARD, BIN_STRUCTURE]
-      gate_yaw_from_panels: true      # normal on the line between the panels
-      board_yaw_from_icons: true      # normal on the icon pairs
-      bin_role_from_down_icons: true  # role icon from the down camera -> nearest bin
-      octagon_from_table: true        # OCTAGON_WHOLE over the table
-      yaw_lock: {consistent_estimates: 5, max_jump_deg: 90.0}
-      # Plausibility checks. The gate panels hang ~1.6 m apart: two panels
-      # farther apart than this are not one gate.
-      max_panel_separation_m: 2.5
-      # A new large structure this close (xy) to one of another type is the
-      # same object seen as another class: the first one is kept.
-      large_structure_separation_m: 2.0
-      board:
-        icon_radius_m: 1.0        # icons farther from the board are ignored
-        yaw_max_distance_m: 0.0   # yaw estimates only this close (0 = any)
-        version_min_dz_m: 0.05    # icon pair height difference for a vote
-        version_lock_votes: 5     # agreeing votes that lock the version
-      # Table and octagon share one xy: from the table, the octagon or the
-      # midpoint. The missing one is derived (a table only with z_lock on).
-      table_octagon: {primary: table, table_height_m: 0.7}
-      # Objects on the floor or at the surface get that depth (odom z, down
-      # positive) instead of the measured one; the octagon floats at the
-      # surface. Not the table: its top and the things on it are ~0.7 m above
-      # the floor. Only the octagon itself: its image plates hang under the
-      # surface. enable, floor_z and surface_z are per environment.
+      # Objects on the floor or at the surface get that depth instead of the
+      # measured one (enable and the depths are in <env>.yaml). The table is
+      # not locked: its top is ~0.7 m above the floor.
       z_lock:
         floor_classes: [PATH_MARKER, BIN_STRUCTURE]
         surface_classes: [OCTAGON_WHOLE]
-      # rules.torpedo_targets_from_icons (icon -> opening offsets) is per
-      # environment.
-
-    # The course layout (tasks, their parts and where they are) is per
-    # environment: config/course/<env>.yaml, loaded by the launch file. With
-    # it, the classes that are parts of a task are mapped only as those
-    # parts; `classes` then applies to the other classes only.
-
-    # Boxes of the real size in the markers, from the simulator's meshes.
-    # size: [x out of the front, y right, z down] [m]; offset: box centre
-    # from where the map puts the landmark (the gate at its panel midpoint,
-    # the board at its icon centre, the bin rig locked to the floor), in the
-    # landmark frame. Turned with the yaw when known. solid: the box is the
-    # object itself (PVC pipes, drawn instead of the point); else a
-    # see-through outline around it. color: [r, g, b], else the type colour.
-    markers:
-      boxes:
-        GATE_POLE_EDGE: {size: [0.076, 0.076, 1.364], solid: true, color: [0.8, 0.1, 0.1]}
-        GATE_POLE_MIDDLE: {size: [0.051, 0.051, 0.61], solid: true, color: [1.0, 0.0, 0.0]}
-        SLALOM_PIPE_WHITE: {size: [0.03, 0.03, 0.938], solid: true, color: [1.0, 1.0, 1.0]}
-        SLALOM_PIPE_RED: {size: [0.03, 0.03, 0.938], solid: true, color: [1.0, 0.0, 0.0]}
-        GATE_WHOLE: {size: [0.08, 3.18, 1.36], offset: [0.0, 0.0, 0.48]}
-        TORPEDO_BOARD_WHOLE: {size: [0.49, 0.71, 1.21], offset: [0.0, 0.0, -0.12]}
-        BIN_STRUCTURE: {size: [1.40, 1.45, 0.69], offset: [0.0, 0.0, -0.28]}
-        TABLE_WHOLE: {size: [0.61, 1.12, 0.77], offset: [0.0, 0.0, 0.33]}
-        OCTAGON_WHOLE: {size: [2.73, 2.73, 0.44], offset: [0.0, 0.0, 0.20]}
-
-    debug:
-      enable: false
-      topic_name: "landmark_server/debug/landmark_tracks"
-      landmark_pose_topic: "landmark_server/debug/landmark_pose"
-      landmark_type: 0     # 0 = any type
-      landmark_subtype: 0  # 0 = any subtype

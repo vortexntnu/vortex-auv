@@ -78,7 +78,9 @@ for i in "${!LABELS[@]}"; do
     ros2 run landmark_server landmark_server_node --ros-args \
         -r __ns:=/tune_"$label" -r __node:=landmark_server_node \
         --params-file "$C/landmark_server_config.yaml" \
-        --params-file "$C/${ENV_NAME}.yaml" --params-file "$D" \
+        --params-file "$C/markers.yaml" --params-file "$C/${ENV_NAME}.yaml" \
+        --params-file "$C/course/templates.yaml" \
+        --params-file "$C/course/${ENV_NAME}.yaml" --params-file "$D" \
         -p use_sim_time:=true \
         -p topics.landmarks:=/"$NS"/landmarks -p topics.odom:=/"$NS"/odom \
         -p course_frame.publish_tf:=false \

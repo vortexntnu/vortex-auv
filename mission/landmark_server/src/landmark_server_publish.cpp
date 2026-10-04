@@ -86,10 +86,9 @@ YAML::Node overrides_to_yaml(
 /// Map rules: these can change while the server runs.
 const std::vector<std::string> kLiveRoots = {"intake", "course_frame",
                                              "classes", "rules", "markers"};
-/// Tracker and graph settings: read once at start.
-/// Tracker, graph and course layout: read once at start.
+/// Tracker, graph, detector noise and course layout: read once at start.
 const std::vector<std::string> kRestartRoots = {"track_config", "graph",
-                                                "course"};
+                                                "detector_noise", "course"};
 
 std::string root_of(const std::string& name) {
     return name.substr(0, name.find('.'));
@@ -184,6 +183,7 @@ rcl_interfaces::msg::SetParametersResult LandmarkServerNode::on_parameters_set(
     }
     {
         std::lock_guard<std::mutex> lock(intake_mtx_);
+        config.intake.noise = intake_config_.noise;  // read at start only
         intake_config_ = config.intake;
     }
     std::lock_guard<std::mutex> lock(pending_map_config_mtx_);
@@ -213,9 +213,15 @@ void LandmarkServerNode::create_map() {
     const YAML::Node tree = overrides_to_yaml(
         overrides,
         {"intake", "course_frame", "classes", "rules", "markers", "graph",
-         "course"});
+         "detector_noise", "course"});
     map_config_ = parse_map_config(tree);
-    graph_ = std::make_unique<LandmarkGraph>(parse_graph_config(tree["graph"]));
+    // The graph weighs the detections with the same detector noise as the
+    // tracker.
+    LandmarkGraphConfig graph_config = parse_graph_config(tree["graph"]);
+    graph_config.meas_base_std_m = map_config_.intake.noise.base_std_m;
+    graph_config.meas_along_std_per_m = map_config_.intake.noise.along_std_per_m;
+    graph_config.meas_across_std_per_m = map_config_.intake.noise.across_std_per_m;
+    graph_ = std::make_unique<LandmarkGraph>(graph_config);
     graph_frame_ = target_frame_;
     if (tree["graph"] && tree["graph"]["frame_id"] &&
         !tree["graph"]["frame_id"].as<std::string>().empty()) {
@@ -241,16 +247,14 @@ void LandmarkServerNode::create_map() {
     // The values that differ between sim.yaml and pool.yaml, so the log
     // shows which environment is running.
     const auto& zl = map_config_.map_rules.z_lock;
-    const auto& lane = map_config_.course_frame.before_gate;
-    const auto& fire = map_config_.map_rules.torpedo_version_1.fire;
+    const auto& noise = map_config_.intake.noise;
     const auto& tc = track_manager_config_.default_class_config;
     spdlog::info(
-        "LandmarkServer config: z_lock {} (floor {:.3f} m), lane before gate "
-        "x [{:.1f}, {:.1f}] y [{:.1f}, {:.1f}], torpedo v1 fire offset "
-        "({:.3f}, {:.3f}, {:.3f}), sensor std {:.2f} m, max_pos_error "
-        "{:.2f} m, graph yaw noise {:.2f} deg/m",
-        zl.enable ? "on" : "off", zl.floor_z, lane.x_min, lane.x_max,
-        lane.y_min, lane.y_max, fire.x(), fire.y(), fire.z(), tc.sens_std_dev,
+        "LandmarkServer config: z_lock {} (floor {:.3f} m), detector noise "
+        "{:.3f} m + {:.3f}/m along, {:.4f}/m across, sensor std {:.2f} m, "
+        "max_pos_error {:.2f} m, graph yaw noise {:.2f} deg/m",
+        zl.enable ? "on" : "off", zl.floor_z, noise.base_std_m,
+        noise.along_std_per_m, noise.across_std_per_m, tc.sens_std_dev,
         tc.max_pos_error, graph_->config().odom_yaw_std_deg_per_m);
 
     // Per-class track configs (track_config.<CLASS>...) on top of the default.
@@ -388,17 +392,12 @@ void LandmarkServerNode::reset_map() {
 void LandmarkServerNode::update_map() {
     apply_pending_map_config();
     RetainedLandmarks::PositionFilter filter;
-    if (course_->status() != CourseFrameStatus::UNSET) {
-        if (map_->course().enabled()) {
-            const CourseGeometry geo = course_geometry();
-            filter = [this, geo](const Eigen::Vector3d& p) {
-                return map_->course().lane_allows(p, geo);
-            };
-        } else {
-            filter = [this](const Eigen::Vector3d& p) {
-                return course_->position_allowed(p);
-            };
-        }
+    if (course_->status() != CourseFrameStatus::UNSET &&
+        map_->course().enabled()) {
+        const CourseGeometry geo = course_geometry();
+        filter = [this, geo](const Eigen::Vector3d& p) {
+            return map_->course().lane_allows(p, geo);
+        };
     }
 
     std::vector<vortex::filtering::Track> confirmed;
@@ -845,7 +844,7 @@ void LandmarkServerNode::publish_markers() {
     }
 
     // The course frame: its origin, the direction through the gate and the
-    // lane bounds that are in force.
+    // lane (the area the course layout covers, aligned to the tasks found).
     if (course_->status() != CourseFrameStatus::UNSET) {
         const auto point3 = [&](const Eigen::Vector2d& odom_xy) {
             geometry_msgs::msg::Point p;
@@ -855,8 +854,6 @@ void LandmarkServerNode::publish_markers() {
             return p;
         };
         const bool locked = course_->status() == CourseFrameStatus::GATE_LOCKED;
-        const LaneBox& box = locked ? map_config_.course_frame.after_gate
-                                    : map_config_.course_frame.before_gate;
 
         Marker lane;
         lane.header.frame_id = target_frame_;
@@ -872,21 +869,12 @@ void LandmarkServerNode::publish_markers() {
         lane.color.b = 0.2F;
         lane.color.a = 0.8F;
         const auto layout_lane = map_->course().lane_corners(course_geometry());
-        if (!layout_lane.empty()) {
-            // The area the course layout covers, aligned to the tasks found.
-            for (std::size_t k = 0; k <= layout_lane.size(); ++k) {
-                lane.points.push_back(point3(layout_lane[k % layout_lane.size()]));
-            }
-        } else {
-            for (const auto& c : {Eigen::Vector2d(box.x_min, box.y_min),
-                                  Eigen::Vector2d(box.x_max, box.y_min),
-                                  Eigen::Vector2d(box.x_max, box.y_max),
-                                  Eigen::Vector2d(box.x_min, box.y_max),
-                                  Eigen::Vector2d(box.x_min, box.y_min)}) {
-                lane.points.push_back(point3(course_->from_course(c)));
-            }
+        for (std::size_t k = 0; !layout_lane.empty() && k <= layout_lane.size(); ++k) {
+            lane.points.push_back(point3(layout_lane[k % layout_lane.size()]));
         }
-        array.markers.push_back(lane);
+        if (!lane.points.empty()) {
+            array.markers.push_back(lane);
+        }
 
         Marker axis;
         axis.header = lane.header;

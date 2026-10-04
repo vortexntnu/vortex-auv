@@ -103,44 +103,19 @@ std::vector<Landmark> LandmarkServerNode::ros_msg_to_landmarks(
             ++dropped_measurements_;
             continue;
         }
-        // Distant pipes are unreliable.
-        if (lm_msg.type.value == vortex_msgs::msg::LandmarkType::SLALOM_PIPE &&
-            vehicle) {
-            const auto& p = lm_msg.pose.pose.position;
-            const double d =
-                std::hypot(std::hypot(p.x - vehicle->x, p.y - vehicle->y),
-                           p.z - vehicle->z);
-            if (d > intake.max_pipe_distance_m) {
-                ++dropped_measurements_;
-                continue;
-            }
-        }
         Landmark lm;
         lm.pose =
             vortex::utils::ros_conversions::ros_pose_to_pose(lm_msg.pose.pose);
         lm.class_key = vortex::filtering::LandmarkClassKey{
             lm_msg.type.value, lm_msg.subtype.value};
         lm.stamp_sec = stamp_sec;
-        if (vehicle) {
+        if (vehicle && intake.noise.enabled()) {
+            // The detector noise along and across the line of sight, on top
+            // of the class noise: far detections weigh less, and their depth
+            // least.
             const auto& p = lm_msg.pose.pose.position;
-            const double d =
-                std::hypot(std::hypot(p.x - vehicle->x, p.y - vehicle->y),
-                           p.z - vehicle->z);
-            const double depth_var = intake.noise_base_variance +
-                                     intake.noise_variance_per_meter * d;
-            lm.extra_variance = depth_var;
-            if (d > 1e-6) {
-                // depth_var along the line of sight, a fraction across it.
-                const Eigen::Vector3d ray =
-                    Eigen::Vector3d(p.x - vehicle->x, p.y - vehicle->y,
-                                    p.z - vehicle->z) /
-                    d;
-                const double lateral_var =
-                    intake.noise_lateral_ratio * depth_var;
-                lm.extra_position_cov =
-                    Eigen::Matrix3d::Identity() * lateral_var +
-                    (depth_var - lateral_var) * ray * ray.transpose();
-            }
+            lm.extra_position_cov = intake.noise.covariance(Eigen::Vector3d(
+                p.x - vehicle->x, p.y - vehicle->y, p.z - vehicle->z));
         }
         const auto& cov = lm_msg.pose.covariance;
         if (intake.use_measurement_covariance && cov[0] > 0.0 &&

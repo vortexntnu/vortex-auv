@@ -12,9 +12,13 @@ add_executable(test_landmark_map
   test_map_rules.cpp
   test_structures.cpp
   test_course_model.cpp
+  test_config_files.cpp
 )
+target_compile_definitions(test_landmark_map PRIVATE
+  LANDMARK_SERVER_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../config")
 target_link_libraries(test_landmark_map PRIVATE
   landmark_server_core
+  landmark_server_graph
   GTest::GTest
   GTest::Main
 )

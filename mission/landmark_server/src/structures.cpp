@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <boost/math/distributions/chi_squared.hpp>
 #include <cmath>
+#include <initializer_list>
 #include <limits>
 #include <stdexcept>
 #include <tuple>
@@ -37,6 +38,22 @@ Eigen::Vector3d parse_vec3(const YAML::Node& node, const std::string& where) {
     return {node[0].as<double>(), node[1].as<double>(), node[2].as<double>()};
 }
 
+/// A key that is not in @p allowed is a typo: an error, not a silent default.
+void check_keys(const YAML::Node& node,
+                std::initializer_list<const char*> allowed,
+                const std::string& where) {
+    if (!node.IsMap()) {
+        return;
+    }
+    for (const auto& kv : node) {
+        const auto key = kv.first.as<std::string>();
+        if (std::none_of(allowed.begin(), allowed.end(),
+                         [&](const char* a) { return key == a; })) {
+            throw std::runtime_error(where + ": unknown key '" + key + "'");
+        }
+    }
+}
+
 LandmarkClassKey parse_key(const std::string& name, const std::string& where) {
     const auto parsed = parse_class_name(name);
     if (!parsed) {
@@ -56,6 +73,7 @@ std::vector<DerivedPoint> parse_points(const YAML::Node& node,
         DerivedPoint p;
         p.name = kv.first.as<std::string>();
         const std::string w = where + "." + p.name;
+        check_keys(kv.second, {"class", "offset", "from", "yaw_deg"}, w);
         if (!kv.second["class"]) {
             throw std::runtime_error(w + ": missing class");
         }
@@ -90,6 +108,7 @@ std::vector<StructureMember> parse_members(const YAML::Node& node,
         StructureMember m;
         m.name = kv.first.as<std::string>();
         const std::string w = where + "." + m.name;
+        check_keys(kv.second, {"class", "offset", "sigma"}, w);
         const auto cls = kv.second["class"];
         if (!cls) {
             throw std::runtime_error(w + ": missing class");
@@ -347,6 +366,8 @@ std::vector<StructureTemplate> parse_structures(const YAML::Node& node) {
             for (const auto& v : n["variants"]) {
                 StructureVariant var;
                 var.name = v.first.as<std::string>();
+                check_keys(v.second, {"members", "points"},
+                           where + ".variants." + var.name);
                 var.members = parse_members(v.second["members"], sigma,
                                             where + ".variants." + var.name);
                 var.points = parse_points(v.second["points"], var.members,

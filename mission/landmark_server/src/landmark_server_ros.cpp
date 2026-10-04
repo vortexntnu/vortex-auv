@@ -44,14 +44,14 @@ void LandmarkServerNode::setup_ros_communicators() {
     create_timer();
     setup_reset_subscription();
 
-    debug_ = this->declare_parameter<bool>("debug.enable");
+    debug_ = this->declare_parameter<bool>("debug.enable", false);
     if (debug_) {
         setup_debug_publishers();
     }
 }
 
 void LandmarkServerNode::create_timer() {
-    int timer_rate_ms = this->declare_parameter<int>("timer_rate_ms");
+    int timer_rate_ms = this->declare_parameter<int>("timer_rate_ms", 200);
     filter_dt_seconds_ = static_cast<double>(timer_rate_ms) / 1000;
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(timer_rate_ms),
@@ -180,42 +180,42 @@ void LandmarkServerNode::create_track_manager() {
     vortex::filtering::TrackManagerConfig config;
 
     config.default_class_config.nm.confirm_n =
-        this->declare_parameter<int>("track_config.default.nm.confirm_n");
+        this->declare_parameter<int>("track_config.default.nm.confirm_n", 3);
     config.default_class_config.nm.confirm_m =
-        this->declare_parameter<int>("track_config.default.nm.confirm_m");
+        this->declare_parameter<int>("track_config.default.nm.confirm_m", 5);
     config.default_class_config.nm.delete_n =
-        this->declare_parameter<int>("track_config.default.nm.delete_n");
+        this->declare_parameter<int>("track_config.default.nm.delete_n", 5);
     config.default_class_config.nm.delete_m =
-        this->declare_parameter<int>("track_config.default.nm.delete_m");
+        this->declare_parameter<int>("track_config.default.nm.delete_m", 7);
 
     config.default_class_config.min_pos_error = this->declare_parameter<double>(
-        "track_config.default.gate.min_pos_error");
+        "track_config.default.gate.min_pos_error", 0.0);
     config.default_class_config.max_pos_error = this->declare_parameter<double>(
-        "track_config.default.gate.max_pos_error");
+        "track_config.default.gate.max_pos_error", 1.5);
     config.default_class_config.min_ori_error = this->declare_parameter<double>(
-        "track_config.default.gate.min_ori_error");
+        "track_config.default.gate.min_ori_error", 0.0);
     config.default_class_config.max_ori_error = this->declare_parameter<double>(
-        "track_config.default.gate.max_ori_error");
+        "track_config.default.gate.max_ori_error", 0.5);
 
     config.default_class_config.dyn_std_dev =
-        this->declare_parameter<double>("track_config.default.dyn_mod_std_dev");
+        this->declare_parameter<double>("track_config.default.dyn_mod_std_dev", 0.2);
     config.default_class_config.sens_std_dev = this->declare_parameter<double>(
-        "track_config.default.sens_mod_std_dev");
+        "track_config.default.sens_mod_std_dev", 0.2);
 
     config.default_class_config.init_pos_std = this->declare_parameter<double>(
-        "track_config.default.init_pos_std_dev");
+        "track_config.default.init_pos_std_dev", 0.1);
     config.default_class_config.init_ori_std = this->declare_parameter<double>(
-        "track_config.default.init_ori_std_dev");
+        "track_config.default.init_ori_std_dev", 0.05);
 
     config.default_class_config.mahalanobis_threshold =
         this->declare_parameter<double>(
-            "track_config.default.mahalanobis_gate_threshold");
+            "track_config.default.mahalanobis_gate_threshold", 3.4);
     config.default_class_config.prob_of_detection =
         this->declare_parameter<double>(
-            "track_config.default.prob_of_detection");
+            "track_config.default.prob_of_detection", 1.0);
     config.default_class_config.clutter_intensity =
         this->declare_parameter<double>(
-            "track_config.default.clutter_intensity");
+            "track_config.default.clutter_intensity", 0.0);
 
     track_manager_config_ = config;
     track_manager_ =

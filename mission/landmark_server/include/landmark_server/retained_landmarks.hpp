@@ -26,7 +26,8 @@ struct RetainedLandmark {
     /// +X out of the front, +Z down (NED). Valid when has_orientation.
     Eigen::Quaterniond orientation{Eigen::Quaterniond::Identity()};
     bool has_orientation{false};
-    /// The yaw is fixed by the map rules and no longer follows the tracker.
+    /// The yaw is fixed (by the course model) and no longer follows the
+    /// tracker.
     bool yaw_locked{false};
     /// Computed by a map rule instead of measured.
     bool derived{false};
@@ -49,15 +50,6 @@ struct RetainedLandmark {
     /// Hidden from the published map because another landmark describes the
     /// same object better (id of that landmark), or -1.
     int absorbed_by{-1};
-    /// Running circular mean of consistent yaw estimates (map rules).
-    double yaw_sum_sin{0.0};
-    double yaw_sum_cos{0.0};
-    int yaw_count{0};
-    /// Torpedo board version (1 or 2; 0 = not known yet), the number of
-    /// consecutive votes for it, and whether it is locked (map rules).
-    int board_version{0};
-    int board_version_votes{0};
-    bool board_version_locked{false};
 
     /// For a derived landmark: the parts it is computed from are being seen.
     bool derived_live{false};
@@ -87,9 +79,8 @@ struct RetainedLandmark {
  *    one of the class adoption_ambiguity_ratio times farther away). An
  *    ambiguous track waits up to adoption_wait_sec for that; a wrong take-over
  *    would join two objects in the smoothing graph for the rest of the run;
- *  - otherwise it becomes a new landmark, unless the class is full, it lies
- *    outside the lane bounds, (for pipes) too close to a large structure, or
- *    (for large structures) too close to a large structure of another type.
+ *  - otherwise it becomes a new landmark, unless the class is full or it
+ *    lies outside the lane.
  */
 class RetainedLandmarks {
    public:
@@ -100,7 +91,7 @@ class RetainedLandmarks {
     /**
      * @param confirmed The confirmed tracks of PoseTrackManager.
      * @param now Time [s].
-     * @param position_allowed Optional lane bounds; landmarks outside are
+     * @param position_allowed Optional lane; landmarks outside are
      * rejected (new) or dropped (existing).
      */
     /// What the course model needs each tick besides the tracks.
@@ -156,8 +147,8 @@ class RetainedLandmarks {
         const vortex::filtering::LandmarkClassKey& key,
         double now);
 
-    /// Number of tracks rejected because a class was full, out of bounds or
-    /// too close to a large structure.
+    /// Number of tracks rejected because a class was full or out of the
+    /// lane.
     int rejected_count() const { return rejected_; }
 
     /// Number of ticks a track waited because two landmarks were about as
@@ -168,12 +159,6 @@ class RetainedLandmarks {
     void update_from_track(RetainedLandmark& lm,
                            const vortex::filtering::Track& track,
                            double now) const;
-    bool near_large_structure(const Eigen::Vector3d& position,
-                              double distance) const;
-    /// A measured large structure of another type within @p distance (xy).
-    bool near_other_large_structure(uint16_t type,
-                                    const Eigen::Vector3d& position,
-                                    double distance) const;
     void forget_expired(double now);
 
     /// The course model's tracks and slots this tick.

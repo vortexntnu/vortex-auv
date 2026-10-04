@@ -38,14 +38,17 @@ struct TaskSpec {
     /// Prior position (xy) and yaw of the task frame's +X, course frame.
     Eigen::Vector2d prior_xy{Eigen::Vector2d::Zero()};
     double prior_yaw{0.0};
+    // The fields below are set per task, or in its template for every task
+    // of that prop, else these defaults.
+
     /// Before the task is placed: its parts are taken within this distance
     /// (xy) of the prior position [m].
-    double region_radius_m{3.0};
+    double region_radius_m{2.5};
     /// After it is placed: within this distance of the part they would be
     /// [m].
     double part_radius_m{1.0};
     /// The placement's yaw must be within this of the prior yaw [rad].
-    double yaw_window_rad{M_PI};
+    double yaw_window_rad{30.0 * M_PI / 180.0};
     /// The template looks the same turned 180 deg (a slalom set).
     bool symmetric{false};
     /// Parts needed to place the task. 1: the part alone, at the prior yaw.

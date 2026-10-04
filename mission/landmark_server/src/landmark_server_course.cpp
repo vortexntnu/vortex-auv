@@ -18,7 +18,9 @@ CourseGeometry LandmarkServerNode::course_geometry() const {
 void LandmarkServerNode::gate_measurements(std::vector<Landmark>& measurements) {
     const CourseModel& course = map_->course();
     const CourseGeometry geo = course_geometry();
-    const bool lane = course_->status() != CourseFrameStatus::UNSET;
+    // The lane: the area the course layout covers (none without a layout or
+    // before the course frame is set).
+    const bool lane = course_->status() != CourseFrameStatus::UNSET && course.enabled();
     std::optional<Eigen::Vector3d> vehicle;
     {
         std::lock_guard<std::mutex> lock(odom_mtx_);
@@ -32,11 +34,7 @@ void LandmarkServerNode::gate_measurements(std::vector<Landmark>& measurements) 
     for (auto& m : measurements) {
         m.reported_class = m.class_key;
         const Eigen::Vector3d p = m.pose.pos_vector();
-        // The lane: the area the course layout covers, else the boxes of
-        // course_frame.lane.
-        const bool in_lane = course.enabled() ? course.lane_allows(p, geo)
-                                              : course_->position_allowed(p);
-        if (lane && !in_lane) {
+        if (lane && !course.lane_allows(p, geo)) {
             ++drop_counts_["outside_lane"];
             continue;
         }

@@ -46,8 +46,8 @@ struct LandmarkGraphConfig {
 
     /// Landmark measurement noise for the graph: std along the line of sight
     /// from the vehicle (depth) and across it, growing with the distance:
-    /// std = base + per_m * d. Off (base <= 0): the covariance the caller
-    /// gives (the tracker's noise model).
+    /// std = base + per_m * d. The node sets it from `detector_noise`. All
+    /// zero: the covariance the caller gives (the tracker's noise model).
     double meas_base_std_m{0.0};
     double meas_along_std_per_m{0.0};
     double meas_across_std_per_m{0.0};

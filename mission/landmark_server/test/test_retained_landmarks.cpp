@@ -279,76 +279,6 @@ TEST(RetainedLandmarks, SplitTrackOnAFollowedObjectIsNotANewLandmark) {
     EXPECT_EQ(map.landmarks().size(), 2u);
 }
 
-TEST(RetainedLandmarks, PipeNextToTheGateIsRejected) {
-    RetainedLandmarks map(example_config());
-    map.update({make_track(1, LT::GATE, LS::GATE_WHOLE, v(10, 0))}, 0.0);
-
-    // 1 m from the gate: a gate leg, not a pipe.
-    map.update({make_track(1, LT::GATE, LS::GATE_WHOLE, v(10, 0)),
-                make_track(2, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE, v(10, 1))},
-               1.0);
-    EXPECT_EQ(map.landmarks().size(), 1u);
-    EXPECT_EQ(map.rejected_count(), 1);
-
-    // 2 m from the gate is fine.
-    map.update({make_track(1, LT::GATE, LS::GATE_WHOLE, v(10, 0)),
-                make_track(3, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE, v(10, 2))},
-               2.0);
-    EXPECT_EQ(map.landmarks().size(), 2u);
-}
-
-TEST(RetainedLandmarks, LargeStructureNextToAnotherTypeIsRejected) {
-    auto config = example_config();
-    config.large_structure_separation_m = 2.0;
-    RetainedLandmarks map(config);
-    map.update({make_track(1, LT::BIN, LS::BIN_STRUCTURE, v(10, 0))}, 0.0);
-
-    // 1 m from the bin rig: the same object, seen as a table.
-    map.update({make_track(1, LT::BIN, LS::BIN_STRUCTURE, v(10, 0)),
-                make_track(2, LT::TABLE, LS::TABLE_WHOLE, v(11, 0))},
-               1.0);
-    EXPECT_EQ(map.landmarks().size(), 1u);
-    EXPECT_EQ(map.rejected_count(), 1);
-
-    // Parts of the same type are fine (bins in the rig), and so is a table
-    // 3 m away.
-    map.update({make_track(1, LT::BIN, LS::BIN_STRUCTURE, v(10, 0)),
-                make_track(3, LT::BIN, LS::BIN_UNCLASSIFIED, v(10.3, 0)),
-                make_track(4, LT::TABLE, LS::TABLE_WHOLE, v(13, 0))},
-               2.0);
-    EXPECT_EQ(map.landmarks().size(), 3u);
-}
-
-TEST(RetainedLandmarks, LargeStructureSeparationOffByDefault) {
-    RetainedLandmarks map(example_config());
-    map.update({make_track(1, LT::BIN, LS::BIN_STRUCTURE, v(10, 0)),
-                make_track(2, LT::TABLE, LS::TABLE_WHOLE, v(11, 0))},
-               0.0);
-    EXPECT_EQ(map.landmarks().size(), 2u);
-}
-
-TEST(RetainedLandmarks, PipeMappedBeforeTheGateGoesWhenTheGateIsMapped) {
-    RetainedLandmarks map(example_config());
-
-    // A gate post taken for a pipe, before the gate itself is confirmed.
-    map.update({make_track(2, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE, v(10, 1))},
-               0.0);
-    ASSERT_EQ(map.landmarks().size(), 1u);
-
-    // The gate 1 m from it: the pipe goes, also while its track is live.
-    map.update({make_track(1, LT::GATE, LS::GATE_WHOLE, v(10, 0)),
-                make_track(2, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE, v(10, 1))},
-               1.0);
-    ASSERT_EQ(map.landmarks().size(), 1u);
-    EXPECT_EQ(map.landmarks()[0].key.type, LT::GATE);
-
-    // And it does not come back while the gate is there.
-    map.update({make_track(1, LT::GATE, LS::GATE_WHOLE, v(10, 0)),
-                make_track(2, LT::SLALOM_PIPE, LS::SLALOM_PIPE_WHITE, v(10, 1))},
-               2.0);
-    EXPECT_EQ(map.landmarks().size(), 1u);
-}
-
 TEST(RetainedLandmarks, PipesAreForgottenAfterRetainSecUnlessWellObserved) {
     RetainedLandmarks map(example_config());
 
@@ -386,13 +316,14 @@ TEST(RetainedLandmarks, GateInTheNeighbourLaneIsRejected) {
                                           M_PI_2, Eigen::Vector3d::UnitZ()))),
                                   0.0)
                     .success);
+    // A lane 12 m to each side of the course (the course model gives the
+    // real one: the area the layout covers).
     const auto allowed = [&](const Eigen::Vector3d& p) {
-        return course.position_allowed(p);
+        return std::abs(course.to_course(p.head<2>()).y()) <= 12.0;
     };
 
     // In the course frame x is odom +y and y (right) is odom -x. The gate is
-    // 8 m ahead of the start; the neighbour's gate is 20 m to the side
-    // (course y = 20, beyond the +-12 m limit).
+    // 8 m ahead of the start; the neighbour's gate is 20 m to the side.
     map.update({make_track(1, LT::GATE, LS::GATE_WHOLE, v(0, 8)),
                 make_track(2, LT::GATE, LS::GATE_SURVEY_REPAIR, v(20, 8))},
                0.0, allowed);

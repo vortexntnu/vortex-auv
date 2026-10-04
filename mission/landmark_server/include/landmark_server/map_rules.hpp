@@ -11,37 +11,23 @@ namespace vortex::mission {
 /**
  * @brief Map rules after RetainedLandmarks. ROS-free.
  *
- * Perception gives positions without orientation. The rules derive structure
- * from the parts:
- *  - gate: yaw from the line between the two panels (normal on the line, the
- *    front is the side the vehicle first saw it from), the gate is pulled to
- *    the panel midpoint, a synthetic GATE_WHOLE is made if only the panels
- *    have been seen, and the panels inherit the yaw. Panels farther apart than
- *    max_panel_separation_m are not one gate;
- *  - torpedo board: icons farther than board_icon_radius_m from the board are
- *    ignored; yaw and centre from the icon pairs (yaw only within
- *    board_yaw_max_distance_m), board version from the icon heights (fire
- *    above blood or firetruck above ambulance = version 1, both pairs must
- *    agree, locked after board_version_lock_votes votes) and TORPEDO_TARGET_*
- *    openings from icon + offset in the board frame;
- *  - bins: the role icon seen by the down camera gives the role of the nearest
- *    bin;
+ * What a fixed offset in a course template cannot say (the gate and the
+ * torpedo board come from their templates):
+ *  - course frame: while both gate panels are being seen, the line between
+ *    them gives the course frame an estimate (the front faces the vehicle
+ *    that first saw it). Panels closer than min_panel_separation_m or
+ *    farther than max_panel_separation_m are not one gate;
+ *  - bins: the role icon seen by the down camera hides the nearest bin
+ *    without a role;
  *  - table and octagon: one xy for both, from table_octagon_primary (table,
  *    octagon or midpoint); the missing one is derived from the other (a
  *    table only with z_lock on, at floor_z - table_height_m).
  *
- * Yaw is locked after N consistent estimates and never flips afterwards
- * (a yaw that follows the observer would turn when the object is seen from
- * behind).
- * Landmarks made by a rule are marked `derived`. Once the gate yaw is
- * consistent, the estimates are also given to the course frame.
- *
- * Landmark frame: origin in the object, +X out of the front, +Z down (NED).
+ * Landmarks made by a rule are marked `derived`.
  *
  * @param map The map after RetainedLandmarks::update().
  * @param config Rules.
- * @param vehicle_position Vehicle position in odom (defines the front on the
- * first estimate).
+ * @param vehicle_position Vehicle position in odom (the gate's front).
  * @param now Time [s].
  * @param course Course frame that gets the gate estimates (may be null).
  */

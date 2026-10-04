@@ -5,14 +5,16 @@ namespace vortex::mission {
 
 void LandmarkServerNode::setup_debug_publishers() {
     std::string debug_topic =
-        this->declare_parameter<std::string>("debug.topic_name");
+        this->declare_parameter<std::string>(
+            "debug.topic_name", "landmark_server/debug/landmark_tracks");
     auto qos = vortex::utils::qos_profiles::sensor_data_profile(10);
     landmark_track_debug_pub_ =
         this->create_publisher<vortex_msgs::msg::LandmarkTrackArray>(
             debug_topic, qos);
 
     const std::string landmark_pose_topic =
-        this->declare_parameter<std::string>("debug.landmark_pose_topic");
+        this->declare_parameter<std::string>(
+            "debug.landmark_pose_topic", "landmark_server/debug/landmark_pose");
     debug_landmark_type_ = static_cast<uint16_t>(
         this->declare_parameter<int>("debug.landmark_type", 0));
     debug_landmark_subtype_ = static_cast<uint16_t>(

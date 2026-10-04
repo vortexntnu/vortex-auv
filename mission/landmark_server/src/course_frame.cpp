@@ -165,16 +165,4 @@ Eigen::Vector2d CourseFrameTracker::from_course(
         CourseFrame{origin_, through_yaw_, CourseState::COARSE}, course_xy);
 }
 
-bool CourseFrameTracker::position_allowed(
-    const Eigen::Vector3d& odom_position) const {
-    if (status_ == CourseFrameStatus::UNSET) {
-        return true;
-    }
-    const Eigen::Vector2d c = to_course(odom_position.head<2>());
-    const LaneBox& box = status_ == CourseFrameStatus::GATE_LOCKED
-                             ? config_.after_gate
-                             : config_.before_gate;
-    return box.contains(c.x(), c.y());
-}
-
 }  // namespace vortex::mission

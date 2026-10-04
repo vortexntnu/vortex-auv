@@ -20,28 +20,21 @@ T get_or(const YAML::Node& node, const char* key, T fallback) {
     return node[key] ? node[key].as<T>() : fallback;
 }
 
-LaneBox parse_lane_box(const YAML::Node& node, const LaneBox& fallback) {
-    LaneBox box = fallback;
-    if (!node) {
-        return box;
-    }
-    if (node["x"] && node["x"].size() == 2) {
-        box.x_min = node["x"][0].as<double>();
-        box.x_max = node["x"][1].as<double>();
-    }
-    if (node["y"] && node["y"].size() == 2) {
-        box.y_min = node["y"][0].as<double>();
-        box.y_max = node["y"][1].as<double>();
-    }
-    return box;
-}
-
 /// Apply the fields of a `classes.<NAME>` entry to a rule. `subtype` selects
 /// the entry of a per-subtype `max_instances` map.
 void apply_rule_fields(const YAML::Node& node,
                        uint16_t type,
                        uint16_t subtype,
                        ClassRule& rule) {
+    static const std::vector<std::string> kKeys = {
+        "max_instances", "instance_gate_m", "retain", "retain_sec",
+        "keep_after_observations", "live_only"};
+    for (const auto& kv : node) {
+        const auto key = kv.first.as<std::string>();
+        if (std::find(kKeys.begin(), kKeys.end(), key) == kKeys.end()) {
+            throw std::runtime_error("classes: unknown key '" + key + "'");
+        }
+    }
     if (node["max_instances"]) {
         const auto& mi = node["max_instances"];
         if (mi.IsMap()) {
@@ -73,9 +66,6 @@ void apply_rule_fields(const YAML::Node& node,
     rule.keep_after_observations = get_or<int>(node, "keep_after_observations",
                                                rule.keep_after_observations);
     rule.live_only = get_or<bool>(node, "live_only", rule.live_only);
-    rule.min_distance_to_large_structures_m =
-        get_or<double>(node, "min_distance_to_large_structures_m",
-                       rule.min_distance_to_large_structures_m);
 }
 
 }  // namespace
@@ -150,6 +140,16 @@ bool in_class_list(const std::vector<std::pair<uint16_t, uint16_t>>& list,
 
 }  // namespace
 
+Eigen::Matrix3d DetectorNoise::covariance(const Eigen::Vector3d& ray) const {
+    const double d = ray.norm();
+    const double along = base_std_m + along_std_per_m * d;
+    const double across = base_std_m + across_std_per_m * d;
+    const Eigen::Vector3d u =
+        d > 1e-6 ? Eigen::Vector3d(ray / d) : Eigen::Vector3d::UnitX();
+    return Eigen::Matrix3d::Identity() * across * across +
+           (along * along - across * across) * u * u.transpose();
+}
+
 bool ZLockConfig::is_floor(const LandmarkClassKey& key) const {
     return enable && in_class_list(floor_classes, key);
 }
@@ -179,35 +179,36 @@ const MarkerBox* LandmarkMapConfig::marker_box_for(
     return nullptr;
 }
 
-bool LandmarkMapConfig::is_large_structure(const LandmarkClassKey& key) const {
-    return std::any_of(large_structures.begin(), large_structures.end(),
-                       [&](const auto& s) {
-                           return s.first == key.type &&
-                                  (s.second == 0 || s.second == key.subtype);
-                       });
-}
-
 LandmarkMapConfig parse_map_config(const YAML::Node& root) {
     LandmarkMapConfig cfg;
     if (!root) {
         return cfg;
     }
 
+    if (const auto noise = root["detector_noise"]) {
+        DetectorNoise& n = cfg.intake.noise;
+        n.base_std_m = get_or<double>(noise, "base_std_m", n.base_std_m);
+        n.along_std_per_m =
+            get_or<double>(noise, "along_std_per_m", n.along_std_per_m);
+        n.across_std_per_m =
+            get_or<double>(noise, "across_std_per_m", n.across_std_per_m);
+        if (n.base_std_m < 0.0 || n.along_std_per_m < 0.0 ||
+            n.across_std_per_m < 0.0) {
+            throw std::runtime_error("detector_noise values must be >= 0");
+        }
+    }
     if (const auto intake = root["intake"]) {
-        cfg.intake.max_pipe_distance_m = get_or<double>(
-            intake, "max_pipe_distance_m", cfg.intake.max_pipe_distance_m);
+        for (const char* gone : {"max_pipe_distance_m", "distance_noise"}) {
+            if (intake[gone]) {
+                throw std::runtime_error(
+                    std::string("intake.") + gone +
+                    " is gone: see detector_noise and the course tasks' "
+                    "max_range_m");
+            }
+        }
         cfg.intake.no_orientation_rot_variance =
             get_or<double>(intake, "no_orientation_rot_variance",
                            cfg.intake.no_orientation_rot_variance);
-        if (const auto noise = intake["distance_noise"]) {
-            cfg.intake.noise_base_variance = get_or<double>(
-                noise, "base_variance", cfg.intake.noise_base_variance);
-            cfg.intake.noise_variance_per_meter =
-                get_or<double>(noise, "variance_per_meter",
-                               cfg.intake.noise_variance_per_meter);
-            cfg.intake.noise_lateral_ratio = get_or<double>(
-                noise, "lateral_ratio", cfg.intake.noise_lateral_ratio);
-        }
         if (const auto mc = intake["measurement_covariance"]) {
             cfg.intake.use_measurement_covariance =
                 get_or<bool>(mc, "use", cfg.intake.use_measurement_covariance);
@@ -234,11 +235,10 @@ LandmarkMapConfig parse_map_config(const YAML::Node& root) {
                 get_or<double>(lock, "max_yaw_std_deg",
                                cfg.course_frame.gate_lock_max_yaw_std_deg);
         }
-        if (const auto lane = cf["lane"]) {
-            cfg.course_frame.before_gate = parse_lane_box(
-                lane["before_gate"], cfg.course_frame.before_gate);
-            cfg.course_frame.after_gate =
-                parse_lane_box(lane["after_gate"], cfg.course_frame.after_gate);
+        if (cf["lane"]) {
+            throw std::runtime_error(
+                "course_frame.lane is gone: the lane is the area the course "
+                "layout covers (course.lane_margin_m)");
         }
     }
 
@@ -286,43 +286,27 @@ LandmarkMapConfig parse_map_config(const YAML::Node& root) {
                 get_or<double>(adoption, "wait_sec", cfg.adoption_wait_sec);
         }
         MapRulesConfig& mr = cfg.map_rules;
-        mr.gate_yaw_from_panels = get_or<bool>(rules, "gate_yaw_from_panels",
-                                               mr.gate_yaw_from_panels);
-        mr.board_yaw_from_icons = get_or<bool>(rules, "board_yaw_from_icons",
-                                               mr.board_yaw_from_icons);
+        for (const char* gone :
+             {"gate_yaw_from_panels", "board_yaw_from_icons", "yaw_lock",
+              "board", "torpedo_targets_from_icons", "large_structures",
+              "large_structure_separation_m"}) {
+            if (rules[gone]) {
+                throw std::runtime_error(
+                    std::string("rules.") + gone +
+                    " is gone: the gate and the torpedo board come from their "
+                    "course templates");
+            }
+        }
         mr.bin_role_from_down_icons = get_or<bool>(
             rules, "bin_role_from_down_icons", mr.bin_role_from_down_icons);
         mr.octagon_from_table =
             get_or<bool>(rules, "octagon_from_table", mr.octagon_from_table);
-        if (const auto lock = rules["yaw_lock"]) {
-            mr.yaw_lock_consistent_estimates = get_or<int>(
-                lock, "consistent_estimates", mr.yaw_lock_consistent_estimates);
-            mr.yaw_max_jump_deg =
-                get_or<double>(lock, "max_jump_deg", mr.yaw_max_jump_deg);
-            mr.yaw_agree_deg =
-                get_or<double>(lock, "agree_deg", mr.yaw_agree_deg);
-        }
         mr.bin_role_radius_m =
             get_or<double>(rules, "bin_role_radius_m", mr.bin_role_radius_m);
-        mr.min_icon_separation_m = get_or<double>(
-            rules, "min_icon_separation_m", mr.min_icon_separation_m);
         mr.min_panel_separation_m = get_or<double>(
             rules, "min_panel_separation_m", mr.min_panel_separation_m);
         mr.max_panel_separation_m = get_or<double>(
             rules, "max_panel_separation_m", mr.max_panel_separation_m);
-        cfg.large_structure_separation_m =
-            get_or<double>(rules, "large_structure_separation_m",
-                           cfg.large_structure_separation_m);
-        if (const auto board = rules["board"]) {
-            mr.board_icon_radius_m = get_or<double>(board, "icon_radius_m",
-                                                    mr.board_icon_radius_m);
-            mr.board_yaw_max_distance_m = get_or<double>(
-                board, "yaw_max_distance_m", mr.board_yaw_max_distance_m);
-            mr.board_version_min_dz_m = get_or<double>(
-                board, "version_min_dz_m", mr.board_version_min_dz_m);
-            mr.board_version_lock_votes = get_or<int>(
-                board, "version_lock_votes", mr.board_version_lock_votes);
-        }
         if (const auto to = rules["table_octagon"]) {
             mr.table_octagon_primary =
                 get_or<std::string>(to, "primary", mr.table_octagon_primary);
@@ -361,35 +345,6 @@ LandmarkMapConfig parse_map_config(const YAML::Node& root) {
                 get_or<double>(z, "surface_z", mr.z_lock.surface_z);
             classes("floor_classes", mr.z_lock.floor_classes);
             classes("surface_classes", mr.z_lock.surface_classes);
-        }
-        if (const auto targets = rules["torpedo_targets_from_icons"]) {
-            const auto vec = [](const YAML::Node& n, Eigen::Vector3d& out) {
-                if (n && n.size() == 3) {
-                    out = Eigen::Vector3d(n[0].as<double>(), n[1].as<double>(),
-                                          n[2].as<double>());
-                }
-            };
-            const auto load = [&](const YAML::Node& v, TorpedoIconOffsets& o) {
-                if (!v) {
-                    return;
-                }
-                vec(v["fire"], o.fire);
-                vec(v["blood"], o.blood);
-                vec(v["firetruck"], o.firetruck);
-                vec(v["ambulance"], o.ambulance);
-            };
-            load(targets["version_1"], mr.torpedo_version_1);
-            load(targets["version_2"], mr.torpedo_version_2);
-        }
-        if (const auto ls = rules["large_structures"]) {
-            for (const auto& item : ls) {
-                const auto parsed = parse_class_name(item.as<std::string>());
-                if (!parsed) {
-                    throw std::runtime_error("Unknown large structure: " +
-                                             item.as<std::string>());
-                }
-                cfg.large_structures.push_back(*parsed);
-            }
         }
     }
 

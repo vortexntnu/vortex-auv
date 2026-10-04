@@ -187,6 +187,77 @@ TEST(CourseModel, MistakesAreRejectedWithTheKey) {
         b: {members: {x: {class: GATE_WHOLE, offset: [0, 0, 0]}, y: {class: GATE_POLE_EDGE, offset: [0, 2, 0]}}})");
 }
 
+TEST(CourseModel, ATaskTakesItsTolerancesFromItsTemplate) {
+    const auto cfg = parse_course_config(YAML::Load(R"(
+course:
+  templates:
+    set:
+      region_radius_m: 1.2
+      part_radius_m: 0.8
+      yaw_window_deg: 20.0
+      symmetric: true
+      min_parts: 3
+      max_range_m: 7.0
+      members:
+        a: {class: SLALOM_PIPE_WHITE, offset: [0.0, -1.5, 0.0]}
+        b: {class: SLALOM_PIPE_RED, offset: [0.0, 0.0, 0.0]}
+        c: {class: SLALOM_PIPE_WHITE, offset: [0.0, 1.5, 0.0]}
+    gate:
+      members:
+        whole: {class: GATE_WHOLE, offset: [0.0, 0.0, 0.0]}
+        pole: {class: GATE_POLE_EDGE, offset: [0.0, 1.5, 0.0]}
+  tasks:
+    set_1: {template: set, prior: [4.0, 0.0, 0.0]}
+    set_2: {template: set, prior: [6.0, 0.0, 0.0], region_radius_m: 2.0}
+    gate: {template: gate, prior: [0.0, 0.0, 180.0]}
+)")["course"]);
+    const TaskSpec* s1 = cfg.task("set_1");
+    const TaskSpec* s2 = cfg.task("set_2");
+    const TaskSpec* gate = cfg.task("gate");
+    ASSERT_TRUE(s1 && s2 && gate);
+    EXPECT_DOUBLE_EQ(s1->region_radius_m, 1.2);
+    EXPECT_DOUBLE_EQ(s1->part_radius_m, 0.8);
+    EXPECT_NEAR(s1->yaw_window_rad, 20.0 * M_PI / 180.0, 1e-12);
+    EXPECT_TRUE(s1->symmetric);
+    EXPECT_EQ(s1->min_parts, 3);
+    EXPECT_DOUBLE_EQ(s1->max_range_m, 7.0);
+    // A task's own value wins over its template's.
+    EXPECT_DOUBLE_EQ(s2->region_radius_m, 2.0);
+    EXPECT_DOUBLE_EQ(s2->part_radius_m, 0.8);
+    // Neither sets it: the defaults.
+    EXPECT_DOUBLE_EQ(gate->region_radius_m, 2.5);
+    EXPECT_DOUBLE_EQ(gate->part_radius_m, 1.0);
+    EXPECT_NEAR(gate->yaw_window_rad, 30.0 * M_PI / 180.0, 1e-12);
+    EXPECT_FALSE(gate->symmetric);
+    EXPECT_EQ(gate->min_parts, 2);
+    EXPECT_DOUBLE_EQ(gate->max_range_m, 0.0);
+}
+
+TEST(CourseModel, AMisspeltKeyIsAnError) {
+    // Ignored, it would leave the default in force without a word.
+    const auto bad = [](const std::string& yaml) {
+        EXPECT_THROW(parse_course_config(YAML::Load(yaml)["course"]), std::runtime_error)
+            << yaml;
+    };
+    const std::string tmpl =
+        "  templates: {g: {members: {a: {class: GATE_WHOLE, offset: [0, 0, 0]}, "
+        "b: {class: GATE_POLE_EDGE, offset: [0, 1, 0]}}}}\n";
+    bad("course:\n" + tmpl + "  tasks: {g: {template: g, prior: [0, 0, 0], region_radius: 2.0}}\n");
+    bad("course:\n  templates: {g: {min_part: 1, members: {a: {class: GATE_WHOLE, offset: [0, 0, 0]}, "
+        "b: {class: GATE_POLE_EDGE, offset: [0, 1, 0]}}}}\n");
+    bad("course:\n  lane_margin: 2.0\n");
+    // in a part, a point and a variant
+    bad("course:\n  templates: {g: {members: {a: {class: GATE_WHOLE, ofset: [0, 0, 0]}, "
+        "b: {class: GATE_POLE_EDGE, offset: [0, 1, 0]}}}}\n");
+    bad("course:\n  templates: {g: {members: {a: {class: GATE_WHOLE, offset: [0, 0, 0]}, "
+        "b: {class: GATE_POLE_EDGE, offset: [0, 1, 0]}}, "
+        "points: {p: {class: GATE_WHOLE, form: a}}}}\n");
+    bad("course:\n  templates: {g: {variants: {v: {members: {a: {class: GATE_WHOLE, offset: [0, 0, 0]}, "
+        "b: {class: GATE_POLE_EDGE, offset: [0, 1, 0]}}, point: {}}}}}\n");
+    EXPECT_NO_THROW(parse_course_config(YAML::Load(
+        "course:\n" + tmpl + "  tasks: {g: {template: g, prior: [0, 0, 0], region_radius_m: 2.0}}\n")["course"]));
+}
+
 TEST(CourseModel, ASetIsPlacedFromItsPipesAndNothingElseIsAPipe) {
     World w;
     auto tracks = set_1();

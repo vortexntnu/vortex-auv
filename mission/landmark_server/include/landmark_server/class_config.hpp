@@ -16,33 +16,29 @@ namespace vortex::mission {
 
 using vortex::filtering::LandmarkClassKey;
 
-/// Axis-aligned box in the course frame [m] (x through the gate, y right).
-struct LaneBox {
-    double x_min{-1e9};
-    double x_max{1e9};
-    double y_min{-1e9};
-    double y_max{1e9};
+/// How far off a detection is, growing with the range d [m]: std along the
+/// line of sight (depth) base + along_per_m * d, across it base +
+/// across_per_m * d (a camera knows the direction much better than the
+/// distance). One model, measured once (README, test C), used by the tracker
+/// (on top of its sens_mod_std_dev) and by the graph. All zero: off.
+struct DetectorNoise {
+    double base_std_m{0.06};
+    double along_std_per_m{0.03};
+    double across_std_per_m{0.003};
 
-    bool contains(double x, double y) const {
-        return x >= x_min && x <= x_max && y >= y_min && y <= y_max;
+    bool enabled() const {
+        return base_std_m > 0.0 || along_std_per_m > 0.0 || across_std_per_m > 0.0;
     }
+    /// Covariance of a detection at offset `ray` from the vehicle.
+    Eigen::Matrix3d covariance(const Eigen::Vector3d& ray) const;
 };
 
-/// Intake rules: pipe distance limit and the no-orientation variance.
+/// Intake: the detector noise and the no-orientation variance.
 struct IntakeConfig {
-    /// Slalom pipes farther than this from the vehicle are discarded [m].
-    double max_pipe_distance_m{7.0};
     /// A rotational covariance diagonal >= this means "no orientation".
     double no_orientation_rot_variance{1000.0};
-    /// Extra measurement variance [m^2] = base + per_meter * distance from
-    /// the vehicle, along the line of sight (depth). Far detections weigh
-    /// less in the tracker.
-    double noise_base_variance{0.0};
-    double noise_variance_per_meter{0.0};
-    /// Across the line of sight the extra variance is this fraction of the
-    /// depth variance (a camera knows the direction much better than the
-    /// distance). 1 = the same in all directions.
-    double noise_lateral_ratio{1.0};
+    /// Read at start (the graph is built with it).
+    DetectorNoise noise;
     /// Use the position covariance of the detection (rotated into the target
     /// frame) instead of the class noise and the distance model, when it
     /// has a positive diagonal. Scaled by covariance_scale (to test an over-
@@ -60,8 +56,6 @@ struct CourseFrameConfig {
     double gate_lock_max_yaw_std_deg{3.0};
     /// Start-vs-gate heading deviation that gives a warning [deg].
     double warn_start_vs_gate_deg{30.0};
-    LaneBox before_gate{-10.0, 45.0, -12.0, 12.0};
-    LaneBox after_gate{-5.0, 40.0, -6.0, 6.0};
 };
 
 /// Rules per landmark class (type + subtype).
@@ -81,18 +75,6 @@ struct ClassRule {
     /// For things that are moved during the run (the items on the table):
     /// a remembered position would be wrong once they are moved.
     bool live_only{false};
-    /// New landmarks closer than this to a large structure are rejected [m]
-    /// (0 = off). Keeps gate legs from becoming slalom pipes.
-    double min_distance_to_large_structures_m{0.0};
-};
-
-/// Offsets from a torpedo board icon to its opening, in the board frame
-/// (x out of the front, y right, z down) [m].
-struct TorpedoIconOffsets {
-    Eigen::Vector3d fire{Eigen::Vector3d::Zero()};
-    Eigen::Vector3d blood{Eigen::Vector3d::Zero()};
-    Eigen::Vector3d firetruck{Eigen::Vector3d::Zero()};
-    Eigen::Vector3d ambulance{Eigen::Vector3d::Zero()};
 };
 
 /// Objects that lie on the pool floor or at the water surface get that depth,
@@ -109,45 +91,17 @@ struct ZLockConfig {
     bool is_surface(const LandmarkClassKey& key) const;
 };
 
-/// Rules that derive structure from parts.
+/// Rules that derive structure from parts (map_rules.hpp).
 struct MapRulesConfig {
     ZLockConfig z_lock;
-    bool gate_yaw_from_panels{true};
-    bool board_yaw_from_icons{true};
     bool bin_role_from_down_icons{true};
     bool octagon_from_table{true};
-    bool torpedo_targets_from_icons{true};
-    /// Yaw estimates that must agree before the yaw is locked.
-    int yaw_lock_consistent_estimates{5};
-    /// Estimates within this many degrees of the running mean agree.
-    double yaw_agree_deg{10.0};
-    /// Estimates that differ this much from the current yaw are ignored [deg].
-    double yaw_max_jump_deg{90.0};
     /// Bin role icon and bin must be this close (xy) [m].
     double bin_role_radius_m{0.6};
-    /// Icons of a pair must be this far apart (xy) to give a board yaw [m].
-    double min_icon_separation_m{0.05};
-    /// Panels must be this far apart (xy) to give a gate yaw [m].
+    /// Gate panels closer or farther apart than this (xy) are not one gate:
+    /// no course frame estimate from them [m] (they hang ~1.6 m apart).
     double min_panel_separation_m{0.3};
-    /// Panels farther apart than this (xy) are not one gate: no gate is made
-    /// or moved from them [m] (0 = off).
-    double max_panel_separation_m{0.0};
-    /// Icons farther than this from the board are not used [m] (0 = off).
-    /// The reference is the measured board if there is one, else the centre
-    /// of the other icons (with at least three icons).
-    double board_icon_radius_m{0.0};
-    /// Board yaw estimates are only taken with the vehicle this close to the
-    /// board [m] (0 = any distance): far estimates are noisy and the yaw
-    /// locks for the rest of the run.
-    double board_yaw_max_distance_m{0.0};
-    /// An icon pair must differ this much in height to give a board version
-    /// vote [m].
-    double board_version_min_dz_m{0.03};
-    /// Consecutive agreeing votes that lock the board version.
-    int board_version_lock_votes{5};
-    /// Board offsets from icon to opening, per board version (1 and 2).
-    TorpedoIconOffsets torpedo_version_1;
-    TorpedoIconOffsets torpedo_version_2;
+    double max_panel_separation_m{2.5};
     /// Which of table and octagon gives the shared xy: "table" (the octagon
     /// is put over the table), "octagon" (the table under the octagon) or
     /// "midpoint" (both at the midpoint when both are measured). The one that
@@ -188,13 +142,6 @@ struct LandmarkMapConfig {
     /// it is treated as a new object (new landmark, or rejected when the
     /// class is full) [s].
     double adoption_wait_sec{2.0};
-    /// Classes that count as large structures, as (type, subtype); subtype 0
-    /// stands for every subtype of the type.
-    std::vector<std::pair<uint16_t, uint16_t>> large_structures;
-    /// A new large structure closer than this (xy) to a large structure of
-    /// another type is not mapped [m] (0 = off): one object seen as two
-    /// classes (a table taken for the bin rig) keeps the class seen first.
-    double large_structure_separation_m{0.0};
 
     /// Boxes for the markers, per (type, subtype); subtype 0 stands for
     /// every subtype of the type.
@@ -205,7 +152,6 @@ struct LandmarkMapConfig {
     CourseConfig course;
 
     const ClassRule& rule_for(const LandmarkClassKey& key) const;
-    bool is_large_structure(const LandmarkClassKey& key) const;
     /// The box for a class (the subtype entry wins over the type), or null.
     const MarkerBox* marker_box_for(const LandmarkClassKey& key) const;
 };

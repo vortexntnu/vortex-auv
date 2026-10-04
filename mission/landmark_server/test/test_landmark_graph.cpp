@@ -3,6 +3,7 @@
 #include <cmath>
 #include <map>
 #include <numbers>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -276,15 +277,14 @@ measurements: {huber_k: 3.0, max_per_keyframe: 4, min_observations: 2}
     EXPECT_FALSE(parse_graph_config(YAML::Node()).enable);
 }
 
-TEST(LandmarkGraph, measurement_noise_is_read_from_yaml) {
-    const YAML::Node node = YAML::Load(R"(
+TEST(LandmarkGraph, measurement_noise_comes_from_detector_noise_only) {
+    // One model for the tracker and the graph: the node sets it from
+    // detector_noise; the old graph key is an error, not silently ignored.
+    EXPECT_THROW(parse_graph_config(YAML::Load(R"(
 measurements:
   noise: {base_std_m: 0.06, along_std_per_m: 0.03, across_std_per_m: 0.003}
-)");
-    const auto c = parse_graph_config(node);
-    EXPECT_DOUBLE_EQ(c.meas_base_std_m, 0.06);
-    EXPECT_DOUBLE_EQ(c.meas_along_std_per_m, 0.03);
-    EXPECT_DOUBLE_EQ(c.meas_across_std_per_m, 0.003);
+)")),
+                 std::runtime_error);
     // Off by default: the caller's covariance is used.
     EXPECT_LE(LandmarkGraphConfig{}.meas_base_std_m, 0.0);
 }

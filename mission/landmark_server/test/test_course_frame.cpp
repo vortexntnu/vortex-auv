@@ -19,10 +19,9 @@ Pose start_pose(double x, double y, double yaw) {
 
 }  // namespace
 
-TEST(CourseFrame, StartsUnsetWithNoBounds) {
+TEST(CourseFrame, StartsUnset) {
     CourseFrameTracker course(example_config().course_frame);
     EXPECT_EQ(course.status(), CourseFrameStatus::UNSET);
-    EXPECT_TRUE(course.position_allowed({1000.0, -1000.0, 0.0}));
 }
 
 TEST(CourseFrame, SetCoarseGivesTheFrameFromStartPoseAndCoinFlip) {
@@ -75,10 +74,6 @@ TEST(CourseFrame, LocksToTheGateAfterConsistentEstimates) {
     EXPECT_NEAR(course.through_yaw(), 0.0, 0.02);
     EXPECT_FALSE(course.take_deviation_warning());
     EXPECT_LT(course.start_vs_gate_deviation_deg(), 2.0);
-
-    // Bounds tighten: 8 m to the side of the gate is now outside.
-    EXPECT_FALSE(course.position_allowed({10.0, 9.0, 2.0}));
-    EXPECT_TRUE(course.position_allowed({15.0, 1.0, 2.0}));
 }
 
 TEST(CourseFrame, ALockedFrameMovesWithTheGraphCorrection) {
@@ -115,7 +110,6 @@ TEST(CourseFrame, UnsetFrameIgnoresTheCorrection) {
     delta.translation() = Eigen::Vector3d(3.0, 0.0, 0.0);
     course.apply_correction(delta);
     EXPECT_EQ(course.status(), CourseFrameStatus::UNSET);
-    EXPECT_TRUE(course.position_allowed({1000.0, -1000.0, 0.0}));
 }
 
 TEST(CourseFrame, InconsistentEstimatesDoNotLock) {
@@ -150,18 +144,24 @@ TEST(CourseFrame, ResetGoesBackToUnset) {
     ASSERT_TRUE(course.set_coarse(start_pose(0, 0, 0), 0.0).success);
     course.reset();
     EXPECT_EQ(course.status(), CourseFrameStatus::UNSET);
-    EXPECT_TRUE(course.position_allowed({500.0, 500.0, 0.0}));
 }
 
-TEST(CourseFrame, LaneBoundsAreInTheCourseFrameNotInOdom) {
+TEST(CourseFrame, CourseCoordinatesFollowTheStartHeadingNotOdom) {
     CourseFrameTracker course(example_config().course_frame);
     // The vehicle faces odom +y: the course runs along +y, so odom x is the
-    // sideways direction. Fixed odom limits would get this wrong.
+    // sideways direction (x right of the course is -y in course coordinates
+    // ... y right). Fixed odom coordinates would get this wrong.
     ASSERT_TRUE(course.set_coarse(start_pose(0, 0, M_PI_2), 0.0).success);
 
-    EXPECT_TRUE(course.position_allowed({0.0, 40.0, 2.0}));    // far ahead: ok
-    EXPECT_FALSE(course.position_allowed({40.0, 0.0, 2.0}));   // far to the side
-    EXPECT_FALSE(course.position_allowed({0.0, -20.0, 2.0}));  // far behind
+    const Eigen::Vector2d ahead = course.to_course({0.0, 40.0});
+    EXPECT_NEAR(ahead.x(), 40.0, 1e-9);
+    EXPECT_NEAR(ahead.y(), 0.0, 1e-9);
+    const Eigen::Vector2d side = course.to_course({40.0, 0.0});
+    EXPECT_NEAR(side.x(), 0.0, 1e-9);
+    EXPECT_NEAR(std::abs(side.y()), 40.0, 1e-9);
+    const Eigen::Vector2d back = course.from_course(course.to_course({3.0, -7.0}));
+    EXPECT_NEAR(back.x(), 3.0, 1e-9);
+    EXPECT_NEAR(back.y(), -7.0, 1e-9);
 }
 
 }  // namespace vortex::mission

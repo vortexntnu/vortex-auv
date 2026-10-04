@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <cmath>
 #include "test_map_utils.hpp"
 
 namespace vortex::mission {
@@ -8,11 +9,8 @@ using namespace test;
 TEST(ClassConfig, ParsesExampleYaml) {
     const auto cfg = example_config();
 
-    EXPECT_DOUBLE_EQ(cfg.intake.max_pipe_distance_m, 7.0);
     EXPECT_DOUBLE_EQ(cfg.plausibility_radius_m, 3.0);
     EXPECT_EQ(cfg.course_frame.gate_lock_consistent_estimates, 10);
-    EXPECT_DOUBLE_EQ(cfg.course_frame.before_gate.x_max, 45.0);
-    EXPECT_DOUBLE_EQ(cfg.course_frame.after_gate.y_min, -6.0);
 
     const auto& gate = cfg.rule_for({LT::GATE, LS::GATE_WHOLE});
     EXPECT_EQ(gate.max_instances, 1);
@@ -26,22 +24,15 @@ TEST(ClassConfig, ParsesExampleYaml) {
     EXPECT_DOUBLE_EQ(pipe.retain_sec, 15.0);
     EXPECT_FALSE(pipe.retain_forever);
     EXPECT_EQ(pipe.keep_after_observations, 30);
-    EXPECT_DOUBLE_EQ(pipe.min_distance_to_large_structures_m, 1.5);
 
     EXPECT_EQ(cfg.rule_for({LT::BIN, LS::BIN_UNCLASSIFIED}).max_instances, 4);
     EXPECT_DOUBLE_EQ(cfg.rule_for({LT::BIN, LS::BIN_UNCLASSIFIED}).instance_gate_m, 0.25);
-
-    EXPECT_TRUE(cfg.is_large_structure({LT::GATE, LS::GATE_SURVEY_REPAIR}));
-    EXPECT_TRUE(cfg.is_large_structure({LT::TABLE, LS::TABLE_WHOLE}));
-    EXPECT_TRUE(cfg.is_large_structure({LT::BIN, LS::BIN_STRUCTURE}));
-    EXPECT_FALSE(cfg.is_large_structure({LT::BIN, LS::BIN_UNCLASSIFIED}));
-    EXPECT_FALSE(cfg.is_large_structure({LT::SLALOM_PIPE, LS::SLALOM_PIPE_RED}));
 }
 
-TEST(ClassConfig, ParsesZLockAndDistanceNoise) {
+TEST(ClassConfig, ParsesZLockAndDetectorNoise) {
     const auto cfg = parse_map_config(YAML::Load(R"(
+detector_noise: {base_std_m: 0.05, along_std_per_m: 0.04, across_std_per_m: 0.002}
 intake:
-  distance_noise: {base_variance: 0.01, variance_per_meter: 0.005, lateral_ratio: 0.25}
   measurement_covariance: {use: true, scale: 10.0, min_std_m: 0.05}
 rules:
   adoption: {ambiguity_ratio: 3.0, wait_sec: 1.5}
@@ -52,9 +43,9 @@ rules:
     floor_classes: [TABLE, BIN_STRUCTURE]
     surface_classes: [OCTAGON]
 )"));
-    EXPECT_DOUBLE_EQ(cfg.intake.noise_base_variance, 0.01);
-    EXPECT_DOUBLE_EQ(cfg.intake.noise_variance_per_meter, 0.005);
-    EXPECT_DOUBLE_EQ(cfg.intake.noise_lateral_ratio, 0.25);
+    EXPECT_DOUBLE_EQ(cfg.intake.noise.base_std_m, 0.05);
+    EXPECT_DOUBLE_EQ(cfg.intake.noise.along_std_per_m, 0.04);
+    EXPECT_DOUBLE_EQ(cfg.intake.noise.across_std_per_m, 0.002);
     EXPECT_TRUE(cfg.intake.use_measurement_covariance);
     EXPECT_DOUBLE_EQ(cfg.intake.covariance_scale, 10.0);
     EXPECT_DOUBLE_EQ(cfg.intake.covariance_min_std_m, 0.05);
@@ -125,7 +116,34 @@ markers:
 TEST(ClassConfig, ZLockIsOffByDefault) {
     const auto cfg = parse_map_config(YAML::Load("{}"));
     EXPECT_FALSE(cfg.map_rules.z_lock.enable);
-    EXPECT_DOUBLE_EQ(cfg.intake.noise_variance_per_meter, 0.0);
+}
+
+TEST(ClassConfig, DetectorNoiseIsLessSureOfTheDepthThanTheBearing) {
+    DetectorNoise noise;  // the defaults: 0.06 m + 0.03/m along, 0.003/m across
+    ASSERT_TRUE(noise.enabled());
+    const Eigen::Matrix3d cov = noise.covariance({5.0, 0.0, 0.0});
+    EXPECT_NEAR(std::sqrt(cov(0, 0)), 0.06 + 0.03 * 5.0, 1e-9);   // along
+    EXPECT_NEAR(std::sqrt(cov(1, 1)), 0.06 + 0.003 * 5.0, 1e-9);  // across
+    EXPECT_NEAR(std::sqrt(cov(2, 2)), 0.06 + 0.003 * 5.0, 1e-9);
+    EXPECT_NEAR(cov(0, 1), 0.0, 1e-12);
+    EXPECT_FALSE((DetectorNoise{0.0, 0.0, 0.0}).enabled());
+    EXPECT_THROW(parse_map_config(YAML::Load("detector_noise: {base_std_m: -0.1}")),
+                 std::runtime_error);
+}
+
+TEST(ClassConfig, RemovedKeysAreAnErrorWithAHint) {
+    // Old config files must not run with values that no longer do anything.
+    for (const char* yaml :
+         {"intake: {max_pipe_distance_m: 7.0}",
+          "intake: {distance_noise: {variance_per_meter: 0.005}}",
+          "course_frame: {lane: {before_gate: {x: [-10.0, 45.0]}}}",
+          "rules: {board: {icon_radius_m: 1.0}}",
+          "rules: {yaw_lock: {consistent_estimates: 5}}",
+          "rules: {large_structures: [GATE]}",
+          "rules: {torpedo_targets_from_icons: {}}",
+          "classes: {SLALOM_PIPE: {min_distance_to_large_structures_m: 1.5}}"}) {
+        EXPECT_THROW(parse_map_config(YAML::Load(yaml)), std::runtime_error) << yaml;
+    }
 }
 
 TEST(ClassConfig, ClassNamesAreReadable) {
@@ -149,17 +167,9 @@ TEST(ClassConfig, ParsesTheRuleChecks) {
     const auto cfg = parse_map_config(YAML::Load(R"(
 rules:
   max_panel_separation_m: 3.0
-  large_structure_separation_m: 2.0
-  board: {icon_radius_m: 1.0, yaw_max_distance_m: 6.0, version_min_dz_m: 0.05,
-          version_lock_votes: 7}
   table_octagon: {primary: midpoint, table_height_m: 0.67}
 )"));
     EXPECT_DOUBLE_EQ(cfg.map_rules.max_panel_separation_m, 3.0);
-    EXPECT_DOUBLE_EQ(cfg.large_structure_separation_m, 2.0);
-    EXPECT_DOUBLE_EQ(cfg.map_rules.board_icon_radius_m, 1.0);
-    EXPECT_DOUBLE_EQ(cfg.map_rules.board_yaw_max_distance_m, 6.0);
-    EXPECT_DOUBLE_EQ(cfg.map_rules.board_version_min_dz_m, 0.05);
-    EXPECT_EQ(cfg.map_rules.board_version_lock_votes, 7);
     EXPECT_EQ(cfg.map_rules.table_octagon_primary, "midpoint");
     EXPECT_DOUBLE_EQ(cfg.map_rules.table_height_m, 0.67);
 
@@ -169,7 +179,8 @@ rules:
 
 TEST(ClassConfig, MissingKeysKeepDefaults) {
     const auto cfg = parse_map_config(YAML::Load("{}"));
-    EXPECT_DOUBLE_EQ(cfg.intake.max_pipe_distance_m, 7.0);
+    EXPECT_DOUBLE_EQ(cfg.map_rules.max_panel_separation_m, 2.5);
+    EXPECT_DOUBLE_EQ(cfg.intake.noise.along_std_per_m, 0.03);
     EXPECT_EQ(cfg.rule_for({LT::GATE, 0}).max_instances, 20);
 }
 

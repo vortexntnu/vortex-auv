@@ -1,0 +1,159 @@
+# The RoboSub props: what each task looks like, the same in every pool.
+# From the simulator's course meshes (robosub_dummy_publisher
+# course_layout.py has the numbers), which follow the handbook drawings;
+# MEASURE the props in use where they can differ (the torpedo icon and
+# opening offsets). Where the tasks are is per pool: course/<env>.yaml.
+#
+# A template: its parts as classes at offsets in the task frame (+X out of
+# the front of the prop, +Y right as seen from the prop, +Z down), with
+# sigma, how well the prop and the detector follow the drawing [m]. A part
+# can allow several classes (the votes decide); variants differ only in
+# classes; points are derived targets ({class, from: part, offset, yaw_deg}).
+#
+# The tolerances of its tasks, the same for every task of the prop (a task
+# in course/<env>.yaml can still set its own); defaults in brackets:
+#   region_radius_m [2.5]  before the task is placed, its parts are taken
+#                          this far from the prior (how far the prior may be
+#                          off)
+#   part_radius_m [1.0]    after it is placed, this far from where the
+#                          template puts each part
+#   yaw_window_deg [30]    the placement's yaw within this of the prior yaw
+#   symmetric [false]      the prop looks the same turned 180 deg
+#   min_parts [2]          parts seen before the task is placed (1: the part
+#                          alone, at the prior yaw)
+#   max_range_m [0 = any]  detections of its parts farther away are not taken
+/**:
+  ros__parameters:
+    course:
+      # Classes a detector mixes up: tracked as one kind, the class comes
+      # from the template (or the votes where the template allows several).
+      # Only for parts of a kind that stand well apart (> ~1 m): the tracker
+      # would mix up the detections of two parts of one kind closer than
+      # the detector's noise. The torpedo icons (0.25-0.5 m apart) stay
+      # separate classes: an icon reported as another one makes a track that
+      # fits no part, and is ignored.
+      class_groups:
+        slalom_pipes: [SLALOM_PIPE_WHITE, SLALOM_PIPE_RED]
+        gate_panels: [GATE_SEARCH_RESCUE, GATE_SURVEY_REPAIR]
+        bin_roles: [BIN_SEARCH_RESCUE, BIN_SURVEY_REPAIR]
+        table_baskets: [TABLE_BASKET_SEARCH_RESCUE, TABLE_BASKET_SURVEY_REPAIR]
+        octagon_images: [OCTAGON_IMAGE_REPAIR, OCTAGON_IMAGE_RESCUE,
+                         OCTAGON_IMAGE_SEARCH, OCTAGON_IMAGE_SURVEY]
+      templates:
+        # Task 1: the gate with its two role panels (which side is which is
+        # drawn per run: the votes decide), the outer posts and the short
+        # post between the openings. Left/right as the vehicle comes from
+        # the start (the gate's front faces the start: task yaw 180).
+        gate:
+          # The roles: each class equally often (handbook), decided together.
+          balanced_classes: true
+          sigma: [0.2, 0.2, 0.3]
+          members:
+            whole: {class: GATE_WHOLE, offset: [0.000, 0.000, 0.000]}
+            panel_left: {class: [GATE_SEARCH_RESCUE, GATE_SURVEY_REPAIR], offset: [0.023, 0.771, -0.445]}
+            panel_right: {class: [GATE_SEARCH_RESCUE, GATE_SURVEY_REPAIR], offset: [0.023, -0.788, -0.445]}
+            pole_right: {class: GATE_POLE_EDGE, offset: [0.000, -1.546, 0.032]}
+            pole_left: {class: GATE_POLE_EDGE, offset: [0.000, 1.552, 0.032]}
+            pole_middle: {class: GATE_POLE_MIDDLE, offset: [0.015, 0.002, -0.258]}
+        # Task 2: a slalom set, white-red-white 60" (1.52 m) apart across the
+        # course. The drawing is followed to ~0.07 m; the detector's range is
+        # off by 0.2-0.3 m up close.
+        slalom_set:
+          region_radius_m: 1.2   # the sets stand 2 m apart
+          part_radius_m: 0.8
+          yaw_window_deg: 20.0
+          symmetric: true
+          min_parts: 3
+          max_range_m: 7.0
+          sigma: [0.2, 0.2, 0.3]
+          members:
+            white_left: {class: SLALOM_PIPE_WHITE, offset: [0.0, -1.52, 0.0]}
+            red: {class: SLALOM_PIPE_RED, offset: [0.0, 0.0, 0.0]}
+            white_right: {class: SLALOM_PIPE_WHITE, offset: [0.0, 1.52, 0.0]}
+        # Task 4: the torpedo board and its icons, one variant per decal
+        # version (the icons swap places; the fit and then the votes
+        # decide). The openings are derived points from the icons.
+        # The parts are named after version 1 (course_state shows the class
+        # each has now). MEASURE the icon and opening offsets on the board
+        # in use.
+        torpedo_board:
+          part_radius_m: 0.5
+          min_parts: 3
+          # Far detections of the small icons are noisy and biased.
+          max_range_m: 6.0
+          sigma: [0.15, 0.06, 0.06]
+          variants:
+            version_1:
+              members:
+                board: {class: TORPEDO_BOARD_WHOLE, offset: [0.0, 0.0, 0.0]}
+                fire: {class: TORPEDO_ICON_FIRE, offset: [0.000, 0.206, -0.214]}
+                firetruck: {class: TORPEDO_ICON_FIRETRUCK, offset: [0.000, -0.186, -0.193]}
+                blood: {class: TORPEDO_ICON_BLOOD, offset: [0.000, -0.219, 0.058]}
+                ambulance: {class: TORPEDO_ICON_AMBULANCE, offset: [0.000, 0.182, 0.202]}
+              # The openings: from each icon (its mapped position), board
+              # frame offsets. Published once the version is decided.
+              points:
+                opening_fire: {class: TORPEDO_TARGET_LARGE_SURVEY_REPAIR, from: fire, offset: [0.000, 0.004, 0.150]}
+                opening_blood: {class: TORPEDO_TARGET_LARGE_SEARCH_RESCUE, from: blood, offset: [0.000, 0.005, 0.158]}
+                opening_firetruck: {class: TORPEDO_TARGET_SMALL_SURVEY_REPAIR, from: firetruck, offset: [0.000, 0.189, 0.002]}
+                opening_ambulance: {class: TORPEDO_TARGET_SMALL_SEARCH_RESCUE, from: ambulance, offset: [0.000, -0.176, -0.002]}
+            version_2:
+              members:
+                board: {class: TORPEDO_BOARD_WHOLE, offset: [0.0, 0.0, 0.0]}
+                blood: {class: TORPEDO_ICON_BLOOD, offset: [0.000, 0.210, -0.222]}
+                ambulance: {class: TORPEDO_ICON_AMBULANCE, offset: [0.000, -0.178, -0.204]}
+                fire: {class: TORPEDO_ICON_FIRE, offset: [0.000, -0.213, 0.056]}
+                firetruck: {class: TORPEDO_ICON_FIRETRUCK, offset: [0.000, 0.183, 0.183]}
+              # The openings: from each icon (its mapped position), board
+              # frame offsets. Published once the version is decided.
+              points:
+                opening_fire: {class: TORPEDO_TARGET_LARGE_SURVEY_REPAIR, from: fire, offset: [0.000, -0.001, 0.160]}
+                opening_blood: {class: TORPEDO_TARGET_LARGE_SEARCH_RESCUE, from: blood, offset: [0.000, 0.000, 0.158]}
+                opening_firetruck: {class: TORPEDO_TARGET_SMALL_SURVEY_REPAIR, from: firetruck, offset: [0.000, -0.178, 0.017]}
+                opening_ambulance: {class: TORPEDO_TARGET_SMALL_SEARCH_RESCUE, from: ambulance, offset: [0.000, 0.181, 0.012]}
+        # Task 3: the bin rig, the four bins as the front camera sees them
+        # (no role), and the role icon on the floor of each (down camera;
+        # which bin has which role is drawn per run: the votes decide).
+        bins:
+          part_radius_m: 0.6
+          # The roles: each class equally often (handbook), decided together.
+          balanced_classes: true
+          sigma: [0.15, 0.15, 0.3]
+          members:
+            rig: {class: BIN_STRUCTURE, offset: [0.000, 0.000, 0.000]}
+            bin_1: {class: BIN_UNCLASSIFIED, offset: [0.515, 0.028, -0.386]}
+            bin_2: {class: BIN_UNCLASSIFIED, offset: [0.015, -0.484, -0.317]}
+            bin_3: {class: BIN_UNCLASSIFIED, offset: [0.016, 0.531, -0.148]}
+            bin_4: {class: BIN_UNCLASSIFIED, offset: [-0.496, 0.015, -0.115]}
+            role_1: {class: [BIN_SEARCH_RESCUE, BIN_SURVEY_REPAIR], offset: [0.515, 0.028, -0.247]}
+            role_2: {class: [BIN_SEARCH_RESCUE, BIN_SURVEY_REPAIR], offset: [0.015, -0.484, -0.178]}
+            role_3: {class: [BIN_SEARCH_RESCUE, BIN_SURVEY_REPAIR], offset: [0.016, 0.531, -0.009]}
+            role_4: {class: [BIN_SEARCH_RESCUE, BIN_SURVEY_REPAIR], offset: [-0.496, 0.015, 0.025]}
+        # Task 5: the table with its two baskets (roles drawn per run). The
+        # items on it are moved during the run: live tracks only, no parts.
+        table:
+          yaw_window_deg: 45.0
+          symmetric: true
+          min_parts: 1
+          # The roles: each class equally often (handbook), decided together.
+          balanced_classes: true
+          sigma: [0.15, 0.15, 0.3]
+          members:
+            table: {class: TABLE_WHOLE, offset: [0.000, 0.000, 0.000]}
+            basket_1: {class: [TABLE_BASKET_SEARCH_RESCUE, TABLE_BASKET_SURVEY_REPAIR], offset: [0.010, 0.393, 0.027]}
+            basket_2: {class: [TABLE_BASKET_SEARCH_RESCUE, TABLE_BASKET_SURVEY_REPAIR], offset: [0.011, -0.395, 0.027]}
+        # Task 5: the octagon floating over the table and its four image
+        # plates (which image is where is drawn per run).
+        octagon:
+          part_radius_m: 1.5
+          yaw_window_deg: 45.0
+          min_parts: 1
+          # The roles: each class equally often (handbook), decided together.
+          balanced_classes: true
+          sigma: [0.2, 0.2, 0.3]
+          members:
+            octagon: {class: OCTAGON_WHOLE, offset: [0.000, 0.000, 0.000]}
+            plate_1: {class: [OCTAGON_IMAGE_REPAIR, OCTAGON_IMAGE_RESCUE, OCTAGON_IMAGE_SEARCH, OCTAGON_IMAGE_SURVEY], offset: [1.296, -0.001, 0.243]}
+            plate_2: {class: [OCTAGON_IMAGE_REPAIR, OCTAGON_IMAGE_RESCUE, OCTAGON_IMAGE_SEARCH, OCTAGON_IMAGE_SURVEY], offset: [-0.917, 0.916, 0.243]}
+            plate_3: {class: [OCTAGON_IMAGE_REPAIR, OCTAGON_IMAGE_RESCUE, OCTAGON_IMAGE_SEARCH, OCTAGON_IMAGE_SURVEY], offset: [0.000, -1.297, 0.243]}
+            plate_4: {class: [OCTAGON_IMAGE_REPAIR, OCTAGON_IMAGE_RESCUE, OCTAGON_IMAGE_SEARCH, OCTAGON_IMAGE_SURVEY], offset: [0.917, 0.916, 0.243]}

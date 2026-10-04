@@ -23,10 +23,9 @@ enum class CourseFrameStatus : uint8_t { UNSET, COARSE, GATE_LOCKED };
  * - GATE_LOCKED: moved to the gate centre once the gate yaw has been
  *   consistent for N estimates (add_gate_estimate).
  *
- * The lane bounds are boxes in this frame: generous before the gate is
- * locked, tight after. They keep the neighbouring lane's gate and pipes out
- * of the map. Odom X is the heading the ESKF started with, not the course
- * direction, so nothing here uses fixed odom coordinates.
+ * The course layout (CourseModel) is placed in this frame. Odom X is the
+ * heading the ESKF started with, not the course direction, so nothing here
+ * uses fixed odom coordinates.
  */
 class CourseFrameTracker {
    public:
@@ -83,10 +82,6 @@ class CourseFrameTracker {
     /// Course coordinates of an odom position (x through the gate, y right).
     Eigen::Vector2d to_course(const Eigen::Vector2d& odom_xy) const;
     Eigen::Vector2d from_course(const Eigen::Vector2d& course_xy) const;
-
-    /// Whether an odom position is inside the lane bounds. Always true while
-    /// the frame is UNSET.
-    bool position_allowed(const Eigen::Vector3d& odom_position) const;
 
    private:
     CourseFrameConfig config_;

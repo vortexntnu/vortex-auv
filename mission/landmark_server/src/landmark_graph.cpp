@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <map>
 #include <numbers>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -170,13 +171,10 @@ LandmarkGraphConfig parse_graph_config(const YAML::Node& node) {
     }
     if (const auto m = node["measurements"]) {
         c.huber_k = get_or<double>(m, "huber_k", c.huber_k);
-        if (const auto noise = m["noise"]) {
-            c.meas_base_std_m =
-                get_or<double>(noise, "base_std_m", c.meas_base_std_m);
-            c.meas_along_std_per_m =
-                get_or<double>(noise, "along_std_per_m", c.meas_along_std_per_m);
-            c.meas_across_std_per_m = get_or<double>(
-                noise, "across_std_per_m", c.meas_across_std_per_m);
+        if (m["noise"]) {
+            throw std::runtime_error(
+                "graph.measurements.noise is now detector_noise (one model for "
+                "the tracker and the graph)");
         }
         c.max_measurements_per_keyframe =
             get_or<int>(m, "max_per_keyframe", c.max_measurements_per_keyframe);
@@ -326,7 +324,8 @@ bool LandmarkGraph::add_measurement(int landmark_id,
     const Eigen::Matrix3d R = kf.odom_T_body.rotation();
     const Eigen::Vector3d in_body = kf.odom_T_body.inverse() * position;
     Eigen::Matrix3d cov_body = R.transpose() * covariance * R;
-    if (config_.meas_base_std_m > 0.0) {
+    if (config_.meas_base_std_m > 0.0 || config_.meas_along_std_per_m > 0.0 ||
+        config_.meas_across_std_per_m > 0.0) {
         // The graph's own noise model: depth (along the line of sight from
         // the vehicle) and bearing (across it), both growing with range.
         const double d = in_body.norm();

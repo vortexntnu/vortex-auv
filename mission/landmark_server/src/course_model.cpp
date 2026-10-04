@@ -26,6 +26,42 @@ LandmarkClassKey parse_key(const std::string& name, const std::string& where) {
     return {parsed->first, parsed->second};
 }
 
+// The keys a course file may have. Anything else is a typo: it would be
+// ignored and its default used without a word.
+const std::vector<std::string> kTaskFieldKeys = {
+    "region_radius_m", "part_radius_m", "yaw_window_deg",
+    "symmetric",       "min_parts",     "max_range_m"};
+const std::vector<std::string> kCourseKeys = {
+    "enable",          "start",         "class_groups",
+    "templates",       "tasks",         "extra_tracks_per_kind",
+    "variant_votes",   "variant_ratio", "min_slot_gate_m",
+    "lane_margin_m",   "max_align_deg", "min_class_agreement",
+    "min_part_detections"};
+
+std::vector<std::string> with_task_fields(std::vector<std::string> keys) {
+    keys.insert(keys.end(), kTaskFieldKeys.begin(), kTaskFieldKeys.end());
+    return keys;
+}
+
+const std::vector<std::string> kTemplateKeys = with_task_fields(
+    {"members", "variants", "points", "sigma", "balanced_classes"});
+const std::vector<std::string> kTaskKeys =
+    with_task_fields({"template", "prior"});
+
+void check_keys(const YAML::Node& node,
+                const std::vector<std::string>& allowed,
+                const std::string& where) {
+    if (!node || !node.IsMap()) {
+        return;
+    }
+    for (const auto& kv : node) {
+        const auto key = kv.first.as<std::string>();
+        if (std::find(allowed.begin(), allowed.end(), key) == allowed.end()) {
+            throw std::runtime_error(where + ": unknown key '" + key + "'");
+        }
+    }
+}
+
 Eigen::Matrix3d yaw_rotation(double yaw) {
     return Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ()).toRotationMatrix();
 }
@@ -152,6 +188,13 @@ CourseConfig parse_course_config(const YAML::Node& node) {
     const auto get_d = [](const YAML::Node& n, const char* key, double fb) {
         return n[key] ? n[key].as<double>() : fb;
     };
+    check_keys(node, kCourseKeys, "course");
+    if (const auto templates = node["templates"]) {
+        for (const auto& kv : templates) {
+            check_keys(kv.second, kTemplateKeys,
+                       "course.templates." + kv.first.as<std::string>());
+        }
+    }
     cfg.enable = node["enable"] ? node["enable"].as<bool>() : false;
     if (const auto s = node["start"]) {
         if (!s.IsSequence() || s.size() != 2) {
@@ -247,6 +290,7 @@ CourseConfig parse_course_config(const YAML::Node& node) {
             t.name = kv.first.as<std::string>();
             const std::string where = "course.tasks." + t.name;
             const YAML::Node& n = kv.second;
+            check_keys(n, kTaskKeys, where);
             if (!n["template"]) {
                 throw std::runtime_error(where + ": missing template");
             }
@@ -257,20 +301,29 @@ CourseConfig parse_course_config(const YAML::Node& node) {
             }
             t.prior_xy = {prior[0].as<double>(), prior[1].as<double>()};
             t.prior_yaw = prior[2].as<double>() * M_PI / 180.0;
-            t.region_radius_m = get_d(n, "region_radius_m", t.region_radius_m);
-            t.part_radius_m = get_d(n, "part_radius_m", t.part_radius_m);
-            t.yaw_window_rad =
-                get_d(n, "yaw_window_deg", t.yaw_window_rad * 180.0 / M_PI) *
-                M_PI / 180.0;
-            t.symmetric = n["symmetric"] ? n["symmetric"].as<bool>() : false;
-            t.max_range_m = get_d(n, "max_range_m", t.max_range_m);
             const auto* tmpl = cfg.template_for(t);
             if (tmpl == nullptr) {
                 throw std::runtime_error(where + ": unknown template '" +
                                          t.template_name + "'");
             }
-            t.min_parts = n["min_parts"] ? n["min_parts"].as<int>()
-                                         : tmpl->min_members;
+            // A task value is the task's own, else its template's (what
+            // every task of that prop shares), else the default.
+            const YAML::Node tn = node["templates"][t.template_name];
+            const auto value = [&](const char* key) {
+                return n[key] ? n[key] : tn[key];
+            };
+            const auto num = [&](const char* key, double fallback) {
+                const auto v = value(key);
+                return v ? v.as<double>() : fallback;
+            };
+            t.region_radius_m = num("region_radius_m", t.region_radius_m);
+            t.part_radius_m = num("part_radius_m", t.part_radius_m);
+            t.yaw_window_rad =
+                num("yaw_window_deg", t.yaw_window_rad * 180.0 / M_PI) * M_PI / 180.0;
+            t.symmetric = value("symmetric") ? value("symmetric").as<bool>() : false;
+            t.max_range_m = num("max_range_m", t.max_range_m);
+            t.min_parts = value("min_parts") ? value("min_parts").as<int>()
+                                             : tmpl->min_members;
             const int parts = static_cast<int>(tmpl->variants.front().members.size());
             if (t.min_parts < 1 || t.min_parts > parts) {
                 throw std::runtime_error(where + ".min_parts must be 1.." +

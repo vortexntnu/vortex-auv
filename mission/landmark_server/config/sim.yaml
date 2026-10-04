@@ -1,53 +1,28 @@
-# Simulator (Stonefish RoboSub course): loaded after landmark_server_config.yaml
-# with env:=sim (the default). The values come from the simulator's scene and
-# meshes; they are right for the simulator only.
+# Simulator (Stonefish RoboSub course), env:=sim (the default). What a real
+# pool measures (pool.yaml), here from the simulator's scene and from
+# drift_injector.py (config/drift/). Right for the simulator only.
 /**:
   ros__parameters:
     rules:
-      # The simulator's pool floor (odom z, down positive).
+      # The pool floor and the water surface (odom z, down positive).
       z_lock: {enable: true, floor_z: 3.432, surface_z: 0.0}
-      # The simulator's table top: 0.715 m above the floor.
+      # The table top above the floor.
       table_octagon: {table_height_m: 0.715}
-      # Board frame: +X out of the front, +Y right, +Z down. Offsets from an
-      # icon to its opening, per board version (fire above blood = version 1):
-      # the icon centres in the board textures and the openings in the board
-      # mesh (robosub_dummy_publisher course_layout.py has the numbers).
-      torpedo_targets_from_icons:
-        version_1: {fire: [0.0, 0.004, 0.150], blood: [0.0, 0.005, 0.158],
-                    firetruck: [0.0, 0.189, 0.002], ambulance: [0.0, -0.176, -0.002]}
-        version_2: {fire: [0.0, -0.001, 0.160], blood: [0.0, 0.0, 0.158],
-                    firetruck: [0.0, -0.178, 0.017], ambulance: [0.0, 0.181, 0.012]}
 
-    course_frame:
-      # Course frame (x through the gate, y right): generous before the gate
-      # is locked, tight after.
-      # Only without a course layout (config/course/<env>.yaml enable:
-      # false); with one, the lane is the area the layout covers.
-      lane:
-        before_gate: {x: [-10.0, 45.0], y: [-12.0, 12.0]}
-        after_gate: {x: [-5.0, 40.0], y: [-6.0, 6.0]}
+    # How far off a detection is at range d: std base + along_std_per_m * d
+    # along the line of sight, base + across_std_per_m * d across it. Used by
+    # the tracker and the graph. Measured against the true objects (dummy
+    # publisher, unstable profile, plus the injector's camera noise).
+    detector_noise: {base_std_m: 0.06, along_std_per_m: 0.03, across_std_per_m: 0.003}
 
-    # The simulator's own odometry does not drift; drift_injector.py makes it
-    # drift like an IMU + DVL estimator (config/drift/). Graph noise measured
-    # from that: odometry steps against the true motion between keyframes,
-    # detections against the true objects (dummy publisher with the unstable
-    # profile plus the injector's camera noise).
-    # - Odometry: realistic profile 0.045-0.07 per m moving, 2 cm per step
-    #   hovering; worst about twice that. The heading drift is mostly a gyro
-    #   bias (5-23 deg/h) that the independent steps of the graph cannot hold,
-    #   so the yaw noise is per second, not per metre (with 1 deg/m the
-    #   landmark noise turned the whole map). Values: twice the realistic
-    #   measurement, so the worst profile still fits.
-    # - Detections: along the line of sight 0.07 + 0.03 d, across it
-    #   0.06 + 0.003 d (the bearing is much better than the range). The
-    #   tracker's 0.2 m in every direction made the graph move the map.
-    # Remembered landmarks, mean error with no / realistic / worst drift
-    # (long route, unstable dummy profile; without the graph 0.05 / 0.19 /
-    # 0.39 m): before 0.09 / 0.17 / 0.18 m, with these 0.06 / 0.12 / 0.14 m.
-    # The pool needs its own values (pool.yaml).
+    # Odometry drift (the simulator's own odometry does not drift;
+    # drift_injector.py makes it drift like an IMU + DVL estimator). Std of
+    # one keyframe step, twice the realistic profile so the worst still fits:
+    # 0.045-0.07 per m moving, 2 cm per step hovering. The heading drift is
+    # mostly a gyro bias (5-23 deg/h), so the yaw noise is per second, not per
+    # metre (with 1 deg/m the landmark noise turned the whole map).
+    # Remembered landmarks with no / realistic / worst drift: 0.06 / 0.12 /
+    # 0.14 m (without the graph 0.05 / 0.19 / 0.39 m).
     graph:
       odom_noise: {pos_std_per_m: 0.12, min_pos_std_m: 0.04,
-                   yaw_std_deg_per_m: 0.06, yaw_std_deg_per_sec: 0.02,
-                   min_rot_std_deg: 0.1}
-      measurements:
-        noise: {base_std_m: 0.06, along_std_per_m: 0.03, across_std_per_m: 0.003}
+                   yaw_std_deg_per_m: 0.06, yaw_std_deg_per_sec: 0.02}

@@ -26,17 +26,10 @@ void RetainedLandmarks::apply_correction(
     const Eigen::Isometry3d& delta,
     const std::function<bool(int)>& placed_by_graph) {
     const Eigen::Quaterniond q_delta(delta.rotation());
-    const double dyaw = std::atan2(delta.linear()(1, 0), delta.linear()(0, 0));
-    const double c = std::cos(dyaw);
-    const double s = std::sin(dyaw);
     for (auto& lm : landmarks_) {
         if (lm.has_orientation) {
             lm.orientation = (q_delta * lm.orientation).normalized();
         }
-        // The running mean of yaw estimates turns with it.
-        const double sum_cos = lm.yaw_sum_cos;
-        lm.yaw_sum_cos = c * sum_cos - s * lm.yaw_sum_sin;
-        lm.yaw_sum_sin = s * sum_cos + c * lm.yaw_sum_sin;
         if (lm.live_track_id < 0 &&
             !(placed_by_graph && placed_by_graph(lm.id))) {
             lm.position = delta * lm.position;
@@ -97,28 +90,6 @@ void RetainedLandmarks::update_from_track(RetainedLandmark& lm,
         lm.last_measurement = now;
         ++lm.observations;
     }
-}
-
-bool RetainedLandmarks::near_large_structure(const Eigen::Vector3d& position,
-                                             double distance) const {
-    return std::any_of(landmarks_.begin(), landmarks_.end(),
-                       [&](const RetainedLandmark& l) {
-                           return config_.is_large_structure(l.key) &&
-                                  (l.position - position).norm() < distance;
-                       });
-}
-
-bool RetainedLandmarks::near_other_large_structure(
-    uint16_t type,
-    const Eigen::Vector3d& position,
-    double distance) const {
-    return std::any_of(landmarks_.begin(), landmarks_.end(),
-                       [&](const RetainedLandmark& l) {
-                           return !l.derived && l.key.type != type &&
-                                  config_.is_large_structure(l.key) &&
-                                  (l.position - position).head<2>().norm() <
-                                      distance;
-                       });
 }
 
 void RetainedLandmarks::forget_expired(double now) {
@@ -219,7 +190,7 @@ void RetainedLandmarks::update(
         it = alive ? std::next(it) : ambiguous_since_.erase(it);
     }
 
-    // Lane bounds tighten when the gate locks: drop what is now outside.
+    // The lane follows the course found: drop what is now outside.
     if (position_allowed) {
         landmarks_.erase(
             std::remove_if(landmarks_.begin(), landmarks_.end(),
@@ -323,25 +294,11 @@ void RetainedLandmarks::update(
             continue;
         }
 
-        // 3. A new landmark, if the class has room and the rules allow it.
+        // 3. A new landmark, if the class has room.
         if (instances >= rule.max_instances) {
             ++rejected_;
             continue;
         }
-        if (rule.min_distance_to_large_structures_m > 0.0 &&
-            near_large_structure(position,
-                                 rule.min_distance_to_large_structures_m)) {
-            ++rejected_;
-            continue;
-        }
-        if (config_.large_structure_separation_m > 0.0 &&
-            config_.is_large_structure(track.class_key) &&
-            near_other_large_structure(track.class_key.type, position,
-                                       config_.large_structure_separation_m)) {
-            ++rejected_;
-            continue;
-        }
-
         RetainedLandmark lm;
         lm.id = next_id_++;
         lm.key = track.class_key;
@@ -349,25 +306,6 @@ void RetainedLandmarks::update(
         lm.last_measurement = now;
         update_from_track(lm, track, now);
         landmarks_.push_back(std::move(lm));
-    }
-
-    // A pipe mapped before the large structure next to it (a gate post taken
-    // for a pipe, the gate itself confirmed a moment later) goes when the
-    // structure is in the map: which one was seen first must not decide.
-    std::vector<int> too_close;
-    for (const auto& lm : landmarks_) {
-        const double d =
-            config_.rule_for(lm.key).min_distance_to_large_structures_m;
-        if (!lm.derived && lm.course_slot.empty() && d > 0.0 &&
-            near_large_structure(lm.position, d)) {
-            too_close.push_back(lm.id);
-        }
-    }
-    if (!too_close.empty()) {
-        rejected_ += static_cast<int>(too_close.size());
-        std::erase_if(landmarks_, [&](const RetainedLandmark& l) {
-            return std::ranges::find(too_close, l.id) != too_close.end();
-        });
     }
 
     forget_expired(now);
