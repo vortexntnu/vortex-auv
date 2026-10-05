@@ -237,6 +237,10 @@ class LandmarkServerNode : public rclcpp::Node {
     std::optional<Eigen::Isometry3d> target_T_odom_;
 
     std::mutex measurements_mtx_;
+    /// Detection messages received (empty ones too), under
+    /// measurements_mtx_; a tick counts hits and misses only when one came.
+    uint64_t frames_received_{0};
+    uint64_t frames_counted_{0};
 
     LandmarkMapConfig map_config_;
     std::unique_ptr<RetainedLandmarks> map_;

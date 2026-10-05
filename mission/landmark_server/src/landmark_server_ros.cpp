@@ -100,6 +100,7 @@ void LandmarkServerNode::create_pose_subscription() {
                     measurements_.end(),
                     std::make_move_iterator(new_measurements.begin()),
                     std::make_move_iterator(new_measurements.end()));
+                ++frames_received_;
             }
         });
 
@@ -252,10 +253,13 @@ void LandmarkServerNode::on_system_reset(std_msgs::msg::Empty::ConstSharedPtr) {
 
 void LandmarkServerNode::timer_callback() {
     std::vector<Landmark> measurements_snapshot;
+    bool had_frame = false;
     {
         std::lock_guard<std::mutex> lock(measurements_mtx_);
         measurements_snapshot = std::move(measurements_);
         measurements_.clear();
+        had_frame = frames_received_ != frames_counted_;
+        frames_counted_ = frames_received_;
     }
     apply_pending_map_config();
     gate_measurements(measurements_snapshot);
@@ -267,7 +271,9 @@ void LandmarkServerNode::timer_callback() {
     // the filter time (camera latency after such ticks) is applied without
     // predicting further; a jump larger than max_stamp_dt_seconds_ (clock
     // change, bag loop) resynchronises the filter time. Hits and misses are
-    // counted once per tick (end_cycle).
+    // counted once per tick (end_cycle), and only when a detection message
+    // came in it: with a detector slower than the tick, a tick between two
+    // camera frames is not a miss.
     std::map<double, std::vector<Landmark>> frames;
     for (auto& m : measurements_snapshot) {
         frames[m.stamp_sec].push_back(std::move(m));
@@ -301,7 +307,9 @@ void LandmarkServerNode::timer_callback() {
         tick_associations_.insert(tick_associations_.end(), assoc.begin(),
                                   assoc.end());
     }
-    track_manager_->end_cycle();
+    if (had_frame) {
+        track_manager_->end_cycle();
+    }
 
     const auto dropped = dropped_measurements_.load();
     if (dropped != reported_dropped_measurements_) {
