@@ -43,6 +43,17 @@ Allowed only during **persistent** missions:
 
 ---
 
+### Frames, outcome and retargeting
+
+* `frame` in the goal: `WORLD` (default, odom poses), `BODY_RELATIVE` (offsets in the vehicle frame at goal start) or `WORLD_RELATIVE` (offsets along the odom axes from the pose at goal start). Every waypoint of a goal is relative to the start pose.
+* A new goal replaces the running one without stopping the vehicle: the reference filter retargets. The replaced goal ends with `PREEMPTED`.
+* Result: `outcome` (`SUCCEEDED`, `PREEMPTED`, `CANCELED`, `INVALID_GOAL`, `REFERENCE_FILTER_ABORTED`), `message`, `reached_index` (-1 if none). Feedback: `current_waypoint`, `current_index`.
+* `INVALID_GOAL`: NaN or inf in a pose, an unknown frame, or a relative frame before a pose was received. A running goal is not affected.
+* Per waypoint, read by the reference filter: `position_tolerance` [m], `orientation_tolerance` [rad], `hold_time_sec`, `convergence_threshold` (0 = the goal's).
+* Parameters: `action_servers.reference_filter`, `topics.pose`.
+
+---
+
 ### Check available interfaces:
 
 ```bash
