@@ -52,12 +52,11 @@ struct StructureVariant {
 
 /**
  * @brief A rigid arrangement of landmark classes from the task drawings
- * (config `rules.structures`), e.g. a slalom set: white, red, white 1.52 m
+ * (config `course.templates`), e.g. a slalom set: white, red, white 1.52 m
  * apart in a line.
  */
 struct StructureTemplate {
     std::string name;
-    int max_instances{1};
     /// Members that must fit before an instance is made.
     int min_members{2};
     /// A member fits when its chi-square (3 dof) is below this.
@@ -76,10 +75,10 @@ struct StructureTemplate {
 };
 
 /**
- * @brief Parse `rules.structures`: a map of name -> {max_instances,
- * min_members, sigma, members: {name: {class, offset, sigma}}} (or variants:
- * {name: {members}}). Class names as in `classes` (a type or a full subtype
- * constant).
+ * @brief Parse templates: a map of name -> {sigma, balanced_classes,
+ * members: {name: {class, offset, sigma}}, points} (or variants: {name:
+ * {members, points}}). Class names as in `classes` (a type or a full
+ * subtype constant).
  * @throws std::runtime_error with the key on errors.
  */
 std::vector<StructureTemplate> parse_structures(const YAML::Node& node);

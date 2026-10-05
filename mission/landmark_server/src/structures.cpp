@@ -339,11 +339,8 @@ std::vector<StructureTemplate> parse_structures(const YAML::Node& node) {
     for (const auto& kv : node) {
         StructureTemplate t;
         t.name = kv.first.as<std::string>();
-        const std::string where = "rules.structures." + t.name;
+        const std::string where = "course.templates." + t.name;
         const YAML::Node& n = kv.second;
-        if (n["max_instances"]) {
-            t.max_instances = n["max_instances"].as<int>();
-        }
         if (n["min_members"]) {
             t.min_members = n["min_members"].as<int>();
         }

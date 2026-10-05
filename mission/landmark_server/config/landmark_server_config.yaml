@@ -3,10 +3,12 @@
 #
 # The files, loaded in this order by the launch file (later files win):
 #   landmark_server_config.yaml  this file: tracker and map behaviour
-#   markers.yaml                 how the map is drawn in Foxglove (no tuning)
+#   markers.yaml                 how the map view is drawn (display only)
 #   <env>.yaml                   measured in that pool: floor, detector noise, drift
 #   course/templates.yaml        what each RoboSub prop looks like
 #   course/<env>.yaml            where the tasks are in that pool
+#   debug.yaml                   debug topics and the map view (debug:=true)
+#   calibration.yaml             drift calibration session (calibration:=true)
 /**:
   ros__parameters:
     target_frame: "nautilus/odom"
@@ -14,15 +16,18 @@
     # The tracker (pose_filtering). Read at start.
     track_config:
       default:
-        # A track is confirmed after confirm_n hits in confirm_m ticks
-        # (5 Hz), deleted after delete_n misses in delete_m ticks.
+        # A track is confirmed after confirm_n hits in the last confirm_m
+        # camera frames, deleted after delete_n misses in delete_m (counted
+        # once per tick that had a detection message, so a slow detector
+        # does not count as misses).
         nm: {confirm_n: 3, confirm_m: 5, delete_n: 5, delete_m: 7}
         # A detection farther than this from a track is not that track [m].
         # A camera's depth error at 6-7 m reaches 0.6 m: smaller values split
         # one object into several tracks.
         gate: {max_pos_error: 1.5}
-        # How much a track may move per tick, and the class noise of a
-        # detection [m] (the detector noise of <env>.yaml comes on top).
+        # How much a track may wander between frames (random walk), and the
+        # class noise of a detection [m] (the detector noise of <env>.yaml
+        # comes on top).
         dyn_mod_std_dev: 0.2
         sens_mod_std_dev: 0.2
 
@@ -45,8 +50,7 @@
     # max_instances of each. Classes not listed: 20, 15 s.
     classes:
       PATH_MARKER: {max_instances: 2}
-      # Moved during the run: followed live only (landmark_server/live_tracks),
-      # never a landmark in the map.
+      # Moved during the run: tracked live only, never a landmark in the map.
       TABLE_ITEM_NUTBOLT: {live_only: true}
       TABLE_ITEM_ELECTRIC: {live_only: true}
       TABLE_ITEM_PILL: {live_only: true}

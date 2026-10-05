@@ -104,11 +104,11 @@ struct CourseConfig {
 };
 
 /**
- * @brief Parse the `course` tree: enable, start, class_groups, templates
- * (as rules.structures: members or variants), tasks (template, prior
- * [x, y, yaw_deg], region_radius_m, part_radius_m, yaw_window_deg,
- * symmetric, min_parts).
- * @throws std::runtime_error with the key on errors.
+ * @brief Parse the `course` tree: enable, start, the globals, class_groups,
+ * templates (members or variants, points, tolerances) and tasks (template,
+ * prior [x, y, yaw_deg], and any tolerance of their own). A task's
+ * tolerances come from the task, else its template, else the defaults.
+ * @throws std::runtime_error with the key on errors, unknown keys included.
  */
 CourseConfig parse_course_config(const YAML::Node& node);
 
@@ -266,9 +266,6 @@ class CourseModel {
     /// How the layout is turned and moved to fit the tasks found (layout
     /// frame, a rotation about the origin then a translation).
     Eigen::Isometry2d alignment(const CourseGeometry& geo) const;
-    /// Whether the course maps this type (then the hand-written map rules
-    /// for it are not needed).
-    bool covers_type(uint16_t type) const;
     /// Tracker limit per kind (parts in the course + extra).
     std::map<std::pair<uint16_t, uint16_t>, int> track_limits() const;
 

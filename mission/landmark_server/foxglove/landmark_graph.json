@@ -643,6 +643,10 @@
             "second": "Image!down",
             "direction": "row"
           }
+        },
+        {
+          "title": "Innstillinger",
+          "layout": "Parameters!innstillinger"
         }
       ]
     },
@@ -677,6 +681,9 @@
       "sidebarDimension": 240,
       "followingViewWidth": 600,
       "foxglovePanelTitle": "Banefeil mot fasit [m] (snitt over keyframes, horisontalt)"
+    },
+    "Parameters!innstillinger": {
+      "title": "Innstillinger (debug.enable, debug.markers)"
     }
   },
   "globalVariables": {},

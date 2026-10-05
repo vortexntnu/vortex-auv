@@ -605,15 +605,6 @@ void CourseModel::publish_pose(Task& t, Store& store) {
     }
 }
 
-bool CourseModel::covers_type(uint16_t type) const {
-    for (const auto& k : config_.templated_kinds()) {
-        if (k.first == type) {
-            return true;
-        }
-    }
-    return false;
-}
-
 void CourseModel::release(Slot& s) {
     const auto it = track_votes_.find(s.track_id);
     if (it != track_votes_.end()) {

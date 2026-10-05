@@ -1,5 +1,6 @@
 #include <spdlog/spdlog.h>
 #include <algorithm>
+#include <vortex/utils/ros/ros_conversions.hpp>
 #include "landmark_server/landmark_server_ros.hpp"
 
 namespace vortex::mission {

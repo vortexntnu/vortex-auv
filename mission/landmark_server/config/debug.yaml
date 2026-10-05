@@ -1,0 +1,18 @@
+# Debug output (launch debug:=true). Off without this file. Both switches
+# can also be flipped while the server runs:
+#   ros2 param set /nautilus/landmark_server_node debug.markers true
+# or in Foxglove's Parameters panel. Nothing here changes the map.
+/**:
+  ros__parameters:
+    debug:
+      # landmark_server/live_tracks (the tracker's tracks, every tick) and
+      # the drift correction, once a second: landmark_server/graph/path,
+      # start_frame_path, odom_path, landmarks, pose, stats.
+      enable: true
+      # landmark_server/markers: the map view for Foxglove (markers.yaml
+      # sets how it is drawn).
+      markers: true
+      # Frame of the graph-frame topics. Empty: target_frame. The drift
+      # simulation sets the true world frame, so Foxglove draws them where
+      # they are.
+      graph_frame_id: ""

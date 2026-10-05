@@ -546,8 +546,6 @@ TEST(CourseModel, PointsFollowTheTaskOnceTheVersionIsKnown) {
     // The parts have the board's yaw (+X out of the front: -x).
     EXPECT_TRUE(w.in_slot("torpedo/board")->has_orientation);
     EXPECT_NEAR(std::abs(w.in_slot("torpedo/board")->yaw()), M_PI, 1e-6);
-    EXPECT_TRUE(w.map.course().covers_type(LT::TORPEDO_BOARD));
-    EXPECT_FALSE(w.map.course().covers_type(LT::BIN));
 }
 
 TEST(CourseModel, AMislabelledIconCannotRemoveAnother) {

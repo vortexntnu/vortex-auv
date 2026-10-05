@@ -193,127 +193,23 @@ void LandmarkServerNode::update_graph() {
         }
     }
 
-    // Once a second (at the default rate): trajectories and stats for
-    // Foxglove.
-    if (++graph_publish_ticks_ >= 5) {
-        graph_publish_ticks_ = 0;
-        publish_graph_state();
-    }
-
     // Every 10 s at the default rate: how much the graph has corrected.
     if (++graph_log_ticks_ >= 50) {
         graph_log_ticks_ = 0;
-        const Eigen::Isometry3d c = graph_->correction();
-        const double yaw_deg =
-            std::atan2(c.linear()(1, 0), c.linear()(0, 0)) * 180.0 / M_PI;
-        spdlog::info(
-            "LandmarkServer graph: {} keyframes, {} landmarks, correction "
-            "({:.2f}, {:.2f}) m, {:.1f} deg, detector range {:+.1f} %",
-            graph_->keyframe_count(), graph_->landmark_count(),
-            c.translation().x(), c.translation().y(), yaw_deg,
-            graph_->range_scale_error() * 100.0);
+        log_graph_state();
     }
 }
 
-void LandmarkServerNode::publish_graph_state() {
-    const auto stamp = this->now();
-    // Each pose carries its keyframe's stamp, so it can be compared with the
-    // true pose at that time (graph_eval.py).
-    const std::vector<double> stamps = graph_->keyframe_stamps();
-    const auto to_path = [&](const std::vector<Eigen::Isometry3d>& poses,
-                             const std::string& frame) {
-        nav_msgs::msg::Path path;
-        path.header.stamp = stamp;
-        path.header.frame_id = frame;
-        path.poses.reserve(poses.size());
-        for (std::size_t i = 0; i < poses.size(); ++i) {
-            const auto& T = poses[i];
-            geometry_msgs::msg::PoseStamped p;
-            p.header.frame_id = frame;
-            p.header.stamp = rclcpp::Time(
-                static_cast<int64_t>(stamps[i] * 1e9), RCL_ROS_TIME);
-            p.pose.position.x = T.translation().x();
-            p.pose.position.y = T.translation().y();
-            p.pose.position.z = T.translation().z();
-            const Eigen::Quaterniond q(T.rotation());
-            p.pose.orientation.w = q.w();
-            p.pose.orientation.x = q.x();
-            p.pose.orientation.y = q.y();
-            p.pose.orientation.z = q.z();
-            path.poses.push_back(p);
-        }
-        return path;
-    };
-    // The smoothed path in the current odom frame; what is in the graph frame
-    // (smoothed from the start, the raw odometry, the graph's landmarks and
-    // pose) in graph_frame_.
-    graph_path_pub_->publish(to_path(graph_->keyframes_in_odom(), target_frame_));
-    graph_start_path_pub_->publish(
-        to_path(graph_->keyframes_in_graph(), graph_frame_));
-
-    // The graph's own estimates with their marginal covariances, in the
-    // graph frame (odom at the first keyframe): for consistency checks.
-    vortex_msgs::msg::LandmarkArray landmarks;
-    landmarks.header.stamp = stamp;
-    landmarks.header.frame_id = graph_frame_;
-    for (const auto& lm : graph_->landmarks_in_graph()) {
-        vortex_msgs::msg::Landmark msg;
-        msg.header = landmarks.header;
-        msg.id = lm.id;
-        if (const auto* retained = map_->find(lm.id)) {
-            msg.type.value = retained->key.type;
-            msg.subtype.value = retained->key.subtype;
-        }
-        msg.pose.pose.position.x = lm.position.x();
-        msg.pose.pose.position.y = lm.position.y();
-        msg.pose.pose.position.z = lm.position.z();
-        msg.pose.pose.orientation.w = 1.0;
-        for (int r = 0; r < 3; ++r) {
-            for (int c = 0; c < 3; ++c) {
-                msg.pose.covariance[r * 6 + c] = lm.covariance(r, c);
-            }
-        }
-        landmarks.landmarks.push_back(std::move(msg));
-    }
-    graph_landmarks_pub_->publish(landmarks);
-    if (const auto latest = graph_->latest_keyframe_with_covariance()) {
-        geometry_msgs::msg::PoseWithCovarianceStamped pose;
-        // Stamped with the keyframe's time, so it can be compared with the
-        // true pose then.
-        pose.header.frame_id = graph_frame_;
-        pose.header.stamp =
-            rclcpp::Time(static_cast<int64_t>(stamps.back() * 1e9), RCL_ROS_TIME);
-        const auto& [T, P] = *latest;
-        pose.pose.pose.position.x = T.translation().x();
-        pose.pose.pose.position.y = T.translation().y();
-        pose.pose.pose.position.z = T.translation().z();
-        const Eigen::Quaterniond q(T.rotation());
-        pose.pose.pose.orientation.w = q.w();
-        pose.pose.pose.orientation.x = q.x();
-        pose.pose.pose.orientation.y = q.y();
-        pose.pose.pose.orientation.z = q.z();
-        // ROS order is (position, rotation); GTSAM's tangent is (rotation,
-        // position).
-        for (int r = 0; r < 6; ++r) {
-            for (int c = 0; c < 6; ++c) {
-                pose.pose.covariance[r * 6 + c] = P((r + 3) % 6, (c + 3) % 6);
-            }
-        }
-        graph_pose_pub_->publish(pose);
-    }
-    graph_odom_path_pub_->publish(to_path(graph_->keyframes_raw(), graph_frame_));
-
+void LandmarkServerNode::log_graph_state() const {
     const Eigen::Isometry3d c = graph_->correction();
-    std_msgs::msg::Float64MultiArray stats;
-    stats.data = {static_cast<double>(graph_->keyframe_count()),
-                  static_cast<double>(graph_->landmark_count()),
-                  c.translation().x(),
-                  c.translation().y(),
-                  std::atan2(c.linear()(1, 0), c.linear()(0, 0)) * 180.0 / M_PI,
-                  graph_update_ms_max_,
-                  graph_->range_scale_error() * 100.0};
-    graph_stats_pub_->publish(stats);
-    graph_update_ms_max_ = 0.0;
+    const double yaw_deg =
+        std::atan2(c.linear()(1, 0), c.linear()(0, 0)) * 180.0 / M_PI;
+    spdlog::info(
+        "LandmarkServer graph: {} keyframes, {} landmarks, correction "
+        "({:.2f}, {:.2f}) m, {:.1f} deg, detector range {:+.1f} %",
+        graph_->keyframe_count(), graph_->landmark_count(),
+        c.translation().x(), c.translation().y(), yaw_deg,
+        graph_->range_scale_error() * 100.0);
 }
 
 }  // namespace vortex::mission

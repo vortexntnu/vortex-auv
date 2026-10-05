@@ -1,5 +1,6 @@
-# How the map is drawn in Foxglove / RViz (landmark_server/markers). Display
-# only: nothing here changes the map.
+# How the map view is drawn in Foxglove / RViz (landmark_server/markers,
+# published with debug.markers, see debug.yaml). Display only: nothing here
+# changes the map.
 #
 # Boxes of the real size, from the simulator's meshes. size: [x out of the
 # front, y right, z down] [m]; offset: box centre from where the map puts the

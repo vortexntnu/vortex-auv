@@ -80,10 +80,13 @@ target_link_libraries(${GRAPH_LIB_NAME} PUBLIC yaml-cpp PRIVATE gtsam)
 
 add_library(${LIB_NAME} SHARED
   src/landmark_server_ros.cpp
+  src/landmark_server_config.cpp
   src/landmark_server_publish.cpp
-  src/landmark_server_ros_debug.cpp
-  src/landmark_server_graph.cpp
   src/landmark_server_course.cpp
+  src/landmark_server_graph.cpp
+  src/landmark_server_polling.cpp
+  src/landmark_server_debug.cpp
+  src/landmark_server_markers.cpp
   src/landmark_ros_conversion.cpp)
 
 target_link_libraries(${LIB_NAME} PUBLIC ${CORE_LIB_NAME} ${GRAPH_LIB_NAME})

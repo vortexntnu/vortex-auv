@@ -17,18 +17,19 @@ Trajectory: the true path (/nautilus/odom, published as
 /landmark_eval/true_path), the graph's smoothed keyframes in the graph frame
 (graph/start_frame_path, green in the Foxglove layout) and the raw drifting
 odometry keyframes (graph/odom_path, orange), compared at each keyframe's
-stamp. The graph frame is odom at the first keyframe; the drift injector
-starts on the truth, so it is the true world (the truth is put through the
-drift at the first keyframe in case the graph started later). The graph path
-should lie on the true path, while the odometry drifts away from it over
-time. Errors are horizontal (depth does not drift).
+stamp (these topics need the server's debug.enable). The graph frame is
+odom at the first keyframe; the drift injector starts on the truth, so it
+is the true world (the truth is put through the drift at the first keyframe
+in case the graph started later). The graph path should lie on the true
+path, while the odometry drifts away from it over time. Errors are
+horizontal (depth does not drift).
 
-For Foxglove: /landmark_eval/markers (the truth as green spheres, a line from
-each map landmark to its true object, per map), and per map
+For Foxglove: /landmark_eval/markers (the truth as small green dots, a line
+from each map landmark to its true object, per map), and per map
 /landmark_eval/<label>/{remembered_mean,all_mean,count,swaps} plus
 /landmark_eval/drift_yaw_deg and /landmark_eval/traj/{graph,odom}_{mean,max}
-(std_msgs/Float64) for plots. Also written to csv (param csv, relative to the working
-directory).
+(std_msgs/Float64) for plots. Also written to csv (param csv, relative to
+the working directory).
 """
 
 import csv

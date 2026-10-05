@@ -36,11 +36,13 @@ def launch_setup(context, *args, **kwargs):
     if not os.path.isfile(course_config):
         raise RuntimeError(f"no course layout file {course_config}")
 
-    # Drift calibration session (README, "Measuring a pool"): last, it wins.
-    calibration = LaunchConfiguration("calibration").perform(context).lower() == "true"
-    calibration_config = (
-        [os.path.join(config_dir, "calibration.yaml")] if calibration else []
-    )
+    # Optional files, last so they win: the debug output, and the drift
+    # calibration session (README, "Measuring a pool").
+    optional = [
+        os.path.join(config_dir, f"{name}.yaml")
+        for name in ("debug", "calibration")
+        if LaunchConfiguration(name).perform(context).lower() == "true"
+    ]
 
     drone_params = os.path.join(
         get_package_share_directory("auv_setup"),
@@ -62,10 +64,8 @@ def launch_setup(context, *args, **kwargs):
                 templates_config,
                 course_config,
                 drone_params,
-                *calibration_config,
-                {
-                    "use_sim_time": False,
-                },  # If testing with rosbags sim_time might be preferred if bag is looped
+                *optional,
+                {"use_sim_time": False},
             ],
             output="screen",
         )
@@ -80,6 +80,12 @@ def generate_launch_description():
                 "env",
                 default_value="sim",
                 description="sim (simulator values) or pool (values measured in the pool)",
+            ),
+            DeclareLaunchArgument(
+                "debug",
+                default_value="false",
+                description="true: publish the debug topics and the map view "
+                "(config/debug.yaml); both can also be switched while it runs",
             ),
             DeclareLaunchArgument(
                 "calibration",

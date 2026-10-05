@@ -41,8 +41,8 @@ struct RetainedLandmark {
     int hits{0};
     int misses{0};
 
-    /// Stable name of a derived landmark ("gate_whole", "torpedo_target_fire"
-    /// ...), so a rule updates the same landmark every tick.
+    /// Stable name of a derived landmark ("octagon_whole", a course task's
+    /// point), so it is the same landmark every tick.
     std::string derived_slot;
     /// The course slot this landmark fills ("slalom_1/red"), or empty for a
     /// free landmark. Slot landmarks are kept for the rest of the run.
@@ -88,18 +88,19 @@ class RetainedLandmarks {
 
     explicit RetainedLandmarks(LandmarkMapConfig config);
 
-    /**
-     * @param confirmed The confirmed tracks of PoseTrackManager.
-     * @param now Time [s].
-     * @param position_allowed Optional lane; landmarks outside are
-     * rejected (new) or dropped (existing).
-     */
     /// What the course model needs each tick besides the tracks.
     struct CourseInput {
         TrackVotes votes;
         CourseGeometry geometry;
     };
 
+    /**
+     * @param confirmed The confirmed tracks of PoseTrackManager.
+     * @param now Time [s].
+     * @param position_allowed Optional lane; landmarks outside are
+     * rejected (new) or dropped (existing).
+     * @param course Class votes per track and the course frame.
+     */
     void update(const std::vector<vortex::filtering::Track>& confirmed,
                 double now,
                 const PositionFilter& position_allowed = {},

@@ -40,8 +40,8 @@ struct IntakeConfig {
     /// Read at start (the graph is built with it).
     DetectorNoise noise;
     /// Use the position covariance of the detection (rotated into the target
-    /// frame) instead of the class noise and the distance model, when it
-    /// has a positive diagonal. Scaled by covariance_scale (to test an over-
+    /// frame) instead of the class noise and the detector noise, when it has
+    /// a positive diagonal. Scaled by covariance_scale (to test an over-
     /// or underconfident detector); each std at least covariance_min_std_m.
     bool use_measurement_covariance{false};
     double covariance_scale{1.0};
@@ -71,9 +71,9 @@ struct ClassRule {
     /// Landmarks with at least this many observations are never forgotten
     /// (0 = off).
     int keep_after_observations{0};
-    /// Never a landmark: only followed live (landmark_server/live_tracks).
-    /// For things that are moved during the run (the items on the table):
-    /// a remembered position would be wrong once they are moved.
+    /// Never a landmark, only tracked live. For things that are moved
+    /// during the run (the items on the table): a remembered position would
+    /// be wrong once they are moved.
     bool live_only{false};
 };
 
@@ -115,8 +115,8 @@ struct MapRulesConfig {
 /// A box drawn for a class in the markers: its size in the landmark frame
 /// (x out of the front, y right, z down) and the offset of its centre from
 /// the landmark position, in the same frame. A solid box is the object
-/// itself (a PVC pipe) and replaces the point; else it is a see-through
-/// outline of a large structure around the point.
+/// itself (a PVC pipe); else it is a see-through outline of the prop around
+/// the point. Display only.
 struct MarkerBox {
     Eigen::Vector3d size{Eigen::Vector3d::Zero()};
     Eigen::Vector3d offset{Eigen::Vector3d::Zero()};
@@ -180,9 +180,10 @@ std::vector<uint16_t> known_subtypes(uint16_t type);
 
 /**
  * @brief Parse the map configuration from a YAML tree with the keys `intake`,
- * `course_frame`, `classes`, `rules` and `markers` (see
- * config/landmark_server_config.yaml). Missing keys keep their defaults.
- * @throws std::runtime_error on unknown class or subtype names.
+ * `detector_noise`, `course_frame`, `classes`, `rules`, `markers` and
+ * `course` (the config files). Missing keys keep their defaults.
+ * @throws std::runtime_error on unknown class or subtype names, unknown keys
+ * in the course, and keys that were removed (with what replaced them).
  */
 LandmarkMapConfig parse_map_config(const YAML::Node& root);
 
