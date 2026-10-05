@@ -138,6 +138,7 @@ install(PROGRAMS
   scripts/drift_injector.py
   scripts/graph_eval.py
   scripts/drift_route.py
+  scripts/aruco_drift.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

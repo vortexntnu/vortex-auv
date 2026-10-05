@@ -58,6 +58,9 @@ gtsam::Key landmark_key(int id) {
     return gtsam::Symbol('l', static_cast<std::uint64_t>(id));
 }
 
+/// The detector's range scale error: one unknown for the whole run.
+const gtsam::Key kRangeScaleKey = gtsam::Symbol('k', 0);
+
 
 /**
  * @brief A landmark position measured in the vehicle frame.
@@ -88,6 +91,55 @@ class PointInBodyFactor
             *H_point = Hl;
         }
         return in_body - measured_;
+    }
+
+   private:
+    gtsam::Point3 measured_;
+};
+
+/**
+ * @brief A landmark position measured in the vehicle frame by a detector
+ * whose ranges are off by a factor (1 + k), k shared by every measurement.
+ * Error: (1 + k) * (pose^-1 * point) - measured.
+ *
+ * A camera's range bias is the same for every object (a stereo baseline or
+ * focal length a little off). Without k the graph can only explain it by
+ * stretching the path: approaching a prop, it seems to recede 2 % slower
+ * than the odometry says, and the path, and every task far from the start,
+ * moves with it.
+ */
+class RangeScaledPointFactor
+    : public gtsam::NoiseModelFactorN<gtsam::Pose3, gtsam::Point3, double> {
+   public:
+    RangeScaledPointFactor(gtsam::Key pose,
+                           gtsam::Key point,
+                           gtsam::Key scale,
+                           const gtsam::Point3& measured,
+                           const gtsam::SharedNoiseModel& model)
+        : NoiseModelFactorN(model, pose, point, scale), measured_(measured) {}
+
+    gtsam::Vector evaluateError(
+        const gtsam::Pose3& pose,
+        const gtsam::Point3& point,
+        const double& k,
+        boost::optional<gtsam::Matrix&> H_pose = boost::none,
+        boost::optional<gtsam::Matrix&> H_point = boost::none,
+        boost::optional<gtsam::Matrix&> H_k = boost::none) const override {
+        gtsam::Matrix36 Hp;
+        gtsam::Matrix3 Hl;
+        const gtsam::Point3 in_body = pose.transformTo(
+            point, H_pose ? &Hp : nullptr, H_point ? &Hl : nullptr);
+        const double s = 1.0 + k;
+        if (H_pose) {
+            *H_pose = s * Hp;
+        }
+        if (H_point) {
+            *H_point = s * Hl;
+        }
+        if (H_k) {
+            *H_k = gtsam::Matrix31(in_body);
+        }
+        return s * in_body - measured_;
     }
 
    private:
@@ -162,7 +214,8 @@ LandmarkGraphConfig parse_graph_config(const YAML::Node& node) {
             get_or<double>(odom, "min_pos_std_m", c.odom_min_pos_std_m);
         c.odom_min_rot_std_deg =
             get_or<double>(odom, "min_rot_std_deg", c.odom_min_rot_std_deg);
-
+        c.odom_pos_std_per_sqrt_s =
+            get_or<double>(odom, "pos_std_per_sqrt_s", c.odom_pos_std_per_sqrt_s);
     }
     if (const auto abs = node["absolute"]) {
         c.roll_pitch_std_deg =
@@ -176,6 +229,7 @@ LandmarkGraphConfig parse_graph_config(const YAML::Node& node) {
                 "graph.measurements.noise is now detector_noise (one model for "
                 "the tracker and the graph)");
         }
+        c.range_scale_std = get_or<double>(m, "range_scale_std", c.range_scale_std);
         c.max_measurements_per_keyframe =
             get_or<int>(m, "max_per_keyframe", c.max_measurements_per_keyframe);
         c.min_observations =
@@ -287,8 +341,12 @@ void LandmarkGraph::add_odometry(double stamp,
         std::max(min_rot, (config_.odom_yaw_std_deg_per_m * dist +
                            config_.odom_yaw_std_deg_per_sec * dt) *
                               kDegToRad);
-    const double pos_std =
-        std::max(config_.odom_min_pos_std_m, config_.odom_pos_std_per_m * dist);
+    // Per metre (scale-like) and per sqrt(s) (a random walk: DVL velocity
+    // noise, also while hovering).
+    const double pos_std = std::max(
+        config_.odom_min_pos_std_m,
+        std::hypot(config_.odom_pos_std_per_m * dist,
+                   config_.odom_pos_std_per_sqrt_s * std::sqrt(dt)));
     // Tangent order: rotation (roll, pitch, yaw), then translation, both in
     // the frame of the previous keyframe.
     const auto between = gtsam::noiseModel::Diagonal::Sigmas(
@@ -346,12 +404,27 @@ bool LandmarkGraph::add_measurement(int landmark_id,
 
     const gtsam::Key pk = pose_key(index);
     const gtsam::Key lk = landmark_key(landmark_id);
-    impl_->new_factors.emplace_shared<PointInBodyFactor>(pk, lk, in_body,
-                                                         model);
+    double scale = 1.0;
+    if (config_.range_scale_std > 0.0) {
+        if (!impl_->estimate.exists(kRangeScaleKey)) {
+            // Unbiased unless the measurements say otherwise.
+            impl_->new_factors.emplace_shared<gtsam::PriorFactor<double>>(
+                kRangeScaleKey, 0.0,
+                gtsam::noiseModel::Isotropic::Sigma(1, config_.range_scale_std));
+            impl_->new_values.insert(kRangeScaleKey, 0.0);
+            impl_->estimate.insert(kRangeScaleKey, 0.0);
+        }
+        impl_->new_factors.emplace_shared<RangeScaledPointFactor>(
+            pk, lk, kRangeScaleKey, in_body, model);
+        scale = 1.0 + impl_->estimate.at<double>(kRangeScaleKey);
+    } else {
+        impl_->new_factors.emplace_shared<PointInBodyFactor>(pk, lk, in_body,
+                                                             model);
+    }
     if (!impl_->estimate.exists(lk)) {
         const gtsam::Point3 guess =
             impl_->estimate.at<gtsam::Pose3>(pk).transformFrom(
-                gtsam::Point3(in_body));
+                gtsam::Point3(in_body / scale));
         impl_->new_values.insert(lk, guess);
         impl_->estimate.insert(lk, guess);
     }
@@ -367,6 +440,12 @@ void LandmarkGraph::optimize() {
     impl_->new_factors.resize(0);
     impl_->new_values.clear();
     impl_->estimate = impl_->isam.calculateEstimate();
+}
+
+double LandmarkGraph::range_scale_error() const {
+    return impl_->estimate.exists(kRangeScaleKey)
+               ? impl_->estimate.at<double>(kRangeScaleKey)
+               : 0.0;
 }
 
 Eigen::Isometry3d LandmarkGraph::correction() const {

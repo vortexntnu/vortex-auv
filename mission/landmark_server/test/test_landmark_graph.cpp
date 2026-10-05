@@ -294,6 +294,7 @@ TEST(LandmarkGraph, own_noise_model_is_less_sure_of_depth_than_bearing) {
     // marginal covariance is the measurement noise. Along the line of sight
     // (x) 0.06 + 0.03 * 5 = 0.21 m, across it 0.06 + 0.003 * 5 = 0.075 m.
     auto cfg = test_config();
+    cfg.range_scale_std = 0.0;  // the noise model alone
     cfg.meas_base_std_m = 0.06;
     cfg.meas_along_std_per_m = 0.03;
     cfg.meas_across_std_per_m = 0.003;
@@ -315,6 +316,82 @@ TEST(LandmarkGraph, own_noise_model_is_less_sure_of_depth_than_bearing) {
     const auto latest = graph.latest_keyframe_with_covariance();
     ASSERT_TRUE(latest.has_value());
     EXPECT_LT(latest->second.diagonal().maxCoeff(), 1e-4);
+}
+
+namespace {
+
+/// Perfect odometry, a detector whose ranges are 3 % too long, landmarks
+/// seen while driving towards them along x (0 -> 12 m) and back. The
+/// error at the end: of the path's last keyframe and of the landmarks.
+struct BiasedRun {
+    double path_error{0.0};
+    double landmark_error{0.0};
+    double range_scale{0.0};
+};
+
+BiasedRun biased_detector_run(double range_scale_std) {
+    auto cfg = test_config();
+    // Loose odometry noise, as for a vehicle that drifts.
+    cfg.odom_pos_std_per_m = 0.12;
+    cfg.odom_min_pos_std_m = 0.04;
+    cfg.meas_base_std_m = 0.06;
+    cfg.meas_along_std_per_m = 0.03;
+    cfg.meas_across_std_per_m = 0.003;
+    cfg.max_measurements_per_keyframe = 3;
+    cfg.range_scale_std = range_scale_std;
+    LandmarkGraph graph(cfg);
+    const std::vector<Eigen::Vector3d> landmarks = {
+        {14.0, 2.0, 2.5}, {15.0, -2.5, 2.0}, {-3.0, 1.5, 2.0}, {6.0, 5.0, 2.5}};
+    double t = 0.0;
+    Eigen::Isometry3d T = Eigen::Isometry3d::Identity();
+    const auto step = [&](double x, double yaw) {
+        T = pose(x, 0.0, 2.0, yaw);
+        graph.add_odometry(t, T);
+        for (std::size_t i = 0; i < landmarks.size(); ++i) {
+            const Eigen::Vector3d body = T.inverse() * landmarks[i];
+            if (body.x() > 0.5 && body.norm() < 12.0) {  // in front, in range
+                const Eigen::Vector3d seen = T * (1.03 * body);
+                graph.add_measurement(static_cast<int>(i), t, seen,
+                                      Eigen::Matrix3d::Identity() * 0.01);
+            }
+        }
+        graph.optimize();
+        t += 1.0;
+    };
+    for (double x = 0.0; x <= 12.0; x += 0.5) {
+        step(x, 0.0);
+    }
+    for (double x = 12.0; x >= 0.0; x -= 0.5) {
+        step(x, M_PI);
+    }
+    BiasedRun out;
+    out.path_error = (graph.latest_keyframe_estimate()->translation() -
+                      T.translation()).norm();
+    for (std::size_t i = 0; i < landmarks.size(); ++i) {
+        const auto est = graph.landmark_in_odom(static_cast<int>(i));
+        if (est) {
+            out.landmark_error = std::max(out.landmark_error, (*est - landmarks[i]).norm());
+        }
+    }
+    out.range_scale = graph.range_scale_error();
+    return out;
+}
+
+}  // namespace
+
+TEST(LandmarkGraph, a_detector_range_bias_does_not_stretch_the_path) {
+    const BiasedRun with = biased_detector_run(0.05);
+    // The bias is found, and the path and the map stay where odometry says.
+    // (the prior on k and the loose odometry each take a little of it)
+    EXPECT_NEAR(with.range_scale, 0.03, 0.01);
+    EXPECT_LT(with.path_error, 0.03);
+    EXPECT_LT(with.landmark_error, 0.1);
+
+    // Without the range scale, the graph explains the bias by moving the
+    // vehicle: the error the scale removes.
+    const BiasedRun without = biased_detector_run(0.0);
+    EXPECT_GT(without.landmark_error, 3.0 * with.landmark_error);
+    EXPECT_GT(without.path_error, 3.0 * with.path_error);
 }
 
 }  // namespace vortex::mission

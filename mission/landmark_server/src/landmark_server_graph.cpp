@@ -208,9 +208,10 @@ void LandmarkServerNode::update_graph() {
             std::atan2(c.linear()(1, 0), c.linear()(0, 0)) * 180.0 / M_PI;
         spdlog::info(
             "LandmarkServer graph: {} keyframes, {} landmarks, correction "
-            "({:.2f}, {:.2f}) m, {:.1f} deg",
+            "({:.2f}, {:.2f}) m, {:.1f} deg, detector range {:+.1f} %",
             graph_->keyframe_count(), graph_->landmark_count(),
-            c.translation().x(), c.translation().y(), yaw_deg);
+            c.translation().x(), c.translation().y(), yaw_deg,
+            graph_->range_scale_error() * 100.0);
     }
 }
 
@@ -309,7 +310,8 @@ void LandmarkServerNode::publish_graph_state() {
                   c.translation().x(),
                   c.translation().y(),
                   std::atan2(c.linear()(1, 0), c.linear()(0, 0)) * 180.0 / M_PI,
-                  graph_update_ms_max_};
+                  graph_update_ms_max_,
+                  graph_->range_scale_error() * 100.0};
     graph_stats_pub_->publish(stats);
     graph_update_ms_max_ = 0.0;
 }

@@ -36,6 +36,12 @@ def launch_setup(context, *args, **kwargs):
     if not os.path.isfile(course_config):
         raise RuntimeError(f"no course layout file {course_config}")
 
+    # Drift calibration session (README, "Measuring a pool"): last, it wins.
+    calibration = LaunchConfiguration("calibration").perform(context).lower() == "true"
+    calibration_config = (
+        [os.path.join(config_dir, "calibration.yaml")] if calibration else []
+    )
+
     drone_params = os.path.join(
         get_package_share_directory("auv_setup"),
         "config",
@@ -56,6 +62,7 @@ def launch_setup(context, *args, **kwargs):
                 templates_config,
                 course_config,
                 drone_params,
+                *calibration_config,
                 {
                     "use_sim_time": False,
                 },  # If testing with rosbags sim_time might be preferred if bag is looped
@@ -73,6 +80,12 @@ def generate_launch_description():
                 "env",
                 default_value="sim",
                 description="sim (simulator values) or pool (values measured in the pool)",
+            ),
+            DeclareLaunchArgument(
+                "calibration",
+                default_value="false",
+                description="true: drift calibration with an ArUco board (raw odometry, "
+                "no graph, no course; config/calibration.yaml)",
             ),
             DeclareLaunchArgument(
                 "course",

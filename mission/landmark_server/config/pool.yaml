@@ -1,6 +1,7 @@
 # A real pool, env:=pool. Every value here is measured in the pool; until
-# then they are the simulator's values or guesses, marked MEASURE. The tests
-# (A-D) and how to turn them into numbers: README, "Measuring a pool".
+# then they are the simulator's values or guesses, marked MEASURE. The drift
+# and detector values come from a session with an ArUco board (tests A-D):
+# README, "Measuring a pool"; aruco_drift.py prints the lines to copy here.
 /**:
   ros__parameters:
     rules:
@@ -10,7 +11,7 @@
       # MEASURE: the table top above the floor (handbook ~0.7 m).
       table_octagon: {table_height_m: 0.7}
 
-    # MEASURE (test C, and the range bias from test D): how far off a
+    # MEASURE (test C, ranges; test D checks the range bias): how far off a
     # detection is at range d. Std base + along_std_per_m * d along the line
     # of sight, base + across_std_per_m * d across it. Used by the tracker and
     # the graph.
@@ -20,10 +21,10 @@
     # measured drift (the drift is a bias, not independent steps).
     graph:
       odom_noise:
-        yaw_std_deg_per_m: 1.0      # 2 x yaw drift per metre (test A)
-        pos_std_per_m: 0.02         # 2 x DVL scale error (test A)
-        yaw_std_deg_per_sec: 0.01   # yaw drift per second in hover (test B)
-        # Position drift per keyframe (~5 s) in hover (test B). Too small
+        yaw_std_deg_per_m: 1.0      # 2 x yaw drift per metre (test A, loops)
+        pos_std_per_m: 0.02         # 2 x position drift per metre (test A)
+        yaw_std_deg_per_sec: 0.01   # 2 x yaw drift per second in hover (test B)
+        # 2 x position drift per keyframe (~5 s) in hover (test B). Too small
         # (with pos_std_per_m) makes the graph turn the vehicle to explain
         # position drift: in the simulator both needed 0.04-0.12 (sim.yaml).
         min_pos_std_m: 0.01

@@ -72,4 +72,18 @@ TEST(ConfigFiles, PoolConfigParses) {
     EXPECT_EQ(cfg.course.tasks.size(), 8u);
 }
 
+TEST(ConfigFiles, CalibrationSessionTurnsTheGraphAndCourseOff) {
+    YAML::Node params = load_env("pool");
+    merge(params, YAML::LoadFile(std::string(LANDMARK_SERVER_CONFIG_DIR) +
+                                 "/calibration.yaml")["/**"]["ros__parameters"]);
+    LandmarkMapConfig cfg;
+    ASSERT_NO_THROW(cfg = parse_map_config(params));
+    EXPECT_FALSE(parse_graph_config(params["graph"]).enable);
+    EXPECT_FALSE(cfg.course.enable);
+    const auto& board = cfg.rule_for({LT::ARUCO_BOARD, LS::ARUCO_BOARD_CAMERA});
+    EXPECT_EQ(board.max_instances, 1);
+    EXPECT_TRUE(board.retain_forever);
+    EXPECT_TRUE(cfg.rule_for({LT::ARUCO_MARKER, 28}).live_only);
+}
+
 }  // namespace vortex::mission

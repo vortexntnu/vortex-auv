@@ -1,0 +1,17 @@
+# Drift calibration with an ArUco board (README, "Measuring a pool"):
+#   ros2 launch landmark_server landmark_server.launch.py env:=pool calibration:=true
+#   ros2 run landmark_server aruco_drift.py
+# Loaded last. The map is built on the raw odometry (no graph, no course),
+# so every time the board is seen again its apparent move is the drift.
+/**:
+  ros__parameters:
+    graph:
+      enable: false
+    course:
+      enable: false
+    classes:
+      # One board, remembered for the whole session: seen again, the new
+      # track takes over its id (within plausibility_radius_m, 3 m).
+      ARUCO_BOARD: {max_instances: 1, retain: forever}
+      # The single markers of the board: not needed in the map.
+      ARUCO_MARKER: {live_only: true}

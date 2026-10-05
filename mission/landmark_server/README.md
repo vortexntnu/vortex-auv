@@ -187,7 +187,19 @@ vehicle keyframes (every `keyframe.distance_m` / `angle_deg` /
 | Between keyframes | Odometry | `odom_noise`: std of one step, `pos_std_per_m` and `yaw_std_deg_per_m` times the distance (+ `yaw_std_deg_per_sec`). A drift that is a bias needs a larger value than the drift per metre |
 | Roll, pitch, depth per keyframe | Odometry (IMU, pressure: no drift) | `absolute` |
 | Keyframe → landmark position | Each measurement the tracker associated, relative to the nearest keyframe | `detector_noise` (the same model the tracker uses), Huber `measurements.huber_k` |
+| Detector range scale | One unknown k for the whole run: every detection is (1 + k) times the true vector from the vehicle | Prior 0 ± `measurements.range_scale_std` (5 %) |
 
+- **Range bias**: a camera's ranges are often a few percent off for every object (stereo calibration). Without k the graph can only explain that by stretching the path, and every task far from the start moves with it (in the simulator, 2 % too long ranges put the far tasks 0.15-0.2 m off with perfect odometry). k takes the bias instead; its estimate is in `graph/stats` and the 10 s log line (`detector range +2.1 %`), which also tells how far off the detector's ranges are.
+- **The odometry noise must match the real drift** (`graph.odom_noise`, measured: "Measuring a pool"). Larger than the drift, the graph bends the path after the detection noise; smaller, it cannot follow the drift. Map error in the simulator (course route, two laps, two seeds each, k on):
+
+  | `odom_noise` | No drift | Realistic drift | Worst drift |
+  |---|---|---|---|
+  | graph off | 0.055 m | 0.168 m | 0.350 m |
+  | x1 (`sim.yaml`: the realistic profile) | 0.094 m | **0.064 m** | **0.090 m** |
+  | x1/2 | 0.075 m | 0.092 m | 0.133 m |
+  | x1/4 | **0.049 m** | 0.103 m | 0.173 m |
+
+  Matched, the graph is never worse than without it. Too large costs a few cm when there is no drift; too small costs more when there is: when in doubt, round up. A model with the odometry's calibration (DVL scale, misalignment, gyro bias) as unknowns was tried and dropped: the DVL scale and the detector's range scale are hard to tell apart, and a gyro bias that wanders over minutes does not fit one constant.
 - Measurements go to the graph under the **map id**, not the track id. A track that takes over a remembered landmark (adoption) adds to the same graph landmark: that closes the loop and moves the keyframes and every landmark they saw.
 - Measurements of a track that is not in the map yet wait (`max_pending_per_track`) and are added when it is; at most `max_per_keyframe` per landmark and keyframe.
 - Output: once a landmark has `min_observations` in the graph, its map position is the graph's, **in the current odom frame**: where it is relative to the vehicle according to the graph, expressed with the vehicle's raw odometry pose. The controller keeps steering on odometry. Orientation, derived landmarks and the depth lock work as before, on top.
@@ -237,7 +249,7 @@ ros2 run landmark_server drift_route.py                                    # the
 For the RoboSub course with rendering, start the simulator with
 `launch_drone_sim.sh --scenario robosub --low-res --detach` instead.
 
-Foxglove layout: `foxglove/landmark_graph.json` (Layout, Import from file). It shows the map, the truth from the course layout (green spheres), a line from each map landmark to its truth (blue with graph, red without), the true path (`/landmark_eval/true_path`, white, from graph_eval), the raw odometry path (`landmark_server/graph/odom_path`, orange) and the graph's corrected path in the graph frame (`landmark_server/graph/start_frame_path`, green: it should lie on the white one; `landmark_server/graph/path` is the same moved to the current odom pose, hidden), a plot of the path error of both against the truth, and plots of the map error, drift against correction and `landmark_server/graph/stats` (`[keyframes, landmarks, correction x, y, yaw deg, slowest update ms]`).
+Foxglove layout: `foxglove/landmark_graph.json` (Layout, Import from file). It shows the map, the truth from the course layout (green spheres), a line from each map landmark to its truth (blue with graph, red without), the true path (`/landmark_eval/true_path`, white, from graph_eval), the raw odometry path (`landmark_server/graph/odom_path`, orange) and the graph's corrected path in the graph frame (`landmark_server/graph/start_frame_path`, green: it should lie on the white one; `landmark_server/graph/path` is the same moved to the current odom pose, hidden), a plot of the path error of both against the truth, and plots of the map error, drift against correction and `landmark_server/graph/stats` (`[keyframes, landmarks, correction x, y, yaw deg, slowest update ms, detector range error %]`).
 
 The tools below are what the script starts:
 
@@ -295,14 +307,77 @@ The launch file loads these, in this order (later files win):
 
 ### Measuring a pool
 
-| Test | How | Gives |
+Two things are measured once per pool and vehicle: how much the odometry
+drifts (`graph.odom_noise`) and how far off the detections are
+(`detector_noise`). Neither needs an absolute position: a board that does
+not move is the reference. With the map on the raw odometry, every time the
+board is seen again, its apparent move is the drift since the first time.
+An ArUco board gives its position to about 1 % of the range and its
+orientation to a degree, so it also shows the heading drift directly.
+
+**Set-up**
+
+- The board (TAC board: four 15 cm markers, ids 28, 7, 96, 19, 0.43 x 0.83 m;
+  another board: its sizes in `aruco_detector_params.yaml`), fixed upright
+  to a wall or a weighted stand at the vehicle's depth, with 15-20 m of open
+  water in front. It must not move or sway: anything it moves is measured as
+  drift. Mark a spot 3 m in front of it (a weight on the floor, a lane line).
+- Camera intrinsics calibrated, `aruco.marker_size` measured on the print.
+- Start everything, the detector publishing to the landmark server's input:
+
+```bash
+ros2 launch aruco_detector aruco_detector.launch.py      # subs: front camera, pubs.landmarks: /nautilus/landmarks
+ros2 launch landmark_server landmark_server.launch.py env:=pool calibration:=true
+ros2 run landmark_server aruco_drift.py --ros-args -r __ns:=/nautilus -p csv:=$HOME/bags/aruco_visits.csv
+src/vortex-auv/utility_scripts/record_landmark_bag.sh aruco-calibration
+```
+
+`calibration:=true` (`config/calibration.yaml`): no graph, no course, the
+board kept for the whole session. `aruco_drift.py` splits the session into
+visits (the board in view; 2 s out of view ends one) and prints after each
+visit the jump against the first, and the values for `pool.yaml` so far.
+
+**Check first:** hold still at the 3 m spot, tape the distance. The visit
+line's `range` must read the taped distance within 3 cm; otherwise the
+marker size or the camera calibration is wrong (a range error shows up as
+drift and as the graph's `detector range` estimate).
+
+**The session (about 30 minutes)**
+
+Every return is to the same spot, 3 m in front of the board, facing it:
+stop, hold 10 s with the board in view, then turn away so it is out of view.
+
+| Test | What to do | Gives |
 |---|---|---|
-| A | Drive a loop (20-30 m) and come back to the gate; compare where the gate is seen with where the map has it from the start | `graph.odom_noise.yaw_std_deg_per_m`, `pos_std_per_m` (about 2 x the drift per metre) |
-| B | Hover 2-3 min | `yaw_std_deg_per_sec`, `min_pos_std_m` |
-| C | Look at a prop at known distances (2, 4, 6, 8 m), 30 s each | `detector_noise`: the spread along and across the line of sight at each distance |
-| D | As C, against a tape-measured distance | The range bias (if large, raise `along_std_per_m`) |
-| Course | Tape the props from the gate (or take the competition map) | `course/pool.yaml` priors and `start`; then `enable: true` |
-| Floor | Depth sensor at the floor | `rules.z_lock.floor_z`, then `enable: true` |
+| B, hover | Hold still at 3 m for 90 s (at the start), and 2-3 min at the end | Hover drift: `min_pos_std_m`, `yaw_std_deg_per_sec` |
+| C, ranges | Hold still 60 s each at 2, 4 and 6 m (turn away between them) | `detector_noise`: the spread along and across the line of sight, fitted over range |
+| A, loops | Drive out and back 5, 10, 20 and 30 m with the turns of a real run (a 180 deg turn, a sideways leg), return to the spot each time; one loop clockwise, one counter-clockwise | Drift per metre: `pos_std_per_m`, `yaw_std_deg_per_m` (the slope of jump against distance driven) |
+| D, range check | The taped check above, at 2 and 6 m too | Whether the detector's range is biased (fix the calibration if it is more than ~3 %) |
+
+At the end (Ctrl-C) the script prints the `pool.yaml` lines: about twice
+the measured drift (the drift is a bias, the graph's steps are
+independent), and the detector noise. Copy them into `config/pool.yaml`.
+
+**Check the result** on the recording: the board should hardly jump on a
+return with the graph on and the new values (less than the detector noise,
+~0.05-0.1 m), while it jumps by the drift without it.
+
+```bash
+C=install/landmark_server/share/landmark_server/config
+src/vortex-auv/utility_scripts/replay_landmark_bag.sh ~/bags/<date>_aruco-calibration --env pool \
+  raw "--params-file $C/calibration.yaml" \
+  graph "--params-file $C/calibration.yaml -p graph.enable:=true"
+ros2 run landmark_server aruco_drift.py --ros-args -r __ns:=/tune_graph \
+  -p detections:=/nautilus/landmarks -p odom:=/nautilus/odom     # and /tune_raw
+```
+
+Pitfalls: a board that moves, returns at a steep angle (more than ~45 deg
+off the board's normal the yaw gets noisy), the board in view while driving
+(no clear visits), an odometry reset during the session (start again).
+
+Also measure: the course (tape the props from the gate or take the
+competition map: `course/pool.yaml` priors and `start`, then `enable: true`)
+and the floor depth (`rules.z_lock.floor_z`, then `enable: true`).
 
 ### All settings
 
@@ -321,6 +396,7 @@ to the right file (or `ros2 param set`, for the live ones).
 | `graph.enable` | true in the config | Comparing with and without drift correction |
 | `graph.odom_noise.*` | `pool.yaml` | Measured (tests A, B) |
 | `graph.keyframe`, `absolute`, `measurements` | 0.5 m / 10 deg / 5 s; 1 deg, 0.05 m; Huber 2, 3 per keyframe, 3 observations | Hardly ever |
+| `graph.measurements.range_scale_std` | 0.05 (5 %) | 0 turns the range scale off; larger only for a detector whose range is known to be far off |
 | `course.*` (globals) | `extra_tracks_per_kind` 2, `variant_votes` 40, `variant_ratio` 3, `min_class_agreement` 0.5, `min_part_detections` 8, `min_slot_gate_m` 0.2, `lane_margin_m` 2, `max_align_deg` 20 | A variant or role is decided too early/late (`variant_votes`); a pool much larger than the layout (`lane_margin_m`) |
 | Template / task tolerances | see "Course model" | A task is not placed, or takes a neighbour's parts |
 | `classes.<CLASS>` | 20 instances, 15 s, `instance_gate_m` 0.5 | Free classes only |

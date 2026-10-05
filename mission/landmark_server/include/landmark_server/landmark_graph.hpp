@@ -25,15 +25,18 @@ struct LandmarkGraphConfig {
     double keyframe_interval_sec{5.0};
 
     /// Odometry noise between two keyframes (std of one keyframe step),
-    /// growing with the distance travelled (and, for the yaw, the time: gyro
-    /// bias). The steps are independent in the graph, so a drift that is
-    /// really a bias (the same every metre) needs a larger value than the
-    /// drift per metre itself.
+    /// growing with the distance travelled, the square root of the time (a
+    /// random walk: DVL velocity noise, also while hovering) and, for the
+    /// yaw, the time (gyro bias). The steps are independent in the graph, so
+    /// a drift that is really a bias (the same every metre) needs a larger
+    /// value than the drift per metre itself.
     double odom_pos_std_per_m{0.02};
+    double odom_pos_std_per_sqrt_s{0.0};
     double odom_yaw_std_deg_per_m{1.0};
     double odom_yaw_std_deg_per_sec{0.01};
     double odom_min_pos_std_m{0.01};
     double odom_min_rot_std_deg{0.1};
+
 
     /// Roll, pitch (IMU) and depth (pressure) do not drift: every keyframe
     /// gets them from odometry as an absolute measurement.
@@ -51,6 +54,10 @@ struct LandmarkGraphConfig {
     double meas_base_std_m{0.0};
     double meas_along_std_per_m{0.0};
     double meas_across_std_per_m{0.0};
+    /// The detector's range may be off by a factor (1 + k), the same for
+    /// every detection; k is estimated with this prior std (0 = off). A
+    /// range bias the graph cannot put in k stretches the path instead.
+    double range_scale_std{0.05};
     /// Landmark measurements per landmark and keyframe; more are dropped
     /// (a hovering vehicle sees the same thing many times a second).
     int max_measurements_per_keyframe{3};
@@ -129,6 +136,10 @@ class LandmarkGraph {
     /// odom_T_graph: the graph frame expressed in the current odom frame
     /// (identity until odometry has drifted and been corrected).
     Eigen::Isometry3d correction() const;
+
+    /// The detector's estimated range scale error k (measured = (1 + k) *
+    /// true); 0 before the first measurement or with range_scale_std 0.
+    double range_scale_error() const;
 
     /// Smoothed vehicle pose of the newest keyframe, graph frame.
     std::optional<Eigen::Isometry3d> latest_keyframe_estimate() const;
