@@ -35,7 +35,9 @@ struct TargetSpec {
     /// Within this distance [m] of the target the node stops updating; the
     /// reference filter and controller hold the last goal.
     double dead_reckoning_distance{0.5};
-    /// The landmark not seen for this long [s] before dead reckoning -> LOST.
+    /// The landmark missing from the map for this long [s] before dead
+    /// reckoning -> LOST. A remembered landmark that is not seen now is not
+    /// missing: the map keeps it, drift-corrected.
     double track_loss_timeout_sec{10.0};
     /// A new goal is only sent when the target has moved more than this [m].
     double resend_distance{0.05};
@@ -48,8 +50,6 @@ struct MapLandmark {
     int id{-1};
     Pose pose{};
     bool has_orientation{false};
-    /// Time [s] of the last measurement, on the same clock as `now`.
-    double last_measurement{0.0};
 };
 
 /**

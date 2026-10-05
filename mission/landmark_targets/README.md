@@ -18,7 +18,7 @@ landmark_server/object_map ─▶ MapLandmark ─▶ LandmarkTarget::step(landma
 | Tool arm | The target position applies to the tool (launcher, dropper, camera): `p_base = p_target - R(q_target) * t_base→tool`; the orientation applies to `base_link`. Look it up with `lookup_tool_arm` |
 | Freeze | The target is computed once (after a commit) |
 | Dead reckoning | Within `dead_reckoning_distance` the node stops updating; reference filter and controller hold the last goal |
-| Track loss | Landmark not seen for `track_loss_timeout_sec` before dead reckoning → `LOST`, the node fails and the tree picks a fallback |
+| Track loss | Landmark missing from the map for `track_loss_timeout_sec` before dead reckoning → `LOST`, the node fails and the tree picks a fallback. A remembered landmark that is not seen now is not lost: approaching what the map remembers (the way home) works. To act only on what is seen now (before a shot), check the age in the tree (`LandmarkKnown` `max_age_s`) |
 | New goal | Only when the target moved more than `resend_distance` (5 cm) and at most every `min_resend_interval_sec` |
 
 ## API

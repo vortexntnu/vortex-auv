@@ -49,29 +49,19 @@ TargetStep LandmarkTarget::step(const std::optional<MapLandmark>& landmark,
     const bool usable =
         lm && (spec_.frame != OffsetFrame::LANDMARK || lm->has_orientation);
 
-    // How long has the landmark not been seen?
-    double unseen_for = 0.0;
-    if (lm) {
-        unseen_for = std::max(0.0, now - lm->last_measurement);
-    } else {
+    // LOST only when the landmark has been missing from the map (or without
+    // the orientation the offset needs) for the timeout. A remembered
+    // landmark that is not seen now is fine: the map keeps it in place.
+    if (!usable) {
         if (!absent_since_) {
             absent_since_ = now;
         }
-        unseen_for = now - *absent_since_;
+        if (now - *absent_since_ > spec_.track_loss_timeout_sec) {
+            phase_ = Phase::LOST;
+        }
+        return {std::nullopt, phase_};  // keep the last goal meanwhile
     }
-    if (usable && lm) {
-        absent_since_.reset();
-    }
-
-    if (unseen_for > spec_.track_loss_timeout_sec) {
-        phase_ = Phase::LOST;
-        return {std::nullopt, phase_};
-    }
-
-    if (!usable) {
-        // Keep the last goal until the timeout runs out.
-        return {std::nullopt, phase_};
-    }
+    absent_since_.reset();
 
     const Pose target = resolve_target(*lm, spec_);
 

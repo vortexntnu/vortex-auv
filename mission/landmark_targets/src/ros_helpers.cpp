@@ -1,6 +1,5 @@
 #include "landmark_targets/ros_helpers.hpp"
 #include <cmath>
-#include <rclcpp/time.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
 
 namespace vortex::mission {
@@ -12,7 +11,6 @@ MapLandmark map_landmark_from_track(
     lm.pose = vortex::utils::ros_conversions::ros_pose_to_pose(
         track.landmark.pose.pose);
     lm.has_orientation = track.has_orientation;
-    lm.last_measurement = rclcpp::Time(track.last_measurement).seconds();
     return lm;
 }
 
