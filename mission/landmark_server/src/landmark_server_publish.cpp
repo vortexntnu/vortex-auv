@@ -586,7 +586,7 @@ void style_torpedo_part(const RetainedLandmark& lm,
                 lm.key.subtype == LS::TORPEDO_TARGET_LARGE_SEARCH_RESCUE ||
                 lm.key.subtype == LS::TORPEDO_TARGET_LARGE_SURVEY_REPAIR;
             m.type = Marker::SPHERE;
-            m.scale.x = m.scale.y = m.scale.z = large ? 0.2 : 0.12;
+            m.scale.x = m.scale.y = m.scale.z = large ? 0.25 : 0.18;
             m.color.r = 1.0F;
             m.color.g = 0.85F;
             m.color.b = 0.0F;
@@ -600,8 +600,8 @@ void style_torpedo_part(const RetainedLandmark& lm,
             // Thin along +X (out of the board face), turned with the board
             // when its yaw is known.
             m.type = Marker::CUBE;
-            m.scale.x = 0.02;
-            m.scale.y = m.scale.z = 0.15;
+            m.scale.x = 0.04;
+            m.scale.y = m.scale.z = 0.2;
             if (board != nullptr) {
                 m.pose.orientation.w = board->orientation.w();
                 m.pose.orientation.x = board->orientation.x();
@@ -663,22 +663,29 @@ void LandmarkServerNode::publish_markers() {
             continue;
         }
         // Remembered landmarks (not seen now) are faded.
-        const float alpha = lm.is_live() ? 0.9F : 0.4F;
+        const float alpha = lm.is_live() ? 1.0F : 0.55F;
         const auto color = color_for(lm.key.type, alpha);
 
         const auto* box = map_config_.marker_box_for(lm.key);
 
-        // The point, unless the class is drawn as a solid object below. The
-        // whole gate has its outline box, arrow and label; a cube in its
-        // middle would look like a third poster plate.
+        // The point. A class drawn as a solid object below (a thin pipe)
+        // also gets a sphere, so it is easy to spot. The whole gate has its
+        // outline box, arrow and label; a cube in its middle would look like
+        // a third poster plate.
         const bool gate_whole =
             lm.key.type == vortex_msgs::msg::LandmarkType::GATE &&
             lm.key.subtype == vortex_msgs::msg::LandmarkSubtype::GATE_WHOLE;
-        if ((box == nullptr || !box->solid) && !gate_whole) {
+        if (!gate_whole) {
+            const bool solid = box != nullptr && box->solid;
             Marker point = base(lm, "landmark");
-            point.type = Marker::CUBE;
-            point.scale.x = point.scale.y = point.scale.z = 0.25;
+            point.type = solid ? Marker::SPHERE : Marker::CUBE;
+            point.scale.x = point.scale.y = point.scale.z = solid ? 0.15 : 0.3;
             point.color = color;
+            if (solid && box->color) {
+                point.color.r = static_cast<float>(box->color->x());
+                point.color.g = static_cast<float>(box->color->y());
+                point.color.b = static_cast<float>(box->color->z());
+            }
             style_torpedo_part(lm, alpha, board, point);
             array.markers.push_back(point);
         }
@@ -726,7 +733,7 @@ void LandmarkServerNode::publish_markers() {
             if (box->solid) {
                 m.color.a = alpha;
             } else {
-                m.color.a = lm.is_live() ? 0.25F : 0.1F;
+                m.color.a = lm.is_live() ? 0.15F : 0.06F;
             }
             array.markers.push_back(m);
         }

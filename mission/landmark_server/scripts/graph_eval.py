@@ -377,12 +377,13 @@ class GraphEval(Node):
         truth.id = 0
         truth.type = Marker.SPHERE_LIST
         truth.pose.orientation.w = 1.0
-        truth.scale.x = truth.scale.y = truth.scale.z = 0.3
+        # Small dots, so the map markers on top of them stay visible.
+        truth.scale.x = truth.scale.y = truth.scale.z = 0.08
         truth.color.r, truth.color.g, truth.color.b, truth.color.a = (
             0.2,
             0.85,
             0.3,
-            0.45,
+            0.9,
         )
         for positions in self._truth.values():
             for q in positions:
