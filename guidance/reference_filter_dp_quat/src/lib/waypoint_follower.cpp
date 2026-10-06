@@ -5,6 +5,8 @@
 
 namespace vortex::guidance {
 
+using vortex::utils::waypoints::ConvergenceTolerance;
+
 WaypointFollower::WaypointFollower(const ReferenceFilterParams& params,
                                    double dt_seconds)
     : filter_(params), dt_seconds_(dt_seconds) {}
@@ -12,7 +14,7 @@ WaypointFollower::WaypointFollower(const ReferenceFilterParams& params,
 void WaypointFollower::start(const Pose& pose,
                              const Twist& twist,
                              const Waypoint& waypoint,
-                             double convergence_threshold) {
+                             const ConvergenceTolerance& tolerance) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     nominal_pose_ = pose;
@@ -24,7 +26,7 @@ void WaypointFollower::start(const Pose& pose,
     state_.segment<3>(9) = R * twist_vec.tail<3>();
 
     waypoint_mode_ = waypoint.mode;
-    set_convergence_criteria(waypoint, convergence_threshold);
+    set_tolerance(tolerance);
     waypoint_goal_ = vortex::utils::waypoints::compute_waypoint_goal(
         waypoint.pose, waypoint_mode_, nominal_pose_);
 }
@@ -40,10 +42,10 @@ void WaypointFollower::step() {
 }
 
 void WaypointFollower::retarget(const Waypoint& waypoint,
-                                double convergence_threshold) {
+                                const ConvergenceTolerance& tolerance) {
     std::lock_guard<std::mutex> lock(mutex_);
     waypoint_mode_ = waypoint.mode;
-    set_convergence_criteria(waypoint, convergence_threshold);
+    set_tolerance(tolerance);
     waypoint_goal_ = vortex::utils::waypoints::compute_waypoint_goal(
         waypoint.pose, waypoint_mode_, nominal_pose_);
 }
@@ -79,31 +81,14 @@ void WaypointFollower::inject_and_reset() {
     }
 }
 
-void WaypointFollower::set_convergence_criteria(const Waypoint& waypoint,
-                                                double convergence_threshold) {
-    convergence_threshold_ = convergence_threshold;
-    if (waypoint.position_tolerance > 0.0 ||
-        waypoint.orientation_tolerance > 0.0) {
-        tolerance_ = vortex::utils::waypoints::ConvergenceTolerance{
-            .position = waypoint.position_tolerance > 0.0
-                            ? waypoint.position_tolerance
-                            : convergence_threshold,
-            .orientation = waypoint.orientation_tolerance > 0.0
-                               ? waypoint.orientation_tolerance
-                               : convergence_threshold};
-    } else {
-        tolerance_.reset();
-    }
+void WaypointFollower::set_tolerance(const ConvergenceTolerance& tolerance) {
+    tolerance_ = tolerance;
     inside_since_sec_.reset();
 }
 
 bool WaypointFollower::within_locked(const Pose& measured_pose) const {
-    if (tolerance_) {
-        return vortex::utils::waypoints::has_converged(
-            measured_pose, waypoint_goal_, waypoint_mode_, *tolerance_);
-    }
     return vortex::utils::waypoints::has_converged(
-        measured_pose, waypoint_goal_, waypoint_mode_, convergence_threshold_);
+        measured_pose, waypoint_goal_, waypoint_mode_, tolerance_);
 }
 
 bool WaypointFollower::within_convergance(const Pose& measured_pose) const {

@@ -10,6 +10,7 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <std_msgs/msg/empty.hpp>
 #include <vortex/utils/types.hpp>
+#include <vortex/utils/waypoint_utils.hpp>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/msg/dvl_altitude.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
@@ -80,6 +81,7 @@ class ReferenceFilterNode : public rclcpp::Node {
     vortex::utils::types::Twist current_twist_;
 
     bool altitude_control_enabled_{false};
+    vortex::utils::waypoints::ConvergenceTolerance default_tolerance_{0.1, 0.1};
     double current_altitude_{0.0};
     bool altitude_valid_{false};
     double altitude_lp_alpha_{0.9};

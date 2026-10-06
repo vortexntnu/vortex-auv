@@ -50,6 +50,10 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.reference_pose");
     altitude_control_enabled_ =
         this->declare_parameter<bool>("altitude_control_enabled", false);
+    default_tolerance_.position =
+        this->declare_parameter<double>("default_position_tolerance", 0.1);
+    default_tolerance_.orientation =
+        this->declare_parameter<double>("default_orientation_tolerance", 0.1);
 
     std::string pose_topic = this->get_parameter("topics.pose").as_string();
     std::string twist_topic = this->get_parameter("topics.twist").as_string();
@@ -192,7 +196,7 @@ void ReferenceFilterNode::publish_debug_goal() {
 
 void ReferenceFilterNode::publish_waypoint_goal(
     const vortex::utils::types::Waypoint& wp,
-    double convergence_threshold) {
+    const vortex::utils::waypoints::ConvergenceTolerance& tolerance) {
     const Eigen::Vector3d euler =
         vortex::utils::math::quat_to_euler(wp.pose.ori_quaternion());
 
@@ -206,7 +210,8 @@ void ReferenceFilterNode::publish_waypoint_goal(
     msg.pose.pitch = euler(1);
     msg.pose.yaw = euler(2);
     msg.mode = vortex::utils::waypoints::waypoint_mode_to_string(wp.mode);
-    msg.convergence_threshold = convergence_threshold;
+    msg.position_tolerance = tolerance.position;
+    msg.orientation_tolerance = tolerance.orientation;
     msg.keep_altitude = wp.keep_altitude;
     msg.desired_altitude = wp.desired_altitude;
     msg.require_altitude_convergence = wp.require_altitude_convergence;
@@ -295,16 +300,14 @@ void ReferenceFilterNode::execute(
     auto wp = vortex::utils::waypoints::waypoint_from_ros(
         goal_handle->get_goal()->waypoint);
 
-    double threshold = wp.convergence_threshold > 0.0
-                           ? wp.convergence_threshold
-                           : goal_handle->get_goal()->convergence_threshold;
-    if (threshold <= 0.0) {
-        threshold = 0.1;
-        spdlog::warn(
-            "ReferenceFilter: invalid convergence_threshold (<= 0), using 0.1");
-    }
+    const vortex::utils::waypoints::ConvergenceTolerance tolerance{
+        .position = wp.position_tolerance > 0.0 ? wp.position_tolerance
+                                                : default_tolerance_.position,
+        .orientation = wp.orientation_tolerance > 0.0
+                           ? wp.orientation_tolerance
+                           : default_tolerance_.orientation};
 
-    publish_waypoint_goal(wp, threshold);
+    publish_waypoint_goal(wp, tolerance);
 
     if (wp.mode == vortex::utils::types::WaypointMode::ONLY_Z &&
         wp.keep_altitude && altitude_control_enabled_ &&
@@ -358,14 +361,14 @@ void ReferenceFilterNode::execute(
     }
 
     if (retarget) {
-        follower_->retarget(wp, threshold);
+        follower_->retarget(wp, tolerance);
         spdlog::info("Executing goal (filter state preserved)");
     } else {
         const auto [pose, twist] = [this] {
             std::lock_guard lock(sensor_mutex_);
             return std::pair{current_pose_, current_twist_};
         }();
-        follower_->start(pose, twist, wp, threshold);
+        follower_->start(pose, twist, wp, tolerance);
         spdlog::info("Executing goal (cold start)");
     }
 

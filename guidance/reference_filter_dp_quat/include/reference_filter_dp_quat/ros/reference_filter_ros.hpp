@@ -9,13 +9,13 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <std_msgs/msg/empty.hpp>
-#include <vortex_msgs/msg/waypoint_debug.hpp>
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/msg/dvl_altitude.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/msg/reference_filter_quat.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
+#include <vortex_msgs/msg/waypoint_debug.hpp>
 #include "reference_filter_dp_quat/lib/waypoint_follower.hpp"
 
 namespace vortex::guidance {
@@ -37,8 +37,9 @@ class ReferenceFilterNode : public rclcpp::Node {
     void setup_reset_subscription();
     void setup_debug_publisher();
     void publish_debug_goal();
-    void publish_waypoint_goal(const vortex::utils::types::Waypoint& wp,
-                               double convergence_threshold);
+    void publish_waypoint_goal(
+        const vortex::utils::types::Waypoint& wp,
+        const vortex::utils::waypoints::ConvergenceTolerance& tolerance);
 
     void on_system_reset(std_msgs::msg::Empty::ConstSharedPtr msg);
 
@@ -102,6 +103,7 @@ class ReferenceFilterNode : public rclcpp::Node {
     vortex::utils::types::Twist current_twist_;
 
     bool altitude_control_enabled_{false};
+    vortex::utils::waypoints::ConvergenceTolerance default_tolerance_{0.1, 0.1};
     double current_altitude_{0.0};
     bool altitude_valid_{false};
     double altitude_lp_alpha_{0.9};

@@ -147,7 +147,6 @@ class WaypointManagerNode : public rclcpp::Node {
 
     std::vector<vortex_msgs::msg::Waypoint> waypoints_{};
     std::size_t current_index_{0};
-    double convergence_threshold_{0.1};
 
     bool persistent_action_mode_active_{false};
     bool priority_mode_active_{false};

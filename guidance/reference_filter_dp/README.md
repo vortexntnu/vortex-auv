@@ -37,14 +37,14 @@ x_{i+1} = x_i + \dot{x}_i * dt
 
 Each waypoint has a mode that determines which degrees of freedom are controlled by the reference filter. The mode also determines how convergence is measured.
 
-| Mode | Controlled DOFs | Convergence metric |
+| Mode | Controlled DOFs | Errors checked |
 |---|---|---|
-| `FULL_POSE` | All 6 DOF (position + orientation) | Euclidean norm of position and angle errors |
-| `ONLY_POSITION` | x, y, z (orientation holds current value) | Euclidean norm of position error |
-| `FORWARD_HEADING` | x, y, z + yaw toward target (roll/pitch = 0) | Euclidean norm of position error and yaw error |
-| `ONLY_ORIENTATION` | roll, pitch, yaw (position holds current value) | Euclidean norm of angle errors |
+| `FULL_POSE` | All 6 DOF (position + orientation) | Position and angle errors |
+| `ONLY_POSITION` | x, y, z (orientation holds current value) | Position error |
+| `FORWARD_HEADING` | x, y, z + yaw toward target (roll/pitch = 0) | Position error and yaw error |
+| `ONLY_ORIENTATION` | roll, pitch, yaw (position holds current value) | Angle errors |
 
-For all modes, convergence is reached when the error metric drops below the `convergence_threshold` specified in the action goal.
+For all modes, convergence is reached when the position error is below the waypoint's `position_tolerance` [m] and the orientation error below its `orientation_tolerance` [rad]. A tolerance left at 0 uses the parameter `default_position_tolerance` / `default_orientation_tolerance`.
 
 ## Action Server
 

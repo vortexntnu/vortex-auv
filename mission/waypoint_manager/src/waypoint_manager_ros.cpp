@@ -251,7 +251,6 @@ void WaypointManagerNode::send_next_reference_filter_goal() {
 
     ReferenceFilterAction::Goal rf_goal;
     rf_goal.waypoint = waypoints_[current_index_];
-    rf_goal.convergence_threshold = convergence_threshold_;
 
     send_reference_filter_goal(rf_goal);
 }
@@ -357,7 +356,6 @@ void WaypointManagerNode::handle_waypoint_accepted(
     current_index_ = 0;
     persistent_action_mode_active_ = goal->persistent;
     priority_mode_active_ = false;
-    convergence_threshold_ = goal->convergence_threshold;
     active_action_goal_ = goal_handle;
 
     send_next_reference_filter_goal();
