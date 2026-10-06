@@ -27,7 +27,6 @@ include_directories(include)
 set(LIB_NAME "${PROJECT_NAME}_component")
 set(CORE_LIB_NAME "${PROJECT_NAME}_core")
 
-# ROS-free logic (testable without rclcpp)
 add_library(${CORE_LIB_NAME} SHARED
   src/frame_resolver.cpp)
 

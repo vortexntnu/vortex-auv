@@ -110,7 +110,6 @@ bool has_converged(
     ea(1) = ssa(measured_pose(4) - reference(4));
     ea(2) = ssa(measured_pose(5) - reference(5));
 
-    // Position and orientation error over the DOFs the mode controls.
     const auto [position, orientation] = [&]() -> std::pair<double, double> {
         switch (mode) {
             case WaypointMode::ONLY_POSITION:
