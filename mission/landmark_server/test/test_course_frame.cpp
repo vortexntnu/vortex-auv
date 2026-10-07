@@ -122,6 +122,23 @@ TEST(CourseFrame, InconsistentEstimatesDoNotLock) {
     EXPECT_GT(course.yaw_std(), 0.3);
 }
 
+TEST(CourseFrame, TheGateSeenFromBehindKeepsTheDirectionItWasFirstSeenIn) {
+    CourseFrameTracker course(example_config().course_frame);
+    ASSERT_TRUE(course.set_coarse(start_pose(0, 0, 0), 0.0).success);
+
+    // Seen a few times from the start side (normal towards the vehicle: pi),
+    // then the vehicle passes through and sees it from behind (normal 0).
+    for (int i = 0; i < 3; ++i) {
+        course.add_gate_estimate({10.0, 0.0}, M_PI);
+    }
+    for (int i = 0; i < 7; ++i) {
+        course.add_gate_estimate({10.0, 0.0}, 0.01 * ((i % 3) - 1));
+    }
+    ASSERT_EQ(course.status(), CourseFrameStatus::GATE_LOCKED);
+    EXPECT_NEAR(course.through_yaw(), 0.0, 0.02);
+    EXPECT_FALSE(course.take_deviation_warning());
+}
+
 TEST(CourseFrame, WrongStartValueGivesAWarningAndTheGateWins) {
     CourseFrameTracker course(example_config().course_frame);
     // The start value is 40 degrees off the real gate direction.

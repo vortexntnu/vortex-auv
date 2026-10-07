@@ -44,7 +44,7 @@ environment you meant.
 | `mission/wipe` | in, `Empty` | Clear everything, the course frame included |
 | `landmark_server/object_map` | out, `LandmarkTrackArray` | **The map** (below) |
 | `landmark_server/course_state` | out, `CourseState`, latched | Every task: placed, locked, committed, variant, pose, its parts, and the detections dropped at intake by reason |
-| `landmark_server/course_frame_state` | out, `CourseFrameState`, latched | `UNSET`, `COARSE` or `GATE_LOCKED` |
+| `landmark_server/course_frame_state` | out, `CourseFrameState`, latched | `UNSET`, `COARSE` or `GATE_LOCKED` (10 agreeing gate estimates; the gate's front is the side it was first seen from, so it can be seen from behind later) |
 | TF `nautilus/course` | out | The course frame: origin at the gate, x through it, y right, z down. Not published while `UNSET` |
 | `landmark_server/set_course_frame` | service, `SetCourseFrame` | Start value from the start pose and the coin flip (0, ±π/2 or π) |
 | `landmark_server/set_focus` | service, `SetMapFocus` | The tasks the mission works on (empty = all); `lock_others` freezes the rest; `commit`/`uncommit` freeze a task's pose and variant. BT node `SetMapFocus` |

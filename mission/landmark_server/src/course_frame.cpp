@@ -59,6 +59,7 @@ CourseFrameTracker::Result CourseFrameTracker::set_coarse(
     through_yaw_ = start_yaw_;
     origin_ = p.head<2>();
     estimates_.clear();
+    front_yaw_.reset();
     deviation_deg_ = 0.0;
     deviation_warning_pending_ = false;
     status_ = CourseFrameStatus::COARSE;
@@ -73,6 +74,7 @@ void CourseFrameTracker::reset() {
     deviation_deg_ = 0.0;
     deviation_warning_pending_ = false;
     estimates_.clear();
+    front_yaw_.reset();
 }
 
 double CourseFrameTracker::yaw_std() const {
@@ -98,7 +100,16 @@ void CourseFrameTracker::add_gate_estimate(const Eigen::Vector2d& gate_center,
         !std::isfinite(gate_yaw)) {
         return;
     }
-    const double through = vortex::utils::math::ssa(gate_yaw + M_PI);
+    // Seen from behind, the normal towards the vehicle is the back: turn it
+    // to the side the gate was first seen from.
+    double front = gate_yaw;
+    if (!front_yaw_) {
+        front_yaw_ = front;
+    } else if (std::abs(vortex::utils::math::ssa(front - *front_yaw_)) >
+               M_PI_2) {
+        front = vortex::utils::math::ssa(front + M_PI);
+    }
+    const double through = vortex::utils::math::ssa(front + M_PI);
     estimates_.push_back({gate_center, through});
     while (static_cast<int>(estimates_.size()) >
            config_.gate_lock_consistent_estimates) {
@@ -141,6 +152,9 @@ void CourseFrameTracker::apply_correction(const Eigen::Isometry3d& delta) {
     origin_ = move(origin_);
     through_yaw_ = vortex::utils::math::ssa(through_yaw_ + dyaw);
     start_yaw_ = vortex::utils::math::ssa(start_yaw_ + dyaw);
+    if (front_yaw_) {
+        front_yaw_ = vortex::utils::math::ssa(*front_yaw_ + dyaw);
+    }
     for (auto& e : estimates_) {
         e.center = move(e.center);
         e.yaw = vortex::utils::math::ssa(e.yaw + dyaw);

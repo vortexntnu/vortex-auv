@@ -67,24 +67,30 @@ void feed_course_frame_from_panels(RetainedLandmarks& map,
     if (course == nullptr) {
         return;
     }
-    RetainedLandmark* survey = find_measured(map, {LT::GATE, LS::GATE_SURVEY_REPAIR});
-    RetainedLandmark* rescue = find_measured(map, {LT::GATE, LS::GATE_SEARCH_RESCUE});
-    if (survey == nullptr || rescue == nullptr || !is_fresh(*survey) || !is_fresh(*rescue)) {
+    RetainedLandmark* survey =
+        find_measured(map, {LT::GATE, LS::GATE_SURVEY_REPAIR});
+    RetainedLandmark* rescue =
+        find_measured(map, {LT::GATE, LS::GATE_SEARCH_RESCUE});
+    if (survey == nullptr || rescue == nullptr || !is_fresh(*survey) ||
+        !is_fresh(*rescue)) {
         return;
     }
     const Eigen::Vector2d a = survey->position.head<2>();
     const Eigen::Vector2d b = rescue->position.head<2>();
     const double separation = (b - a).norm();
     if (separation < cfg.min_panel_separation_m ||
-        (cfg.max_panel_separation_m > 0.0 && separation > cfg.max_panel_separation_m)) {
+        (cfg.max_panel_separation_m > 0.0 &&
+         separation > cfg.max_panel_separation_m)) {
         return;
     }
-    const Eigen::Vector3d midpoint = 0.5 * (survey->position + rescue->position);
-    // The front faces the vehicle that first saw it: the course direction
-    // (through the gate) points away from the start.
+    const Eigen::Vector3d midpoint =
+        0.5 * (survey->position + rescue->position);
+    // The normal towards the vehicle: the course frame takes the side the
+    // gate was first seen from as its front (the course direction, through
+    // the gate, points away from it).
     const Eigen::Vector2d reference = (vehicle - midpoint).head<2>();
-    course->add_gate_estimate(midpoint.head<2>(),
-                              yaw_of_direction(normal_towards(a, b, reference)));
+    course->add_gate_estimate(
+        midpoint.head<2>(), yaw_of_direction(normal_towards(a, b, reference)));
 }
 
 // --- Bins -------------------------------------------------------------------
@@ -168,8 +174,8 @@ void apply_octagon_rules(RetainedLandmarks& map,
     } else if (table == nullptr && cfg.z_lock.enable) {
         // Without the floor depth the table top cannot be placed: a table at
         // the octagon's depth would send the vehicle to the surface.
-        table = &map.upsert_derived("table_whole",
-                                    {LT::TABLE, LS::TABLE_WHOLE}, now);
+        table = &map.upsert_derived("table_whole", {LT::TABLE, LS::TABLE_WHOLE},
+                                    now);
         table->last_measurement = octagon->last_measurement;
         table->derived_live = is_fresh(*octagon);
         table->position.z() = cfg.z_lock.floor_z - cfg.table_height_m;

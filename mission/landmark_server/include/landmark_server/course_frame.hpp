@@ -5,7 +5,9 @@
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
 #include <landmark_targets/geometry.hpp>
+#include <optional>
 #include <string>
+#include <utility>
 #include <vortex/utils/types.hpp>
 #include "landmark_server/class_config.hpp"
 
@@ -53,9 +55,13 @@ class CourseFrameTracker {
     void set_config(CourseFrameConfig config) { config_ = std::move(config); }
 
     /**
-     * @brief Add a gate estimate. @p gate_yaw is the yaw of GATE_WHOLE, which
-     * points out of the front towards the start, so the course direction is
-     * gate_yaw + pi. Ignored unless the state is COARSE.
+     * @brief Add a gate estimate. @p gate_yaw is the gate's normal towards
+     * the vehicle, which is the front (towards the start) only while the
+     * vehicle is in front of the gate: the gate looks the same from behind.
+     * The front is the side the gate was first seen from (the vehicle
+     * starts in front of it); later estimates from behind are turned to
+     * it. The course direction is the front + pi. Ignored unless the state
+     * is COARSE.
      */
     void add_gate_estimate(const Eigen::Vector2d& gate_center, double gate_yaw);
 
@@ -91,6 +97,8 @@ class CourseFrameTracker {
     double start_yaw_{0.0};
     double deviation_deg_{0.0};
     bool deviation_warning_pending_{false};
+    /// The gate's front (yaw towards the start), from its first estimate.
+    std::optional<double> front_yaw_;
 
     struct Estimate {
         Eigen::Vector2d center;
