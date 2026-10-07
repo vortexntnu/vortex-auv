@@ -760,14 +760,26 @@ Eigen::Vector2d CourseModel::odom_to_layout(const Eigen::Vector2d& o,
 }
 
 Eigen::Isometry2d CourseModel::alignment(const CourseGeometry& geo) const {
-    // Where the placed tasks are (layout frame) against their priors: one
-    // gives the translation, two or more also the rotation (least squares).
-    std::vector<std::pair<Eigen::Vector2d, Eigen::Vector2d>> pairs;
+    // Where the placed tasks are (layout frame) against the priors they were
+    // placed with: one gives the translation, two or more also the rotation.
+    // Each pair is weighted by how well its prior is known (sigma = half its
+    // region radius), and the turn has a prior of 0 +- max_align / 2: two
+    // tasks close together with rough priors cannot turn the whole layout
+    // (one prior 0.7 m off, 4 m from the gate, turned it 9 deg and moved the
+    // far tasks out of their regions), tasks far apart can.
+    struct Pair {
+        Eigen::Vector2d prior;
+        Eigen::Vector2d found;
+        double weight;
+    };
+    std::vector<Pair> pairs;
     for (const auto& t : tasks_) {
         if (t.placed) {
-            pairs.emplace_back(
-                t.placed_prior_xy,
-                odom_to_layout(t.pose.translation().head<2>(), geo));
+            const double sigma = std::max(0.5 * t.spec->region_radius_m, 0.05);
+            pairs.push_back(
+                {t.placed_prior_xy,
+                 odom_to_layout(t.pose.translation().head<2>(), geo),
+                 1.0 / (sigma * sigma)});
         }
     }
     Eigen::Isometry2d A = Eigen::Isometry2d::Identity();
@@ -776,24 +788,28 @@ Eigen::Isometry2d CourseModel::alignment(const CourseGeometry& geo) const {
     }
     Eigen::Vector2d ps = Eigen::Vector2d::Zero();
     Eigen::Vector2d qs = Eigen::Vector2d::Zero();
-    for (const auto& [p, q] : pairs) {
-        ps += p;
-        qs += q;
+    double weights = 0.0;
+    for (const auto& p : pairs) {
+        ps += p.weight * p.prior;
+        qs += p.weight * p.found;
+        weights += p.weight;
     }
-    ps /= static_cast<double>(pairs.size());
-    qs /= static_cast<double>(pairs.size());
+    ps /= weights;
+    qs /= weights;
     double angle = 0.0;
     if (pairs.size() >= 2) {
         double sin_sum = 0.0;
         double cos_sum = 0.0;
-        for (const auto& [p, q] : pairs) {
-            const Eigen::Vector2d a = p - ps;
-            const Eigen::Vector2d b = q - qs;
-            sin_sum += a.x() * b.y() - a.y() * b.x();
-            cos_sum += a.dot(b);
+        for (const auto& p : pairs) {
+            const Eigen::Vector2d a = p.prior - ps;
+            const Eigen::Vector2d b = p.found - qs;
+            sin_sum += p.weight * (a.x() * b.y() - a.y() * b.x());
+            cos_sum += p.weight * a.dot(b);
         }
-        angle = std::clamp(std::atan2(sin_sum, cos_sum), -config_.max_align_rad,
-                           config_.max_align_rad);
+        const double turn_std = 0.5 * config_.max_align_rad;
+        angle = std::clamp(
+            std::atan2(sin_sum, cos_sum + 1.0 / (turn_std * turn_std)),
+            -config_.max_align_rad, config_.max_align_rad);
     }
     A.linear() = Eigen::Rotation2Dd(angle).toRotationMatrix();
     A.translation() = qs - A.linear() * ps;

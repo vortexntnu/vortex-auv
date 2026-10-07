@@ -88,7 +88,7 @@ struct CourseConfig {
     /// and the start) plus this margin [m]. Detections outside are dropped.
     double lane_margin_m{2.0};
     /// The layout may be turned at most this much to fit the tasks found
-    /// [rad].
+    /// [rad]; half of it is the spread of the turn the fit expects.
     double max_align_rad{20.0 * M_PI / 180.0};
     /// A track fills a part (or places a task) only after this many
     /// detections: a part is kept for the whole run, a few far, noisy
@@ -291,7 +291,10 @@ class CourseModel {
     /// The lane's corners in odom (for the markers); empty without a frame.
     std::vector<Eigen::Vector2d> lane_corners(const CourseGeometry& geo) const;
     /// How the layout is turned and moved to fit the tasks found (layout
-    /// frame, a rotation about the origin then a translation).
+    /// frame, a rotation about the origin then a translation). Weighted by
+    /// how well each prior is known; the turn is held towards 0 (prior
+    /// 0 +- max_align / 2), so it follows tasks far apart, not two close
+    /// ones with rough priors.
     Eigen::Isometry2d alignment(const CourseGeometry& geo) const;
     /// Tracker limit per kind (parts in the course + extra).
     std::map<std::pair<uint16_t, uint16_t>, int> track_limits() const;

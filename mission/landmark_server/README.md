@@ -182,7 +182,9 @@ scratch; it places the known tasks and fills in their parts.
 - **Placing**: the template is fitted to the confirmed tracks in its region
   (yaw within the window, at least `min_parts`, classes agreeing). The
   layout is then turned and moved to fit the tasks found, so the next task
-  is searched where it really is.
+  is searched where it really is. The fit weighs each task by its region
+  radius (how well its prior is known) and expects small turns: tasks far
+  apart turn the layout, two close ones with rough priors hardly.
 - **Parts**: one landmark per part, stable id, never forgotten, never more.
   A track that fits no part is not an object.
 - **Focus** (`set_focus`): with `lock_others`, tasks outside the focus are

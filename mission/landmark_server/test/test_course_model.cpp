@@ -381,9 +381,10 @@ TEST(CourseModel, TheNextSetIsSearchedWhereTheFirstSaysItIs) {
 
 TEST(CourseModel, TheLayoutIsTurnedToFitTheTasksFound) {
     // The course frame is 10 deg off (a gate yaw estimated badly): the gate
-    // and the first set are found turned 10 deg about the gate. The board,
-    // 14 m on, is then searched where the turned layout puts it, not 2.4 m
-    // beside it.
+    // and the first set are found turned 10 deg about the gate. Two tasks
+    // 4 m apart turn the layout only part of the way, but the board, 14 m
+    // on, is searched closer to where it is than at its prior, and within
+    // its region.
     World w;
     const Eigen::Matrix3d R =
         Eigen::AngleAxisd(10.0 * M_PI / 180.0, Eigen::Vector3d::UnitZ()).toRotationMatrix();
@@ -396,9 +397,39 @@ TEST(CourseModel, TheLayoutIsTurnedToFitTheTasksFound) {
     ASSERT_TRUE(w.task("slalom_1").placed);
     const auto board = w.map.course().working_pose(w.task("torpedo"), at_gate());
     ASSERT_TRUE(board);
-    EXPECT_LT((board->translation() - turned(13.0, -5.0)).head<2>().norm(), 0.05);
+    const double error = (board->translation() - turned(13.0, -5.0)).head<2>().norm();
+    const double unturned = (v(13.0, -5.0) - turned(13.0, -5.0)).head<2>().norm();
+    EXPECT_LT(error, unturned);
+    EXPECT_LT(error, w.task("torpedo").spec->region_radius_m);
     // and the lane turns with it
     EXPECT_TRUE(w.map.course().lane_allows(turned(13.0, -5.0), at_gate()));
+}
+
+TEST(CourseModel, OneRoughPriorNearTheGateDoesNotTurnTheLayout) {
+    // The first set's prior is 0.7 m off; the gate's is right. Found where
+    // they really are, they must not turn the layout so far that the next
+    // sets (region 1.2 m) are searched outside their regions.
+    YAML::Node course = YAML::Load(kCourse)["course"];
+    course["tasks"]["slalom_1"]["prior"] = std::vector<double>{4.5, 0.5, 0.0};
+    auto cfg = course_config();
+    cfg.course = parse_course_config(course);
+    RetainedLandmarks map(cfg);
+    RetainedLandmarks::CourseInput input;
+    input.geometry = at_gate();
+    for (int i = 0; i < 2; ++i) {
+        map.update({make_track(30, LT::GATE, LS::GATE_WHOLE, v(0.0, 0.0), true, false),
+                    pipe(1, v(4.0, -1.52)), pipe(2, v(4.0, 0.0)), pipe(3, v(4.0, 1.52))},
+                   0.2 * i, {}, input);
+    }
+    const auto& tasks = map.course().tasks();
+    const auto task = [&](const std::string& name) -> const CourseModel::Task& {
+        return *std::find_if(tasks.begin(), tasks.end(),
+                             [&](const auto& t) { return t.spec->name == name; });
+    };
+    ASSERT_TRUE(task("slalom_1").placed);
+    const auto next = map.course().working_pose(task("slalom_2"), at_gate());
+    ASSERT_TRUE(next);
+    EXPECT_LT((next->translation() - v(6.0, 0.5)).head<2>().norm(), 0.8);
 }
 
 TEST(CourseModel, TheLaneIsWhatTheLayoutCoversPlusAMargin) {
