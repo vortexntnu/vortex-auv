@@ -1,0 +1,39 @@
+# landmark_slam parameters. Everything else is a named constant in the code.
+# Topics (odom, landmarks, mission_wipe) come from auv_setup's robot file.
+/**:
+  ros__parameters:
+    use_prior_map: true
+    # Absolute paths, filled in by the launch file.
+    prior_map_file: ""
+    classes_file: ""
+
+    # New keyframe after this distance or time.
+    keyframe_dist_m: 0.5
+    keyframe_time_s: 1.0
+
+    # Odometry noise per keyframe step, growing with the distance travelled.
+    # Measure with scripts/calibrate_noise.py.
+    odom_sigma_trans_per_m: 0.03
+    odom_sigma_yaw_per_m: 0.01
+
+    # Prior map trust when an entry gives none.
+    default_prior_sigma_xy: 1.0
+    default_prior_sigma_z: 0.3
+    default_prior_sigma_yaw: 0.5
+
+    # Association gate (chi^2 probability).
+    gate_prob: 0.95
+
+    # New landmarks by voting: each detection no landmark explains is a vote
+    # at its map position (its weight halves every 10 s). Votes of a class
+    # within vote_radius_m that add up to min_votes become a landmark at
+    # their weighted centroid. vote_radius_m: under half the spacing of the
+    # closest objects of one class.
+    min_votes: 3.0
+    vote_radius_m: 0.5
+
+    # Detection noise: bearing [rad], range sigma_r = a + b * r [m].
+    # Measured with scripts/calibrate_noise.py, not tuned.
+    bearing_sigma: 0.03
+    range_sigma_a: 0.1
+    range_sigma_b: 0.05

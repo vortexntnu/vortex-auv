@@ -1,0 +1,19 @@
+# Prior map (use_prior_map: true): the start pose and the expected landmark
+# poses in the map (pool) frame. Same axes as odom: x forward at yaw 0,
+# z down (depth), yaw in radians.
+#
+# initial_pose: where the vehicle is at startup / mission/wipe. Its sigmas
+#   are how well the start position and heading are known. Leave z out to
+#   use the pressure depth (odom z) as the map z.
+# landmarks: id (int, unique; new landmarks get higher ids), class (a key of
+#   landmark_classes.yaml), x, y, z, yaw. Optional per entry: sigma_xy,
+#   sigma_z, sigma_yaw (else default_prior_sigma_* from params.yaml).
+#   Objects of one class close together (slalom pipes 1.5-2 m apart) need
+#   sigma_xy below a quarter of their spacing, else a detection of one fits
+#   the other's prior as well (the node warns at startup).
+#
+# Example entries:
+#   - {id: 1, class: gate, x: 5.0, y: 2.0, z: 1.5, yaw: 3.14}
+#   - {id: 2, class: slalom_pipe_red, x: 9.0, y: -1.0, z: 2.0, sigma_xy: 0.3}
+initial_pose: {x: 0.0, y: 0.0, yaw: 0.0, sigma_xy: 0.5, sigma_yaw: 0.3}
+landmarks: []

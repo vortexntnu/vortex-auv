@@ -1,0 +1,26 @@
+# One entry per object class. Adding an object type = a new entry here.
+#   type, subtype:   the LandmarkType / LandmarkSubtype values the detector
+#                    publishes (vortex_msgs LandmarkType.msg, LandmarkSubtype.msg)
+#   symmetry_deg:    0 = none, 90, 180 = yaw only known modulo this,
+#                    360 = yaw meaningless (round objects)
+#   has_orientation: use the detector's orientation when it sends one
+#                    (rotation variance < 1000)
+# Detections of classes not listed here are ignored.
+gate_search_rescue:   {type: 6, subtype: 1, symmetry_deg: 0, has_orientation: true}
+gate_survey_repair:   {type: 6, subtype: 2, symmetry_deg: 0, has_orientation: true}
+gate:                 {type: 6, subtype: 3, symmetry_deg: 180, has_orientation: true}
+gate_pole_edge:       {type: 6, subtype: 4, symmetry_deg: 360, has_orientation: false}
+gate_pole_middle:     {type: 6, subtype: 5, symmetry_deg: 360, has_orientation: false}
+slalom_pipe_white:    {type: 7, subtype: 1, symmetry_deg: 360, has_orientation: false}
+slalom_pipe_red:      {type: 7, subtype: 2, symmetry_deg: 360, has_orientation: false}
+torpedo_board:        {type: 8, subtype: 1, symmetry_deg: 0, has_orientation: true}
+torpedo_icon_fire:    {type: 8, subtype: 6, symmetry_deg: 0, has_orientation: true}
+torpedo_icon_blood:   {type: 8, subtype: 7, symmetry_deg: 0, has_orientation: true}
+torpedo_icon_firetruck: {type: 8, subtype: 8, symmetry_deg: 0, has_orientation: true}
+torpedo_icon_ambulance: {type: 8, subtype: 9, symmetry_deg: 0, has_orientation: true}
+bin_search_rescue:    {type: 9, subtype: 1, symmetry_deg: 180, has_orientation: true}
+bin_survey_repair:    {type: 9, subtype: 2, symmetry_deg: 180, has_orientation: true}
+bin_structure:        {type: 9, subtype: 4, symmetry_deg: 180, has_orientation: true}
+path_marker:          {type: 10, subtype: 1, symmetry_deg: 0, has_orientation: true}
+table:                {type: 11, subtype: 1, symmetry_deg: 180, has_orientation: true}
+octagon:              {type: 12, subtype: 1, symmetry_deg: 360, has_orientation: false}

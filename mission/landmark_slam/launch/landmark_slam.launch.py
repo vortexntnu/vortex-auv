@@ -1,0 +1,66 @@
+import os
+
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
+
+CONFIG_DIR = os.path.join(get_package_share_directory("landmark_slam"), "config")
+
+
+def launch_setup(context, *args, **kwargs):
+    drone, namespace = resolve_drone_and_namespace(context)
+    drone_params = os.path.join(
+        get_package_share_directory("auv_setup"),
+        "config",
+        "robots",
+        f"{drone}.yaml",
+    )
+    return [
+        Node(
+            package="landmark_slam",
+            executable="landmark_slam_node",
+            name="landmark_slam_node",
+            namespace=namespace,
+            parameters=[
+                LaunchConfiguration("params_file").perform(context),
+                drone_params,
+                {
+                    "classes_file": LaunchConfiguration("classes_file").perform(
+                        context
+                    ),
+                    "prior_map_file": LaunchConfiguration("prior_map_file").perform(
+                        context
+                    ),
+                    "frame_prefix": namespace,
+                },
+            ],
+            output="screen",
+        )
+    ]
+
+
+def generate_launch_description():
+    return LaunchDescription(
+        declare_drone_and_namespace_args()
+        + [
+            DeclareLaunchArgument(
+                "params_file", default_value=os.path.join(CONFIG_DIR, "params.yaml")
+            ),
+            DeclareLaunchArgument(
+                "classes_file",
+                default_value=os.path.join(CONFIG_DIR, "landmark_classes.yaml"),
+            ),
+            DeclareLaunchArgument(
+                "prior_map_file",
+                default_value=os.path.join(CONFIG_DIR, "prior_map.yaml"),
+            ),
+            OpaqueFunction(function=launch_setup),
+        ]
+    )
