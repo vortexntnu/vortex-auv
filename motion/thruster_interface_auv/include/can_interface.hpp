@@ -1,5 +1,5 @@
-#ifndef CAN_INTERFACE_H
-#define CAN_INTERFACE_H
+#ifndef CAN_INTERFACE_HPP_
+#define CAN_INTERFACE_HPP_
 
 #include <linux/can.h>
 #include <atomic>
@@ -56,4 +56,4 @@ class can_interface {
     std::string get_interface_name() const;
 };
 
-#endif  // CAN_INTERFACE_H
+#endif  // CAN_INTERFACE_HPP_

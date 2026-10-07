@@ -100,7 +100,6 @@
       thruster_forces: "thruster_forces"
       camera_light: "camera_light"
       pwm_output: "pwm"
-      camera_light: "camera_light"
       current: "power_sense_module/current"
       voltage: "power_sense_module/voltage"
       pressure: "pressure"
