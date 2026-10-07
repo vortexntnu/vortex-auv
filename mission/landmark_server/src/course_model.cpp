@@ -766,7 +766,7 @@ Eigen::Isometry2d CourseModel::alignment(const CourseGeometry& geo) const {
     for (const auto& t : tasks_) {
         if (t.placed) {
             pairs.emplace_back(
-                t.spec->prior_xy,
+                t.placed_prior_xy,
                 odom_to_layout(t.pose.translation().head<2>(), geo));
         }
     }
@@ -1113,7 +1113,7 @@ void CourseModel::refit(Task& t, const CourseGeometry& geo, Store& store) {
         pose = refit_pose(variant, t.pose, members);
     }
     FitPrior prior;
-    prior.yaw = geo.through_yaw + t.spec->prior_yaw;
+    prior.yaw = geo.through_yaw + t.placed_prior_yaw;
     prior.yaw_window = t.spec->yaw_window_rad;
     prior.symmetric = t.spec->symmetric;
     if (pose.matrix().allFinite() && prior.allows(pose)) {
@@ -1282,6 +1282,8 @@ void CourseModel::place(Task& t,
     }
     t.placed = true;
     t.pose = pose;
+    t.placed_prior_xy = t.spec->prior_xy;
+    t.placed_prior_yaw = t.spec->prior_yaw;
     for (const auto& [slot, id] : parts) {
         claimed.insert(id);
         attach(t, slot, id, store);

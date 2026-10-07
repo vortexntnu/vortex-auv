@@ -179,6 +179,11 @@ class CourseModel {
         const StructureTemplate* tmpl{nullptr};
         bool placed{false};
         Eigen::Isometry3d pose{Eigen::Isometry3d::Identity()};
+        /// The prior it was placed with (layout frame, yaw). While it stays
+        /// placed the layout fit and its yaw window use these, so a new
+        /// prior (update_layout) changes nothing on the map.
+        Eigen::Vector2d placed_prior_xy{Eigen::Vector2d::Zero()};
+        double placed_prior_yaw{0.0};
         std::size_t variant{0};
         bool variant_fixed{false};
         bool committed{false};
@@ -214,7 +219,9 @@ class CourseModel {
     /**
      * @brief New priors, start and tolerances for the same tasks (the same
      * names with the same templates, and the same enable). Focus, commits
-     * and placed tasks stay.
+     * and placed tasks stay; a placed task keeps the prior it was placed
+     * with for the layout fit, so the tasks still searched move only by
+     * their own new priors.
      * @return Empty when the task list, a template or enable differs: that
      * layout needs reset() and a new map.
      */

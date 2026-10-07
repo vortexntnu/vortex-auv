@@ -693,10 +693,17 @@ TEST(CourseModel, APlacedTaskKeepsItsPoseAndPartsUnderANewPrior) {
     w.tick(set_1());
     ASSERT_TRUE(w.task("slalom_1").placed);
     const int red_id = w.in_slot("slalom_1/red")->id;
+    const auto next_before = w.map.course().working_pose(w.task("slalom_2"), at_gate());
+    ASSERT_TRUE(next_before);
 
     const auto update = w.map.course().update_layout(changed_course("slalom_1", {5.0, 1.0, 0.0}));
     ASSERT_TRUE(update);
     EXPECT_EQ(update->kept, std::vector<std::string>{"slalom_1"});
+    // The layout is still fitted with the prior it was placed with: the next
+    // set is searched where it was before.
+    const auto next_after = w.map.course().working_pose(w.task("slalom_2"), at_gate());
+    ASSERT_TRUE(next_after);
+    EXPECT_LT((next_after->translation() - next_before->translation()).norm(), 1e-9);
     EXPECT_TRUE(w.task("slalom_1").placed);
     EXPECT_NEAR(w.task("slalom_1").spec->prior_xy.x(), 5.0, 1e-9);  // stored
     w.tick(set_1());

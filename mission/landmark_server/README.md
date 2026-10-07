@@ -212,7 +212,9 @@ one to start with. Set them on the dock before a run, or between attempts:
   by the same code as at start, and a mistake changes nothing.
   - **Same tasks, new priors:** tasks not placed yet are searched at the new
     prior from the next tick (`applied`); placed tasks keep their pose and
-    parts (`kept`). The map stays.
+    parts (`kept`), and the layout is still fitted to the prior they were
+    placed with, so the other tasks are searched where they were. The map
+    stays.
   - **Another layout, task list, template or `enable`:** a new map (the map,
     the tracker and the graph start over; the course frame stays).
   - **`save`:** writes `<layout>.yaml` in the package source; the old file goes
