@@ -32,7 +32,7 @@ fi
 # Send action goal
 echo "Sending goal..."
 ros2 action send_goal /$DRONE_ARG/reference_filter vortex_msgs/action/GuidanceWaypoint \
-    "{waypoint: {pose: {position: {x: 1.0, y: 0.0, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}, waypoint_mode: {mode: 0}}, convergence_threshold: 0.5}" &
+    "{waypoint: {pose: {position: {x: 1.0, y: 0.0, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}, waypoint_mode: {mode: 0}, position_tolerance: 0.5, orientation_tolerance: 0.5}}" &
 sleep 2
 
 # Check if controller correctly publishes guidance
