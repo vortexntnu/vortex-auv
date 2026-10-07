@@ -1,5 +1,6 @@
 #include <spdlog/spdlog.h>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <ctime>
 #include <regex>
@@ -224,6 +225,7 @@ void LandmarkServerNode::handle_set_course(
     const std::string layout =
         req->layout.empty() ? active_layout_ : req->layout;
     const bool same_layout = layout == active_layout_;
+    const auto start = std::chrono::steady_clock::now();
     const auto refuse = [&](const std::string& why) {
         res->success = false;
         res->message = why;
@@ -323,7 +325,10 @@ void LandmarkServerNode::handle_set_course(
         message += "; new map (another layout, task list, template or enable)";
     }
     res->message = message + saved;
-    spdlog::info("LandmarkServer: {}", res->message);
+    spdlog::info("LandmarkServer: {} ({:.0f} ms)", res->message,
+                 std::chrono::duration<double, std::milli>(
+                     std::chrono::steady_clock::now() - start)
+                     .count());
     publish_course_state();
 }
 

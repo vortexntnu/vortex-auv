@@ -2,6 +2,7 @@
 
 #include <spdlog/spdlog.h>
 #include <algorithm>
+#include <chrono>
 #include <iterator>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -25,9 +26,9 @@ const auto start_msg = R"(
 LandmarkServerNode::LandmarkServerNode(const rclcpp::NodeOptions& options)
     // Undeclared parameters are allowed so that a rule that is not in the
     // config files can be set live (on_parameters_set validates it).
-    : rclcpp::Node("landmark_server_node",
-                   rclcpp::NodeOptions(options).allow_undeclared_parameters(
-                       true)) {
+    : rclcpp::Node(
+          "landmark_server_node",
+          rclcpp::NodeOptions(options).allow_undeclared_parameters(true)) {
     timer_cb_group_ = this->create_callback_group(
         rclcpp::CallbackGroupType::MutuallyExclusive);
     target_frame_ = this->declare_parameter<std::string>("target_frame");
@@ -148,9 +149,9 @@ void LandmarkServerNode::create_reset_subscription() {
 void LandmarkServerNode::create_timer() {
     const int period_ms = this->declare_parameter<int>("timer_rate_ms", 200);
     filter_dt_seconds_ = static_cast<double>(period_ms) / 1000.0;
-    timer_ = this->create_wall_timer(std::chrono::milliseconds(period_ms),
-                                     [this] { timer_callback(); },
-                                     timer_cb_group_);
+    timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(period_ms), [this] { timer_callback(); },
+        timer_cb_group_);
 }
 
 void LandmarkServerNode::on_system_reset() {
@@ -163,6 +164,12 @@ void LandmarkServerNode::on_system_reset() {
 }
 
 void LandmarkServerNode::timer_callback() {
+    using Clock = std::chrono::steady_clock;
+    const auto start = Clock::now();
+    const auto ms_since = [](Clock::time_point t) {
+        return std::chrono::duration<double, std::milli>(Clock::now() - t)
+            .count();
+    };
     std::vector<Landmark> measurements;
     bool had_frame = false;
     {
@@ -174,6 +181,7 @@ void LandmarkServerNode::timer_callback() {
     apply_pending_map_config();
     gate_measurements(measurements);
     step_tracker(std::move(measurements), had_frame);
+    const double tracker_ms = ms_since(start);
 
     const auto dropped = dropped_measurements_.load();
     if (dropped != reported_dropped_measurements_) {
@@ -183,12 +191,35 @@ void LandmarkServerNode::timer_callback() {
         reported_dropped_measurements_ = dropped;
     }
 
+    const auto map_start = Clock::now();
     update_map();
+    const double map_ms = ms_since(map_start);
+    const auto publish_start = Clock::now();
     publish_map();
     publish_course_frame();
     publish_course_state();
     publish_debug();
     serve_polling_goal();
+    const double publish_ms = ms_since(publish_start);
+
+    // Services run between ticks: a tick longer than the period delays them
+    // and the next tick. Said at most every 10 s, with the slowest since.
+    const double tick_ms = ms_since(start);
+    if (tick_ms > filter_dt_seconds_ * 1000.0) {
+        slowest_tick_ms_ = std::max(slowest_tick_ms_, tick_ms);
+        if (Clock::now() - last_slow_tick_log_ > std::chrono::seconds(10)) {
+            spdlog::warn(
+                "LandmarkServer: a tick took {:.0f} ms (tracker {:.0f}, map "
+                "{:.0f}, "
+                "publish {:.0f}), the period is {:.0f} ms; slowest since the "
+                "last "
+                "warning {:.0f} ms",
+                tick_ms, tracker_ms, map_ms, publish_ms,
+                filter_dt_seconds_ * 1000.0, slowest_tick_ms_);
+            last_slow_tick_log_ = Clock::now();
+            slowest_tick_ms_ = 0.0;
+        }
+    }
 }
 
 void LandmarkServerNode::step_tracker(std::vector<Landmark> measurements,

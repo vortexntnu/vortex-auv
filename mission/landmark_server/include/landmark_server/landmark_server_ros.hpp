@@ -9,6 +9,7 @@
 #include <tf2_ros/transform_listener.h>
 
 #include <atomic>
+#include <chrono>
 #include <deque>
 #include <filesystem>
 #include <map>
@@ -311,6 +312,9 @@ class LandmarkServerNode : public rclcpp::Node {
     std::atomic<bool> debug_enabled_{false};
     std::atomic<bool> markers_enabled_{false};
     int debug_ticks_{0};
+    /// Ticks longer than the timer period (warned about every 10 s).
+    double slowest_tick_ms_{0.0};
+    std::chrono::steady_clock::time_point last_slow_tick_log_{};
     rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr
         live_tracks_pub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
