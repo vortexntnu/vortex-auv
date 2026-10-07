@@ -14,7 +14,11 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    OpaqueFunction,
+)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer, Node
@@ -28,7 +32,9 @@ from auv_setup.launch_arg_common import (
 
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
-    launch_nucleus = LaunchConfiguration('launch_nucleus').perform(context).lower() == 'true'
+    launch_nucleus = (
+        LaunchConfiguration('launch_nucleus').perform(context).lower() == 'true'
+    )
     container_name = LaunchConfiguration('container_name').perform(context)
 
     auv_setup_dir = get_package_share_directory('auv_setup')

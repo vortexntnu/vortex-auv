@@ -1,5 +1,6 @@
 #include "thruster_interface_auv/thruster_interface_auv_driver.hpp"
 
+#include <unistd.h>
 #include <algorithm>
 #include <array>
 #include <cerrno>
@@ -8,9 +9,6 @@
 #include <cstring>
 #include <optional>
 #include <thread>
-#include <unistd.h>
-
-
 
 static constexpr std::uint32_t CAN_ID_DISABLE_THRUSTERS = 0x369U;
 static constexpr std::uint32_t CAN_ID_ENABLE_THRUSTERS = 0x36AU;
@@ -22,8 +20,6 @@ static constexpr std::uint32_t CAN_ID_FLT_EVENT = 0x36EU;
 static constexpr std::uint32_t CAN_ID_PGOOD_EVENT = 0x36FU;
 static constexpr std::uint32_t CAN_ID_KILLSWITCH_EVENT = 0x370U;
 static constexpr std::uint32_t CAN_ID_CURRENT_MEASUREMENTS = 0x371U;
-
-
 
 ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     const std::string& can_interface_name,
@@ -45,7 +41,6 @@ ThrusterInterfaceAUVDriver::~ThrusterInterfaceAUVDriver() {
         can_.stop_async_receive();
     }
 }
-
 
 int ThrusterInterfaceAUVDriver::init_can() {
     can_status status = can_.init(can_interface_name_);
@@ -123,11 +118,9 @@ std::uint16_t ThrusterInterfaceAUVDriver::calc_poly(
         return idle_pwm_value_;
     }
 
-    return static_cast<std::uint16_t>(
-        coeffs[0] * std::pow(force, 3) +
-        coeffs[1] * std::pow(force, 2) +
-        coeffs[2] * force +
-        coeffs[3]);
+    return static_cast<std::uint16_t>(coeffs[0] * std::pow(force, 3) +
+                                      coeffs[1] * std::pow(force, 2) +
+                                      coeffs[2] * force + coeffs[3]);
 }
 
 std::optional<std::vector<std::uint16_t>>
@@ -161,7 +154,6 @@ ThrusterInterfaceAUVDriver::drive_thrusters(
     return thruster_pwm_array;
 }
 
-
 int ThrusterInterfaceAUVDriver::send_data_to_escs(
     const std::vector<std::uint16_t>& thruster_pwm_array) {
     if (!can_.is_initialized()) {
@@ -177,19 +169,16 @@ int ThrusterInterfaceAUVDriver::send_data_to_escs(
     for (std::size_t i = 0; i < thruster_pwm_array.size(); ++i) {
         const std::uint16_t value = thruster_pwm_array[i];
 
-        payload[2 * i] =
-            static_cast<std::uint8_t>(value & 0xFF);
+        payload[2 * i] = static_cast<std::uint8_t>(value & 0xFF);
 
-        payload[2 * i + 1] =
-            static_cast<std::uint8_t>((value >> 8) & 0xFF);
+        payload[2 * i + 1] = static_cast<std::uint8_t>((value >> 8) & 0xFF);
     }
 
-    const can_status status = can_.send(
-        CAN_ID_SET_THRUSTERS_PWM,
-        payload.data(),
-        static_cast<std::uint8_t>(payload.size()),
-        true  // use BRS
-    );
+    const can_status status =
+        can_.send(CAN_ID_SET_THRUSTERS_PWM, payload.data(),
+                  static_cast<std::uint8_t>(payload.size()),
+                  true  // use BRS
+        );
 
     if (status != can_status::OK) {
         return static_cast<int>(status);
@@ -212,12 +201,9 @@ int ThrusterInterfaceAUVDriver::set_camera_light(float percentage) {
     payload[0] = static_cast<std::uint8_t>(pwm & 0xFF);
     payload[1] = static_cast<std::uint8_t>((pwm >> 8) & 0xFF);
 
-    const can_status status = can_.send(
-        CAN_ID_SET_LIGHT_PWM,
-        payload.data(),
-        static_cast<std::uint8_t>(payload.size()),
-        true
-    );
+    const can_status status =
+        can_.send(CAN_ID_SET_LIGHT_PWM, payload.data(),
+                  static_cast<std::uint8_t>(payload.size()), true);
 
     if (status != can_status::OK) {
         return static_cast<int>(status);
@@ -307,11 +293,8 @@ int ThrusterInterfaceAUVDriver::disable_thrusters() {
 
     const std::uint8_t dummy = 0;
 
-    const can_status status = can_.send(
-        CAN_ID_DISABLE_THRUSTERS,
-        &dummy,
-        0,
-        true);
+    const can_status status =
+        can_.send(CAN_ID_DISABLE_THRUSTERS, &dummy, 0, true);
 
     if (status != can_status::OK) {
         return static_cast<int>(status);
@@ -327,11 +310,8 @@ int ThrusterInterfaceAUVDriver::enable_thrusters() {
 
     const std::uint8_t dummy = 0;
 
-    const can_status status = can_.send(
-        CAN_ID_ENABLE_THRUSTERS,
-        &dummy,
-        0,
-        true);
+    const can_status status =
+        can_.send(CAN_ID_ENABLE_THRUSTERS, &dummy, 0, true);
 
     if (status != can_status::OK) {
         return static_cast<int>(status);

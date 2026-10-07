@@ -164,11 +164,13 @@ void OperationModeManager::publish_mode() {
     killswitch_pub_->publish(killswitch_msg);
 
     std_msgs::msg::String killswitch_string_msg;
-    killswitch_string_msg.data = "killswitch: " + std::string(killswitch_ ? "true" : "false");
+    killswitch_string_msg.data =
+        "killswitch: " + std::string(killswitch_ ? "true" : "false");
     killswitch_string_pub_->publish(killswitch_string_msg);
 
     std_msgs::msg::String mode_string_msg;
-    mode_string_msg.data = "mode: " + vortex::utils::types::mode_to_string(mode_);
+    mode_string_msg.data =
+        "mode: " + vortex::utils::types::mode_to_string(mode_);
     mode_string_pub_->publish(mode_string_msg);
 }
 
