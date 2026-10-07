@@ -83,14 +83,14 @@ The reset step keeps $\delta p$ and $\delta \phi$ near zero at all times, ensuri
 
 Each waypoint has a mode that determines which degrees of freedom are controlled by the reference filter. The mode also determines how convergence is measured.
 
-| Mode | Controlled DOFs | Convergence metric |
+| Mode | Controlled DOFs | Errors checked |
 |---|---|---|
-| `FULL_POSE` | All 6 DOF (position + orientation) | Position error norm + quaternion error norm |
-| `ONLY_POSITION` | x, y, z (orientation holds current value) | Position error norm |
-| `FORWARD_HEADING` | x, y, z + yaw toward target | Position error norm + yaw component of quaternion error |
-| `ONLY_ORIENTATION` | Orientation only (position holds current value) | Quaternion error norm |
+| `FULL_POSE` | All 6 DOF (position + orientation) | Position error and quaternion error |
+| `ONLY_POSITION` | x, y, z (orientation holds current value) | Position error |
+| `FORWARD_HEADING` | x, y, z + yaw toward target | Position error and yaw component of quaternion error |
+| `ONLY_ORIENTATION` | Orientation only (position holds current value) | Quaternion error |
 
-For all modes, convergence is reached when the error metric drops below the `convergence_threshold` specified in the action goal.
+For all modes, convergence is reached when the position error is below the waypoint's `position_tolerance` [m] and the orientation error below its `orientation_tolerance` [rad]. A tolerance left at 0 uses the parameter `default_position_tolerance` / `default_orientation_tolerance`.
 
 ### Action Server
 

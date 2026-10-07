@@ -34,6 +34,10 @@ inline WaypointMode waypoint_mode_from_ros(
             return WaypointMode::XY_AND_YAW;
         case vortex_msgs::msg::WaypointMode::XY_FORWARD_DIR:
             return WaypointMode::XY_FORWARD_DIR;
+        case vortex_msgs::msg::WaypointMode::LEVEL_ORIENTATION:
+            return WaypointMode::LEVEL_ORIENTATION;
+        case vortex_msgs::msg::WaypointMode::ONLY_Z:
+            return WaypointMode::ONLY_Z;
         default:
             throw std::invalid_argument("Invalid ROS waypoint mode: " +
                                         std::to_string(mode_msg.mode));
@@ -47,6 +51,8 @@ inline vortex::guidance::Waypoint waypoint_from_ros(
     wp.pose =
         vortex::utils::ros_conversions::ros_pose_to_pose_euler(ros_wp.pose);
     wp.mode = waypoint_mode_from_ros(ros_wp.waypoint_mode);
+    wp.keep_altitude = ros_wp.keep_altitude;
+    wp.desired_altitude = ros_wp.desired_altitude;
     return wp;
 }
 
