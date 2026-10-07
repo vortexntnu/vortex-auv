@@ -10,6 +10,7 @@
 
 #include <atomic>
 #include <deque>
+#include <filesystem>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -32,12 +33,15 @@
 #include <vortex_msgs/msg/course_state.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include <vortex_msgs/msg/landmark_track_array.hpp>
+#include <vortex_msgs/srv/get_course.hpp>
+#include <vortex_msgs/srv/set_course.hpp>
 #include <vortex_msgs/srv/set_course_frame.hpp>
 #include <vortex_msgs/srv/set_map_focus.hpp>
 
 #include <pose_filtering/lib/pose_track_manager.hpp>
 #include "landmark_server/class_config.hpp"
 #include "landmark_server/course_frame.hpp"
+#include "landmark_server/course_layout.hpp"
 #include "landmark_server/landmark_graph.hpp"
 #include "landmark_server/retained_landmarks.hpp"
 
@@ -60,6 +64,7 @@ geometry_msgs::msg::PoseWithCovariance track_to_pose_with_covariance(
  * Source files: landmark_server_ros.cpp (inputs, tick, reset),
  * _config.cpp (config files, live parameter changes), _publish.cpp (map,
  * course frame, services), _course.cpp (intake gate, course state),
+ * _layout.cpp (course layouts: get_course, set_course),
  * _graph.cpp (drift correction), _polling.cpp (LandmarkPolling),
  * _markers.cpp and _debug.cpp (debug output), landmark_ros_conversion.cpp.
  */
@@ -136,6 +141,26 @@ class LandmarkServerNode : public rclcpp::Node {
         const std::shared_ptr<vortex_msgs::srv::SetMapFocus::Request> req,
         std::shared_ptr<vortex_msgs::srv::SetMapFocus::Response> res);
 
+    // --- Course layouts (landmark_server_layout.cpp) ------------------------
+    /// The layout directory and the layout in use, from course_file.
+    void init_layouts();
+    void handle_get_course(
+        const std::shared_ptr<vortex_msgs::srv::GetCourse::Request> req,
+        std::shared_ptr<vortex_msgs::srv::GetCourse::Response> res);
+    void handle_set_course(
+        const std::shared_ptr<vortex_msgs::srv::SetCourse::Request> req,
+        std::shared_ptr<vortex_msgs::srv::SetCourse::Response> res);
+    /// The `course` tree of another layout: its file on top of
+    /// templates.yaml (only templates.yaml when it has no file yet).
+    YAML::Node layout_course_tree(const std::string& layout,
+                                  std::string* gui_state) const;
+    /// A layout that needs a new map: the course model, the map, the
+    /// tracker (its limits follow the course) and the graph start over.
+    void restart_course(const CourseConfig& config);
+    /// The course parameters follow the layout in use, so a parameter dump
+    /// shows it.
+    void sync_course_parameters();
+
     // --- Drift correction (landmark_server_graph.cpp) -----------------------
     /// Odometry, the measurements of this tick (under their map id) and one
     /// iSAM2 update; then the smoothed positions go into the map.
@@ -180,7 +205,8 @@ class LandmarkServerNode : public rclcpp::Node {
     /// target_frame_ <- odometry frame, when they differ (static).
     std::optional<Eigen::Isometry3d> target_T_odom_;
 
-    // --- Inputs ---------------------------------------------------------------
+    // --- Inputs
+    // ---------------------------------------------------------------
     std::shared_ptr<
         message_filters::Subscriber<vortex_msgs::msg::LandmarkArray>>
         landmark_sub_;
@@ -206,7 +232,8 @@ class LandmarkServerNode : public rclcpp::Node {
     /// Latest odometry pose (stamp [s], pose in target_frame_).
     std::optional<std::pair<double, Eigen::Isometry3d>> last_odom_pose_;
 
-    // --- Tracker --------------------------------------------------------------
+    // --- Tracker
+    // --------------------------------------------------------------
     std::unique_ptr<vortex::filtering::PoseTrackManager> track_manager_;
     vortex::filtering::TrackManagerConfig track_manager_config_;
     double filter_dt_seconds_{0.0};
@@ -219,13 +246,27 @@ class LandmarkServerNode : public rclcpp::Node {
     /// Which track each measurement of this tick went to.
     std::vector<vortex::filtering::Association> tick_associations_;
 
-    // --- Map and course -------------------------------------------------------
+    // --- Map and course
+    // -------------------------------------------------------
     LandmarkMapConfig map_config_;
     std::unique_ptr<RetainedLandmarks> map_;
     std::unique_ptr<CourseFrameTracker> course_;
     /// Detections dropped at intake, by reason (since start or clear).
     std::map<std::string, int64_t> drop_counts_;
     int course_warn_ticks_{0};
+    /// The `course` tree in use (templates.yaml and the layout), the layout's
+    /// name and directory, and the operator GUI's state stored with it.
+    YAML::Node course_tree_;
+    std::string active_layout_;
+    std::filesystem::path layout_dir_;
+    std::string course_gui_state_;
+    /// Per-class tracker settings from the config files, before the course's
+    /// track limits.
+    std::vector<std::pair<vortex::filtering::LandmarkClassKey,
+                          vortex::filtering::LandmarkClassConfig>>
+        config_class_configs_;
+    /// set_course is updating the course parameters: accept them.
+    bool syncing_course_parameters_{false};
 
     /// Live parameter changes: map rules wait for the next tick; the intake
     /// rules are read by the subscription callback.
@@ -236,7 +277,8 @@ class LandmarkServerNode : public rclcpp::Node {
     mutable std::mutex intake_mtx_;
     IntakeConfig intake_config_;
 
-    // --- Drift correction -----------------------------------------------------
+    // --- Drift correction
+    // -----------------------------------------------------
     std::unique_ptr<LandmarkGraph> graph_;
     /// Measurements of tracks that are not in the map yet, per track id.
     std::map<int, std::deque<Landmark>> pending_graph_;
@@ -246,7 +288,8 @@ class LandmarkServerNode : public rclcpp::Node {
     double graph_update_ms_max_{0.0};
     int graph_log_ticks_{0};
 
-    // --- Outputs --------------------------------------------------------------
+    // --- Outputs
+    // --------------------------------------------------------------
     rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr
         object_map_pub_;
     rclcpp::Publisher<vortex_msgs::msg::CourseFrameState>::SharedPtr
@@ -257,11 +300,14 @@ class LandmarkServerNode : public rclcpp::Node {
         set_course_frame_srv_;
     rclcpp::Service<std_srvs::srv::Empty>::SharedPtr clear_srv_;
     rclcpp::Service<vortex_msgs::srv::SetMapFocus>::SharedPtr set_focus_srv_;
+    rclcpp::Service<vortex_msgs::srv::GetCourse>::SharedPtr get_course_srv_;
+    rclcpp::Service<vortex_msgs::srv::SetCourse>::SharedPtr set_course_srv_;
 
     rclcpp_action::Server<LandmarkPolling>::SharedPtr polling_server_;
     std::shared_ptr<PollingGoalHandle> polling_goal_;
 
-    // --- Debug output (debug.enable, debug.markers; switchable live) ----------
+    // --- Debug output (debug.enable, debug.markers; switchable live)
+    // ----------
     std::atomic<bool> debug_enabled_{false};
     std::atomic<bool> markers_enabled_{false};
     int debug_ticks_{0};

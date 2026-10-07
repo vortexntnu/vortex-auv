@@ -13,6 +13,7 @@ add_executable(test_landmark_map
   test_structures.cpp
   test_course_model.cpp
   test_config_files.cpp
+  test_course_layout.cpp
 )
 target_compile_definitions(test_landmark_map PRIVATE
   LANDMARK_SERVER_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../config")

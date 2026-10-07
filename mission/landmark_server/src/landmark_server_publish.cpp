@@ -28,14 +28,13 @@ void LandmarkServerNode::create_outputs() {
 
     // The services run in the timer's callback group: they never see the
     // map half-way through a tick.
-    set_course_frame_srv_ =
-        this->create_service<SetCourseFrame>(
-            "landmark_server/set_course_frame",
-            [this](const std::shared_ptr<SetCourseFrame::Request> req,
-                   std::shared_ptr<SetCourseFrame::Response> res) {
-                handle_set_course_frame(req, res);
-            },
-            rmw_qos_profile_services_default, timer_cb_group_);
+    set_course_frame_srv_ = this->create_service<SetCourseFrame>(
+        "landmark_server/set_course_frame",
+        [this](const std::shared_ptr<SetCourseFrame::Request> req,
+               std::shared_ptr<SetCourseFrame::Response> res) {
+            handle_set_course_frame(req, res);
+        },
+        rmw_qos_profile_services_default, timer_cb_group_);
     clear_srv_ = this->create_service<std_srvs::srv::Empty>(
         "landmark_server/clear",
         [this](const std::shared_ptr<std_srvs::srv::Empty::Request> req,
@@ -48,6 +47,20 @@ void LandmarkServerNode::create_outputs() {
         [this](const std::shared_ptr<SetMapFocus::Request> req,
                std::shared_ptr<SetMapFocus::Response> res) {
             handle_set_focus(req, res);
+        },
+        rmw_qos_profile_services_default, timer_cb_group_);
+    get_course_srv_ = this->create_service<vortex_msgs::srv::GetCourse>(
+        "landmark_server/get_course",
+        [this](const std::shared_ptr<vortex_msgs::srv::GetCourse::Request> req,
+               std::shared_ptr<vortex_msgs::srv::GetCourse::Response> res) {
+            handle_get_course(req, res);
+        },
+        rmw_qos_profile_services_default, timer_cb_group_);
+    set_course_srv_ = this->create_service<vortex_msgs::srv::SetCourse>(
+        "landmark_server/set_course",
+        [this](const std::shared_ptr<vortex_msgs::srv::SetCourse::Request> req,
+               std::shared_ptr<vortex_msgs::srv::SetCourse::Response> res) {
+            handle_set_course(req, res);
         },
         rmw_qos_profile_services_default, timer_cb_group_);
 

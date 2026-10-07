@@ -123,9 +123,13 @@ void LandmarkServerNode::load_config() {
 
     // Per-class tracker settings (track_config.<CLASS>) on top of the
     // default, then no more tracks of a class than the map can use.
-    const YAML::Node track_tree = overrides_to_yaml(overrides, {"track_config"});
+    const YAML::Node track_tree =
+        overrides_to_yaml(overrides, {"track_config"});
     track_manager_config_.per_class_configs = parse_per_class_track_config(
         track_tree["track_config"], track_manager_config_.default_class_config);
+    config_class_configs_ = track_manager_config_.per_class_configs;
+    course_tree_ = tree["course"] ? YAML::Clone(tree["course"])
+                                  : YAML::Node(YAML::NodeType::Map);
     map_ = std::make_unique<RetainedLandmarks>(map_config_);
     apply_track_limits();
     track_manager_ = std::make_unique<vortex::filtering::PoseTrackManager>(
@@ -158,6 +162,7 @@ void LandmarkServerNode::load_config() {
     }
 
     declare_config_parameters(overrides);
+    init_layouts();
     parameters_cb_handle_ = this->add_on_set_parameters_callback(
         [this](const std::vector<rclcpp::Parameter>& params) {
             return on_parameters_set(params);
@@ -182,6 +187,9 @@ rcl_interfaces::msg::SetParametersResult LandmarkServerNode::on_parameters_set(
     const std::vector<rclcpp::Parameter>& params) {
     rcl_interfaces::msg::SetParametersResult result;
     result.successful = true;
+    if (syncing_course_parameters_) {
+        return result;  // set_course, checked there
+    }
     const auto unchanged = [this](const rclcpp::Parameter& p) {
         return this->has_parameter(p.get_name()) &&
                this->get_parameter(p.get_name()).get_parameter_value() ==
@@ -209,8 +217,7 @@ rcl_interfaces::msg::SetParametersResult LandmarkServerNode::on_parameters_set(
         if (name == "debug.graph_frame_id" && !this->has_parameter(name)) {
             continue;  // declared at start
         }
-        if (has_root(kRestartRoots, name) ||
-            name == "debug.graph_frame_id") {
+        if (has_root(kRestartRoots, name) || name == "debug.graph_frame_id") {
             // Loading a whole config file sets these too: the same value is
             // fine, a new one needs a restart.
             if (unchanged(p)) {
@@ -220,6 +227,11 @@ rcl_interfaces::msg::SetParametersResult LandmarkServerNode::on_parameters_set(
             result.reason = name +
                             ": read at start; restart the landmark server to "
                             "change it";
+            if (root_of(name) == "course") {
+                result.reason = name +
+                                ": change the course layout with "
+                                "landmark_server/set_course";
+            }
             return result;
         }
         map_rules_changed = map_rules_changed || has_root(kLiveRoots, name);

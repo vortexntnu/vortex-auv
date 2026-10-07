@@ -31,12 +31,19 @@ LandmarkClassKey parse_key(const std::string& name, const std::string& where) {
 const std::vector<std::string> kTaskFieldKeys = {
     "region_radius_m", "part_radius_m", "yaw_window_deg",
     "symmetric",       "min_parts",     "max_range_m"};
-const std::vector<std::string> kCourseKeys = {
-    "enable",          "start",         "class_groups",
-    "templates",       "tasks",         "extra_tracks_per_kind",
-    "variant_votes",   "variant_ratio", "min_slot_gate_m",
-    "lane_margin_m",   "max_align_deg", "min_class_agreement",
-    "min_part_detections"};
+const std::vector<std::string> kCourseKeys = {"enable",
+                                              "start",
+                                              "class_groups",
+                                              "templates",
+                                              "tasks",
+                                              "extra_tracks_per_kind",
+                                              "variant_votes",
+                                              "variant_ratio",
+                                              "min_slot_gate_m",
+                                              "lane_margin_m",
+                                              "max_align_deg",
+                                              "min_class_agreement",
+                                              "min_part_detections"};
 
 std::vector<std::string> with_task_fields(std::vector<std::string> keys) {
     keys.insert(keys.end(), kTaskFieldKeys.begin(), kTaskFieldKeys.end());
@@ -100,11 +107,14 @@ StructureTemplate kind_template(const StructureTemplate& tmpl,
             m.classes = {cfg.kind_of(m.classes.front())};
         }
     }
-    const auto same_kinds = [&](const StructureVariant& a, const StructureVariant& b) {
+    const auto same_kinds = [&](const StructureVariant& a,
+                                const StructureVariant& b) {
         for (const auto& m : b.members) {
-            const bool found = std::any_of(a.members.begin(), a.members.end(), [&](const auto& n) {
-                return (n.offset - m.offset).norm() < 0.05 && n.classes == m.classes;
-            });
+            const bool found = std::any_of(
+                a.members.begin(), a.members.end(), [&](const auto& n) {
+                    return (n.offset - m.offset).norm() < 0.05 &&
+                           n.classes == m.classes;
+                });
             if (!found) {
                 return false;
             }
@@ -112,7 +122,9 @@ StructureTemplate kind_template(const StructureTemplate& tmpl,
         return true;
     };
     if (std::all_of(out.variants.begin() + 1, out.variants.end(),
-                    [&](const auto& v) { return same_kinds(out.variants.front(), v); })) {
+                    [&](const auto& v) {
+                        return same_kinds(out.variants.front(), v);
+                    })) {
         out.variants.resize(1);
     }
     return out;
@@ -212,7 +224,8 @@ CourseConfig parse_course_config(const YAML::Node& node) {
     cfg.min_slot_gate_m = get_d(node, "min_slot_gate_m", cfg.min_slot_gate_m);
     cfg.lane_margin_m = get_d(node, "lane_margin_m", cfg.lane_margin_m);
     cfg.max_align_rad =
-        get_d(node, "max_align_deg", cfg.max_align_rad * 180.0 / M_PI) * M_PI / 180.0;
+        get_d(node, "max_align_deg", cfg.max_align_rad * 180.0 / M_PI) * M_PI /
+        180.0;
     cfg.min_class_agreement =
         get_d(node, "min_class_agreement", cfg.min_class_agreement);
     if (node["min_part_detections"]) {
@@ -235,7 +248,8 @@ CourseConfig parse_course_config(const YAML::Node& node) {
                     if (std::find(other.classes.begin(), other.classes.end(),
                                   c) != other.classes.end()) {
                         throw std::runtime_error(where + ": " + class_name(c) +
-                                                 " is already in " + other.name);
+                                                 " is already in " +
+                                                 other.name);
                     }
                 }
             }
@@ -268,12 +282,14 @@ CourseConfig parse_course_config(const YAML::Node& node) {
         for (std::size_t vi = 1; vi < tmpl.variants.size(); ++vi) {
             const auto& members = tmpl.variants[vi].members;
             if (members.size() != base.size()) {
-                throw std::runtime_error(where + ": variants need the same parts");
+                throw std::runtime_error(where +
+                                         ": variants need the same parts");
             }
             for (const auto& m : members) {
-                const bool found = std::any_of(base.begin(), base.end(), [&](const auto& b) {
-                    return (b.offset - m.offset).norm() < kVariantOffsetTol;
-                });
+                const bool found =
+                    std::any_of(base.begin(), base.end(), [&](const auto& b) {
+                        return (b.offset - m.offset).norm() < kVariantOffsetTol;
+                    });
                 if (!found) {
                     throw std::runtime_error(
                         where + ".variants." + tmpl.variants[vi].name + "." +
@@ -297,7 +313,8 @@ CourseConfig parse_course_config(const YAML::Node& node) {
             t.template_name = n["template"].as<std::string>();
             const auto prior = n["prior"];
             if (!prior || !prior.IsSequence() || prior.size() != 3) {
-                throw std::runtime_error(where + ".prior must be [x, y, yaw_deg]");
+                throw std::runtime_error(where +
+                                         ".prior must be [x, y, yaw_deg]");
             }
             t.prior_xy = {prior[0].as<double>(), prior[1].as<double>()};
             t.prior_yaw = prior[2].as<double>() * M_PI / 180.0;
@@ -319,12 +336,15 @@ CourseConfig parse_course_config(const YAML::Node& node) {
             t.region_radius_m = num("region_radius_m", t.region_radius_m);
             t.part_radius_m = num("part_radius_m", t.part_radius_m);
             t.yaw_window_rad =
-                num("yaw_window_deg", t.yaw_window_rad * 180.0 / M_PI) * M_PI / 180.0;
-            t.symmetric = value("symmetric") ? value("symmetric").as<bool>() : false;
+                num("yaw_window_deg", t.yaw_window_rad * 180.0 / M_PI) * M_PI /
+                180.0;
+            t.symmetric =
+                value("symmetric") ? value("symmetric").as<bool>() : false;
             t.max_range_m = num("max_range_m", t.max_range_m);
             t.min_parts = value("min_parts") ? value("min_parts").as<int>()
                                              : tmpl->min_members;
-            const int parts = static_cast<int>(tmpl->variants.front().members.size());
+            const int parts =
+                static_cast<int>(tmpl->variants.front().members.size());
             if (t.min_parts < 1 || t.min_parts > parts) {
                 throw std::runtime_error(where + ".min_parts must be 1.." +
                                          std::to_string(parts));
@@ -336,7 +356,8 @@ CourseConfig parse_course_config(const YAML::Node& node) {
         }
     }
     if (cfg.enable && cfg.tasks.empty()) {
-        throw std::runtime_error("course.enable is true but course.tasks is empty");
+        throw std::runtime_error(
+            "course.enable is true but course.tasks is empty");
     }
     return cfg;
 }
@@ -358,16 +379,53 @@ void CourseModel::clear() {
     track_last_vote_.clear();
 }
 
-void CourseModel::build_tasks() {
-    tasks_.clear();
+std::optional<CourseModel::LayoutUpdate> CourseModel::update_layout(
+    CourseConfig config) {
+    if (config.enable != config_.enable ||
+        config.tasks.size() != config_.tasks.size()) {
+        return std::nullopt;
+    }
+    // In the order of the tasks there are: tasks_[i] is config_.tasks[i].
+    std::vector<TaskSpec> ordered;
+    ordered.reserve(config_.tasks.size());
+    for (const auto& old : config_.tasks) {
+        const TaskSpec* t = config.task(old.name);
+        if (t == nullptr || t->template_name != old.template_name) {
+            return std::nullopt;
+        }
+        ordered.push_back(*t);
+    }
+    config.tasks = std::move(ordered);
+    config_ = std::move(config);
+
+    LayoutUpdate update;
+    for (std::size_t i = 0; i < tasks_.size(); ++i) {
+        Task& t = tasks_[i];
+        t.spec = &config_.tasks[i];
+        t.tmpl = config_.template_for(*t.spec);
+        (t.placed ? update.kept : update.applied).push_back(t.spec->name);
+    }
+    update_lane();
+    return update;
+}
+
+void CourseModel::update_lane() {
     lane_min_ = lane_max_ = config_.start_xy;
     for (const auto& spec : config_.tasks) {
-        const double r = spec.region_radius_m + extent(*config_.template_for(spec));
-        lane_min_ = lane_min_.cwiseMin(spec.prior_xy - Eigen::Vector2d::Constant(r));
-        lane_max_ = lane_max_.cwiseMax(spec.prior_xy + Eigen::Vector2d::Constant(r));
+        const double r =
+            spec.region_radius_m + extent(*config_.template_for(spec));
+        lane_min_ =
+            lane_min_.cwiseMin(spec.prior_xy - Eigen::Vector2d::Constant(r));
+        lane_max_ =
+            lane_max_.cwiseMax(spec.prior_xy + Eigen::Vector2d::Constant(r));
     }
     lane_min_ -= Eigen::Vector2d::Constant(config_.lane_margin_m);
     lane_max_ += Eigen::Vector2d::Constant(config_.lane_margin_m);
+}
+
+void CourseModel::build_tasks() {
+    tasks_.clear();
+    update_lane();
     for (const auto& spec : config_.tasks) {
         Task t;
         t.spec = &spec;
@@ -380,19 +438,22 @@ void CourseModel::build_tasks() {
                 std::size_t best = 0;
                 double best_d = std::numeric_limits<double>::infinity();
                 for (std::size_t j = 0; j < v.members.size(); ++j) {
-                    const double d = (v.members[j].offset - base[i].offset).norm();
+                    const double d =
+                        (v.members[j].offset - base[i].offset).norm();
                     if (d < best_d) {
                         best_d = d;
                         best = j;
                     }
                 }
                 s.member.push_back(best);
-                s.kinds.push_back(config_.kind_of(v.members[best].classes.front()));
+                s.kinds.push_back(
+                    config_.kind_of(v.members[best].classes.front()));
             }
             double nearest = std::numeric_limits<double>::infinity();
             for (std::size_t j = 0; j < base.size(); ++j) {
                 if (j != i) {
-                    nearest = std::min(nearest, (base[j].offset - base[i].offset).norm());
+                    nearest = std::min(
+                        nearest, (base[j].offset - base[i].offset).norm());
                 }
             }
             s.gate_m = std::isfinite(nearest)
@@ -405,8 +466,8 @@ void CourseModel::build_tasks() {
 }
 
 bool CourseModel::in_focus(const Task& t) const {
-    return focus_.empty() ||
-           std::find(focus_.begin(), focus_.end(), t.spec->name) != focus_.end();
+    return focus_.empty() || std::find(focus_.begin(), focus_.end(),
+                                       t.spec->name) != focus_.end();
 }
 
 bool CourseModel::locked(const Task& t) const {
@@ -426,7 +487,8 @@ std::optional<std::string> CourseModel::set_focus(
     return std::nullopt;
 }
 
-std::optional<std::string> CourseModel::commit(const std::string& name, bool on) {
+std::optional<std::string> CourseModel::commit(const std::string& name,
+                                               bool on) {
     for (auto& t : tasks_) {
         if (t.spec->name == name) {
             t.committed = on;
@@ -436,12 +498,15 @@ std::optional<std::string> CourseModel::commit(const std::string& name, bool on)
     return "unknown task '" + name + "'";
 }
 
-Eigen::Vector3d CourseModel::slot_position(const Task& t, std::size_t slot) const {
-    const auto& m = t.tmpl->variants[t.variant].members[t.slots[slot].member[t.variant]];
+Eigen::Vector3d CourseModel::slot_position(const Task& t,
+                                           std::size_t slot) const {
+    const auto& m =
+        t.tmpl->variants[t.variant].members[t.slots[slot].member[t.variant]];
     return t.pose * m.offset;
 }
 
-LandmarkClassKey CourseModel::slot_class(const Task& t, std::size_t slot) const {
+LandmarkClassKey CourseModel::slot_class(const Task& t,
+                                         std::size_t slot) const {
     const Slot& s = t.slots[slot];
     if (s.assigned) {
         return *s.assigned;
@@ -453,8 +518,10 @@ LandmarkClassKey CourseModel::slot_class(const Task& t, std::size_t slot) const 
     std::vector<LandmarkClassKey> classes = m.classes;
     if (t.tmpl->variants.size() > 1 && !t.variant_fixed && !t.committed) {
         for (std::size_t vi = 0; vi < t.tmpl->variants.size(); ++vi) {
-            for (const auto& c : t.tmpl->variants[vi].members[s.member[vi]].classes) {
-                if (std::find(classes.begin(), classes.end(), c) == classes.end()) {
+            for (const auto& c :
+                 t.tmpl->variants[vi].members[s.member[vi]].classes) {
+                if (std::find(classes.begin(), classes.end(), c) ==
+                    classes.end()) {
                     classes.push_back(c);
                 }
             }
@@ -493,7 +560,8 @@ void CourseModel::assign_balanced(Task& t) {
     std::vector<std::size_t> multi;
     std::vector<LandmarkClassKey> classes;
     for (std::size_t i = 0; i < t.slots.size(); ++i) {
-        const auto& m = t.tmpl->variants[t.variant].members[t.slots[i].member[t.variant]];
+        const auto& m =
+            t.tmpl->variants[t.variant].members[t.slots[i].member[t.variant]];
         if (m.classes.size() < 2) {
             continue;
         }
@@ -504,7 +572,8 @@ void CourseModel::assign_balanced(Task& t) {
             }
         }
     }
-    if (multi.empty() || classes.empty() || multi.size() % classes.size() != 0) {
+    if (multi.empty() || classes.empty() ||
+        multi.size() % classes.size() != 0) {
         return;
     }
     const int per_class = static_cast<int>(multi.size() / classes.size());
@@ -524,7 +593,8 @@ void CourseModel::assign_balanced(Task& t) {
     std::vector<std::size_t> pick(multi.size(), 0);
     std::vector<std::size_t> best_pick;
     int best = -1;
-    const std::function<void(std::size_t, int)> search = [&](std::size_t k, int score) {
+    const std::function<void(std::size_t, int)> search = [&](std::size_t k,
+                                                             int score) {
         if (k == multi.size()) {
             if (score > best) {
                 best = score;
@@ -551,13 +621,15 @@ void CourseModel::assign_balanced(Task& t) {
 
 void CourseModel::publish_pose(Task& t, Store& store) {
     const double yaw = yaw_of(t.pose);
-    const Eigen::Quaterniond q(Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ()));
+    const Eigen::Quaterniond q(
+        Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ()));
     bool any_live = false;
     const auto& variant = t.tmpl->variants[t.variant];
     std::map<std::string, const RetainedLandmark*> by_member;
     for (std::size_t i = 0; i < t.slots.size(); ++i) {
-        RetainedLandmark* lm =
-            t.slots[i].landmark_id >= 0 ? store.find(t.slots[i].landmark_id) : nullptr;
+        RetainedLandmark* lm = t.slots[i].landmark_id >= 0
+                                   ? store.find(t.slots[i].landmark_id)
+                                   : nullptr;
         if (lm == nullptr) {
             continue;
         }
@@ -585,13 +657,15 @@ void CourseModel::publish_pose(Task& t, Store& store) {
                 live = it->second->is_live();
             } else {
                 for (std::size_t i = 0; i < t.slots.size(); ++i) {
-                    if (variant.members[t.slots[i].member[t.variant]].name == p.from) {
+                    if (variant.members[t.slots[i].member[t.variant]].name ==
+                        p.from) {
                         base = slot_position(t, i);
                     }
                 }
             }
         }
-        RetainedLandmark& lm = store.derived(t.spec->name + "/" + p.name, p.cls);
+        RetainedLandmark& lm =
+            store.derived(t.spec->name + "/" + p.name, p.cls);
         lm.position = base + q * p.offset;
         lm.orientation = Eigen::Quaterniond(
             Eigen::AngleAxisd(yaw + p.yaw, Eigen::Vector3d::UnitZ()));
@@ -615,7 +689,8 @@ void CourseModel::release(Slot& s) {
     s.track_id = -1;
 }
 
-std::map<ClassPair, int> CourseModel::part_votes(const Task& t, std::size_t slot) const {
+std::map<ClassPair, int> CourseModel::part_votes(const Task& t,
+                                                 std::size_t slot) const {
     const Slot& s = t.slots[slot];
     auto out = s.past_votes;
     if (s.track_id >= 0) {
@@ -690,8 +765,9 @@ Eigen::Isometry2d CourseModel::alignment(const CourseGeometry& geo) const {
     std::vector<std::pair<Eigen::Vector2d, Eigen::Vector2d>> pairs;
     for (const auto& t : tasks_) {
         if (t.placed) {
-            pairs.emplace_back(t.spec->prior_xy,
-                               odom_to_layout(t.pose.translation().head<2>(), geo));
+            pairs.emplace_back(
+                t.spec->prior_xy,
+                odom_to_layout(t.pose.translation().head<2>(), geo));
         }
     }
     Eigen::Isometry2d A = Eigen::Isometry2d::Identity();
@@ -729,8 +805,9 @@ Eigen::Isometry3d CourseModel::prior_pose(const Task& t,
     const Eigen::Isometry2d A = alignment(geo);
     const Eigen::Vector2d odom = layout_to_odom(A * t.spec->prior_xy, geo);
     const double turn = std::atan2(A.linear()(1, 0), A.linear()(0, 0));
-    return make_pose(geo.through_yaw + t.spec->prior_yaw + turn,
-                     Eigen::Vector3d(odom.x(), odom.y(), t.pose.translation().z()));
+    return make_pose(
+        geo.through_yaw + t.spec->prior_yaw + turn,
+        Eigen::Vector3d(odom.x(), odom.y(), t.pose.translation().z()));
 }
 
 bool CourseModel::lane_allows(const Eigen::Vector3d& position,
@@ -740,10 +817,12 @@ bool CourseModel::lane_allows(const Eigen::Vector3d& position,
     }
     const Eigen::Vector2d l =
         alignment(geo).inverse() * odom_to_layout(position.head<2>(), geo);
-    return (l.array() >= lane_min_.array()).all() && (l.array() <= lane_max_.array()).all();
+    return (l.array() >= lane_min_.array()).all() &&
+           (l.array() <= lane_max_.array()).all();
 }
 
-std::vector<Eigen::Vector2d> CourseModel::lane_corners(const CourseGeometry& geo) const {
+std::vector<Eigen::Vector2d> CourseModel::lane_corners(
+    const CourseGeometry& geo) const {
     if (!config_.enable || !geo.set) {
         return {};
     }
@@ -796,7 +875,8 @@ std::optional<std::string> CourseModel::intake_reject(
         }
         for (std::size_t i = 0; i < t.slots.size(); ++i) {
             if (t.slots[i].landmark_id >= 0 &&
-                slot_distance(slot_position(t, i), position) < t.slots[i].gate_m) {
+                slot_distance(slot_position(t, i), position) <
+                    t.slots[i].gate_m) {
                 return std::string("other_task");
             }
         }
@@ -821,8 +901,9 @@ std::optional<std::string> CourseModel::intake_reject(
                              t.spec->part_radius_m;
             }
         } else {
-            inside = (prior_pose(t, geo).translation() - position).head<2>().norm() <=
-                     t.spec->region_radius_m + extent(*t.tmpl);
+            inside = (prior_pose(t, geo).translation() - position)
+                         .head<2>()
+                         .norm() <= t.spec->region_radius_m + extent(*t.tmpl);
         }
         if (!inside) {
             continue;
@@ -920,9 +1001,13 @@ std::set<int> CourseModel::update(const std::vector<KindTrack>& tracks,
     return claimed;
 }
 
-void CourseModel::attach(Task& t, std::size_t slot, int track_id, Store& store) {
+void CourseModel::attach(Task& t,
+                         std::size_t slot,
+                         int track_id,
+                         Store& store) {
     Slot& s = t.slots[slot];
-    RetainedLandmark* lm = s.landmark_id >= 0 ? store.find(s.landmark_id) : nullptr;
+    RetainedLandmark* lm =
+        s.landmark_id >= 0 ? store.find(s.landmark_id) : nullptr;
     if (lm == nullptr) {
         lm = &store.create(slot_class(t, slot), t.spec->name + "/" + s.name);
         s.landmark_id = lm->id;
@@ -950,9 +1035,10 @@ void CourseModel::keep_and_fill(Task& t,
             continue;
         }
         const KindTrack* k = find_track(s.track_id);
-        const bool keep = k != nullptr && slot_accepts(t, i, k->kind) &&
-                          !claimed.contains(k->id) &&
-                          slot_distance(k->position, slot_position(t, i)) <= s.gate_m;
+        const bool keep =
+            k != nullptr && slot_accepts(t, i, k->kind) &&
+            !claimed.contains(k->id) &&
+            slot_distance(k->position, slot_position(t, i)) <= s.gate_m;
         if (keep) {
             claimed.insert(k->id);
             if (RetainedLandmark* lm = store.find(s.landmark_id)) {
@@ -960,7 +1046,8 @@ void CourseModel::keep_and_fill(Task& t,
             }
             continue;
         }
-        if (RetainedLandmark* lm = s.landmark_id >= 0 ? store.find(s.landmark_id) : nullptr) {
+        if (RetainedLandmark* lm =
+                s.landmark_id >= 0 ? store.find(s.landmark_id) : nullptr) {
             lm->live_track_id = -1;  // remembered where it was
         }
         release(s);
@@ -1001,7 +1088,8 @@ void CourseModel::refit(Task& t, const CourseGeometry& geo, Store& store) {
     const auto& variant = t.tmpl->variants[t.variant];
     std::vector<std::pair<std::size_t, FitLandmark>> members;
     for (const auto& s : t.slots) {
-        const RetainedLandmark* lm = s.landmark_id >= 0 ? store.find(s.landmark_id) : nullptr;
+        const RetainedLandmark* lm =
+            s.landmark_id >= 0 ? store.find(s.landmark_id) : nullptr;
         if (lm == nullptr) {
             continue;
         }
@@ -1019,7 +1107,8 @@ void CourseModel::refit(Task& t, const CourseGeometry& geo, Store& store) {
     Eigen::Isometry3d pose = t.pose;
     if (members.size() == 1) {
         const auto& m = variant.members[members.front().first];
-        pose.translation() = members.front().second.position - pose.linear() * m.offset;
+        pose.translation() =
+            members.front().second.position - pose.linear() * m.offset;
     } else {
         pose = refit_pose(variant, t.pose, members);
     }
@@ -1043,7 +1132,8 @@ void CourseModel::decide_variant(Task& t) {
             const auto& m = variants[vi].members[t.slots[i].member[vi]];
             for (const auto& [c, n] : part_votes(t, i)) {
                 if (std::find(m.classes.begin(), m.classes.end(),
-                              LandmarkClassKey{c.first, c.second}) != m.classes.end()) {
+                              LandmarkClassKey{c.first, c.second}) !=
+                    m.classes.end()) {
                     score[vi] += n;
                 }
             }
@@ -1053,8 +1143,9 @@ void CourseModel::decide_variant(Task& t) {
     for (std::size_t i = 0; i < order.size(); ++i) {
         order[i] = i;
     }
-    std::sort(order.begin(), order.end(),
-              [&](std::size_t a, std::size_t b) { return score[a] > score[b]; });
+    std::sort(order.begin(), order.end(), [&](std::size_t a, std::size_t b) {
+        return score[a] > score[b];
+    });
     const int best = score[order[0]];
     const int second = score[order[1]];
     if (best > second) {
@@ -1087,7 +1178,9 @@ double CourseModel::class_agreement(
         // Classes this part can have in any variant.
         std::set<ClassPair> ok;
         for (std::size_t vi = 0; vi < t.tmpl->variants.size(); ++vi) {
-            for (const auto& c : t.tmpl->variants[vi].members[t.slots[slot].member[vi]].classes) {
+            for (const auto& c : t.tmpl->variants[vi]
+                                     .members[t.slots[slot].member[vi]]
+                                     .classes) {
                 ok.insert(pair_of(c));
             }
         }
@@ -1132,7 +1225,8 @@ void CourseModel::place(Task& t,
         // at the prior yaw.
         double best_d = std::numeric_limits<double>::infinity();
         for (std::size_t i = 0; i < t.slots.size(); ++i) {
-            const auto& m = t.tmpl->variants[t.variant].members[t.slots[i].member[t.variant]];
+            const auto& m = t.tmpl->variants[t.variant]
+                                .members[t.slots[i].member[t.variant]];
             for (const auto& k : cands) {
                 if (!slot_accepts(t, i, k.kind)) {
                     continue;
@@ -1153,8 +1247,9 @@ void CourseModel::place(Task& t,
         const StructureTemplate kt = kind_template(*t.tmpl, config_);
         std::vector<FitLandmark> free;
         for (const auto& k : cands) {
-            free.push_back({k.id, k.kind, k.position,
-                            k.covariance + Eigen::Matrix3d::Identity() * 0.05 * 0.05});
+            free.push_back(
+                {k.id, k.kind, k.position,
+                 k.covariance + Eigen::Matrix3d::Identity() * 0.05 * 0.05});
         }
         FitPrior fp;
         fp.yaw = yaw_of(prior);
@@ -1169,7 +1264,8 @@ void CourseModel::place(Task& t,
         pose = fit->pose;
         // The kind template keeps the variants only when their kinds
         // differ; then the fit also says which variant this is.
-        const std::size_t vi = kt.variants.size() > 1 ? fit->variant : t.variant;
+        const std::size_t vi =
+            kt.variants.size() > 1 ? fit->variant : t.variant;
         if (kt.variants.size() > 1) {
             t.variant = vi;
         }

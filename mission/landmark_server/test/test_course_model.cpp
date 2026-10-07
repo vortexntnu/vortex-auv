@@ -662,4 +662,65 @@ TEST(CourseModel, TheTrackerMakesNoMoreTracksThanThereArePartsPlusAFew) {
     EXPECT_EQ(limits.at({LT::GATE, LS::GATE_POLE_EDGE}), 2 + 2);
 }
 
+/// The test course with one task's prior (or template) changed.
+CourseConfig changed_course(const std::string& task,
+                            std::vector<double> prior,
+                            const std::string& template_name = "") {
+    YAML::Node course = YAML::Load(kCourse)["course"];
+    course["tasks"][task]["prior"] = prior;
+    if (!template_name.empty()) {
+        course["tasks"][task]["template"] = template_name;
+    }
+    return parse_course_config(course);
+}
+
+TEST(CourseModel, ANewPriorMovesATaskNotPlacedYet) {
+    World w;
+    const auto update = w.map.course().update_layout(changed_course("torpedo", {14.0, -4.0, 180.0}));
+    ASSERT_TRUE(update);
+    EXPECT_EQ(update->applied.size(), 4u);
+    EXPECT_TRUE(update->kept.empty());
+    const auto pose = w.map.course().working_pose(w.task("torpedo"), at_gate());
+    ASSERT_TRUE(pose);
+    EXPECT_NEAR(pose->translation().x(), 14.0, 1e-9);
+    EXPECT_NEAR(pose->translation().y(), -4.0, 1e-9);
+    // The lane follows the new priors.
+    EXPECT_TRUE(w.map.course().lane_allows(v(14.0, -4.0), at_gate()));
+}
+
+TEST(CourseModel, APlacedTaskKeepsItsPoseAndPartsUnderANewPrior) {
+    World w;
+    w.tick(set_1());
+    ASSERT_TRUE(w.task("slalom_1").placed);
+    const int red_id = w.in_slot("slalom_1/red")->id;
+
+    const auto update = w.map.course().update_layout(changed_course("slalom_1", {5.0, 1.0, 0.0}));
+    ASSERT_TRUE(update);
+    EXPECT_EQ(update->kept, std::vector<std::string>{"slalom_1"});
+    EXPECT_TRUE(w.task("slalom_1").placed);
+    EXPECT_NEAR(w.task("slalom_1").spec->prior_xy.x(), 5.0, 1e-9);  // stored
+    w.tick(set_1());
+    EXPECT_TRUE(w.task("slalom_1").placed);
+    ASSERT_NE(w.in_slot("slalom_1/red"), nullptr);
+    EXPECT_EQ(w.in_slot("slalom_1/red")->id, red_id);
+    EXPECT_NEAR(w.in_slot("slalom_1/red")->position.y(), 0.2, 1e-9);
+}
+
+TEST(CourseModel, AnotherTaskListNeedsANewMap) {
+    World w;
+    // another template for a task
+    EXPECT_FALSE(w.map.course().update_layout(
+        changed_course("slalom_2", {6.0, 0.5, 0.0}, "gate")));
+    // a task removed
+    YAML::Node course = YAML::Load(kCourse)["course"];
+    course["tasks"].remove("slalom_2");
+    EXPECT_FALSE(w.map.course().update_layout(parse_course_config(course)));
+    // the course model off
+    course = YAML::Load(kCourse)["course"];
+    course["enable"] = false;
+    EXPECT_FALSE(w.map.course().update_layout(parse_course_config(course)));
+    // and nothing changed
+    EXPECT_NEAR(w.task("slalom_2").spec->prior_xy.y(), 0.5, 1e-9);
+}
+
 }  // namespace vortex::mission

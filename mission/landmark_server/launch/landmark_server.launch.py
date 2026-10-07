@@ -27,11 +27,13 @@ def launch_setup(context, *args, **kwargs):
     # config/course/<env>.yaml unless course:= names another file (a path,
     # or a name in config/course).
     templates_config = os.path.join(config_dir, "course", "templates.yaml")
+    # Layouts are read from (and set_course saves them to) the package
+    # source when the workspace is built with --symlink-install: the
+    # installed files link there, so a layout saved since the build is found.
+    course_dir = os.path.dirname(os.path.realpath(templates_config))
     course = LaunchConfiguration("course").perform(context) or env
     course_config = (
-        course
-        if os.path.isabs(course)
-        else os.path.join(config_dir, "course", f"{course}.yaml")
+        course if os.path.isabs(course) else os.path.join(course_dir, f"{course}.yaml")
     )
     if not os.path.isfile(course_config):
         raise RuntimeError(f"no course layout file {course_config}")
@@ -63,6 +65,7 @@ def launch_setup(context, *args, **kwargs):
                 env_config,
                 templates_config,
                 course_config,
+                {"course_file": course_config},
                 drone_params,
                 *optional,
                 {"use_sim_time": False},

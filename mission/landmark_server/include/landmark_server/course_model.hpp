@@ -132,8 +132,7 @@ struct KindTrack {
 };
 
 /// Votes of this tick: track id -> (reported class -> detections).
-using TrackVotes =
-    std::map<int, std::map<std::pair<uint16_t, uint16_t>, int>>;
+using TrackVotes = std::map<int, std::map<std::pair<uint16_t, uint16_t>, int>>;
 
 /**
  * @brief The course as a set of tasks with fixed parts (slots). ROS-free.
@@ -204,6 +203,22 @@ class CourseModel {
 
     /// New layout (restart / clear): all tasks unplaced.
     void reset(CourseConfig config);
+
+    /// What a new layout did to the tasks.
+    struct LayoutUpdate {
+        /// Not placed yet: searched at the new prior from the next tick.
+        std::vector<std::string> applied;
+        /// Placed: the new prior is stored, the fitted pose and parts kept.
+        std::vector<std::string> kept;
+    };
+    /**
+     * @brief New priors, start and tolerances for the same tasks (the same
+     * names with the same templates, and the same enable). Focus, commits
+     * and placed tasks stay.
+     * @return Empty when the task list, a template or enable differs: that
+     * layout needs reset() and a new map.
+     */
+    std::optional<LayoutUpdate> update_layout(CourseConfig config);
     void clear();
     const CourseConfig& config() const { return config_; }
     bool enabled() const { return config_.enable; }
@@ -248,19 +263,24 @@ class CourseModel {
     /// Reported classes of everything this part was seen as: its past
     /// tracks and the whole life of its track now (from its first
     /// detection, before it was confirmed).
-    std::map<std::pair<uint16_t, uint16_t>, int> part_votes(const Task& t,
-                                                            std::size_t slot) const;
+    std::map<std::pair<uint16_t, uint16_t>, int> part_votes(
+        const Task& t,
+        std::size_t slot) const;
     /// Whether a track of this kind can be the slot's part: of the variant
     /// in use once it is fixed, of any variant before.
-    bool slot_accepts(const Task& t, std::size_t slot, const LandmarkClassKey& kind) const;
+    bool slot_accepts(const Task& t,
+                      std::size_t slot,
+                      const LandmarkClassKey& kind) const;
     /// Task pose (odom) used now: placed pose, else the prior in the layout
     /// aligned to the tasks found so far. Empty without a course frame.
-    std::optional<Eigen::Isometry3d> working_pose(const Task& t,
-                                                  const CourseGeometry& geo) const;
+    std::optional<Eigen::Isometry3d> working_pose(
+        const Task& t,
+        const CourseGeometry& geo) const;
     std::string variant_name(const Task& t) const;
     /// Lane check: is an odom position inside the area the layout covers
     /// (aligned to the tasks found)? True without a course frame.
-    bool lane_allows(const Eigen::Vector3d& position, const CourseGeometry& geo) const;
+    bool lane_allows(const Eigen::Vector3d& position,
+                     const CourseGeometry& geo) const;
     /// The lane's corners in odom (for the markers); empty without a frame.
     std::vector<Eigen::Vector2d> lane_corners(const CourseGeometry& geo) const;
     /// How the layout is turned and moved to fit the tasks found (layout
@@ -271,10 +291,15 @@ class CourseModel {
 
    private:
     void build_tasks();
-    Eigen::Isometry3d prior_pose(const Task& t, const CourseGeometry& geo) const;
+    /// The lane from the priors (layout frame).
+    void update_lane();
+    Eigen::Isometry3d prior_pose(const Task& t,
+                                 const CourseGeometry& geo) const;
     /// Layout frame (priors, origin at the gate) <-> odom.
-    Eigen::Vector2d layout_to_odom(const Eigen::Vector2d& l, const CourseGeometry& geo) const;
-    Eigen::Vector2d odom_to_layout(const Eigen::Vector2d& o, const CourseGeometry& geo) const;
+    Eigen::Vector2d layout_to_odom(const Eigen::Vector2d& l,
+                                   const CourseGeometry& geo) const;
+    Eigen::Vector2d odom_to_layout(const Eigen::Vector2d& o,
+                                   const CourseGeometry& geo) const;
     /// The layout's bounds plus the margin (layout frame), set at reset.
     Eigen::Vector2d lane_min_{Eigen::Vector2d::Zero()};
     Eigen::Vector2d lane_max_{Eigen::Vector2d::Zero()};
@@ -290,9 +315,10 @@ class CourseModel {
     void refit(Task& t, const CourseGeometry& geo, Store& store);
     void decide_variant(Task& t);
     void attach(Task& t, std::size_t slot, int track_id, Store& store);
-    double class_agreement(const Task& t,
-                           const std::vector<std::pair<std::size_t, int>>& parts,
-                           const TrackVotes& votes) const;
+    double class_agreement(
+        const Task& t,
+        const std::vector<std::pair<std::size_t, int>>& parts,
+        const TrackVotes& votes) const;
 
     CourseConfig config_;
     std::vector<Task> tasks_;

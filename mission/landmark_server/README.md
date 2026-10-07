@@ -26,7 +26,7 @@ ros2 launch landmark_server landmark_server.launch.py env:=pool debug:=true # wi
 | Argument | Default | |
 |---|---|---|
 | `env` | `sim` | `sim` or `pool`: which measured values (`config/<env>.yaml`) and course layout (`config/course/<env>.yaml`) |
-| `course` | the one of `env` | Another course layout: a name in `config/course` or an absolute path |
+| `course` | the one of `env` | Another course layout: a name in `config/course` (`robosub_A`) or an absolute path |
 | `debug` | `false` | Debug topics and the map view (`config/debug.yaml`), see [Debugging](#debugging) |
 | `calibration` | `false` | Drift calibration session with an ArUco board (`config/calibration.yaml`), see [Measuring a pool](#measuring-a-pool) |
 | `drone`, `namespace` | `nautilus` | As for every node in `auv_setup` |
@@ -49,6 +49,8 @@ environment you meant.
 | `landmark_server/set_course_frame` | service, `SetCourseFrame` | Start value from the start pose and the coin flip (0, ±π/2 or π) |
 | `landmark_server/set_focus` | service, `SetMapFocus` | The tasks the mission works on (empty = all); `lock_others` freezes the rest; `commit`/`uncommit` freeze a task's pose and variant. BT node `SetMapFocus` |
 | `landmark_server/clear` | service, `std_srvs/Empty` | Empty the map and the tracker; the course frame stays |
+| `landmark_server/get_course` | service, `GetCourse` | A course layout (the one in use, or another by name): priors, start, templates for drawing, the stored GUI state, and every layout there is |
+| `landmark_server/set_course` | service, `SetCourse` | Put a layout in use and optionally save it, see [Course layouts](#course-layouts) |
 | `landmark_polling` | action, `LandmarkPolling` | Waits until a confirmed track of `type`/`subtype` (0 = any) exists and returns them all |
 
 ### Reading the map
@@ -124,7 +126,7 @@ The launch file loads these, later files winning:
 | `config/markers.yaml` | How the map view is drawn | Display only |
 | `config/<env>.yaml` | Measured in that pool: floor depth, table height, `detector_noise`, `graph.odom_noise`. `pool.yaml` marks each `MEASURE` with its test | Per pool |
 | `config/course/templates.yaml` | What each RoboSub prop looks like, and its tolerances | Per competition |
-| `config/course/<env>.yaml` | Where the tasks are: `start`, and `{template, prior}` per task | Per pool |
+| `config/course/<layout>.yaml` | Where the tasks are: `start`, and `{template, prior}` per task. One per pool or competition course | Per pool, live with `set_course` |
 | `config/debug.yaml` | Debug switches | `debug:=true` |
 | `config/calibration.yaml` | Drift calibration session | `calibration:=true` |
 
@@ -137,7 +139,9 @@ with its name, and a removed key is rejected with what replaced it.
 ROS parameters. A change is parsed by the same code as at start and
 applies at the next tick without losing the map; a bad value is rejected
 with the reason. `track_config`, `graph`, `detector_noise` and `course` are
-read at start: a new value is rejected with "restart".
+read at start: a new value is rejected with "restart". The course layout
+changes with `set_course` instead (below), and the `course` parameters follow
+it.
 
 ```bash
 N=/nautilus/landmark_server_node
@@ -189,11 +193,37 @@ scratch; it places the known tasks and fills in their parts.
 every class is a free landmark, with no gate yaw and no openings. That is
 a detector test, not a mission.
 
-**A new or moved task:** edit `tasks` in `course/<env>.yaml`. **A new
-arrangement of known classes:** a new template. **A new kind of object:** a
+**A new or moved task:** `set_course` (the operator GUI), or edit `tasks` in
+`course/<layout>.yaml`. **A new arrangement of known classes:** a new template. **A new kind of object:** a
 constant in `vortex_msgs` (`LandmarkType`/`LandmarkSubtype`) and a rebuild;
 the class names are generated from the messages, so the config knows it by
 name.
+
+### Course layouts
+
+A layout is where the tasks are in one pool or competition course:
+`config/course/<layout>.yaml` (`sim`, `pool`, `robosub_A`, `robosub_D` ...)
+next to `templates.yaml`. The launch argument `course:=<layout>` picks the
+one to start with. Set them on the dock before a run, or between attempts:
+
+- `get_course` returns a layout: the priors, the start, each template's
+  parts (for drawing) and the operator GUI's state stored with it.
+- `set_course` puts a layout in use. All or nothing: the request is parsed
+  by the same code as at start, and a mistake changes nothing.
+  - **Same tasks, new priors:** tasks not placed yet are searched at the new
+    prior from the next tick (`applied`); placed tasks keep their pose and
+    parts (`kept`). The map stays.
+  - **Another layout, task list, template or `enable`:** a new map (the map,
+    the tracker and the graph start over; the course frame stays).
+  - **`save`:** writes `<layout>.yaml` in the package source; the old file goes
+    to `config/course/backup/` (not in git). Saving needs a workspace built
+    with `colcon build --symlink-install`, so the installed files link to the
+    source; otherwise it is refused with that reason. Commit the layouts
+    after a competition day.
+
+```bash
+ros2 service call /nautilus/landmark_server/get_course vortex_msgs/srv/GetCourse '{layout: ""}'
+```
 
 ## Drift correction
 
@@ -384,10 +414,11 @@ the rate at 1.0: the servers tick on wall time.
 | `src/landmark_server_config.cpp` | Config files to settings, live parameter changes |
 | `src/landmark_server_publish.cpp` | `object_map`, course frame and TF, services |
 | `src/landmark_server_course.cpp` | Intake gate, tracker limits, `set_focus`, `course_state` |
+| `src/landmark_server_layout.cpp` | `get_course`, `set_course` |
 | `src/landmark_server_graph.cpp` | Odometry and detections into the graph, smoothed positions into the map |
 | `src/landmark_server_polling.cpp` | `LandmarkPolling` |
 | `src/landmark_server_debug.cpp`, `_markers.cpp` | Debug topics, the map view |
-| `src/class_config.cpp`, `course_model.cpp`, `structures.cpp`, `retained_landmarks.cpp`, `course_frame.cpp`, `map_rules.cpp` | ROS-free map logic |
+| `src/class_config.cpp`, `course_model.cpp`, `course_layout.cpp`, `structures.cpp`, `retained_landmarks.cpp`, `course_frame.cpp`, `map_rules.cpp` | ROS-free map logic |
 | `src/landmark_graph.cpp` | ROS-free iSAM2 backend; the only file with GTSAM |
 
 Tests (gtest, ROS-free): `colcon test --packages-select landmark_server`.

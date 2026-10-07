@@ -54,6 +54,7 @@ add_custom_command(
 add_library(${CORE_LIB_NAME} SHARED
   src/class_config.cpp
   src/course_frame.cpp
+  src/course_layout.cpp
   src/course_model.cpp
   src/map_rules.cpp
   src/retained_landmarks.cpp
@@ -83,6 +84,7 @@ add_library(${LIB_NAME} SHARED
   src/landmark_server_config.cpp
   src/landmark_server_publish.cpp
   src/landmark_server_course.cpp
+  src/landmark_server_layout.cpp
   src/landmark_server_graph.cpp
   src/landmark_server_polling.cpp
   src/landmark_server_debug.cpp
