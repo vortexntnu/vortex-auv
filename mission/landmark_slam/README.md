@@ -76,7 +76,6 @@ and `prior_map_sim.yaml` (the simulator course).
 | `default_prior_sigma_xy` | 1.0 | Prior entry `sigma_xy` when it gives none: votes are taken within 3 σ + `vote_radius_m` of an entry |
 | `gate_prob` | 0.95 | Association gate (χ² per degree of freedom) |
 | `min_votes`, `vote_radius_m` | 3, 0.5 | New landmark: vote weight within the radius |
-| `start_yaw_offset_deg` | 0 | Coin flip: start heading relative to `initial_pose.yaw` (runtime) |
 | `gate.panel_classes`, `gate.min_separation_m`, `gate.max_separation_m`, `gate.approach_m`, `gate.depth_below_panel_m` | panels, 0.2, 2.5, 1.0, 0.5 | Gate frames |
 | `bearing_sigma` | 0.03 | Detection bearing noise [rad] (measured) |
 | `range_sigma_a`, `range_sigma_b` | 0.1, 0.05 | Range noise σ_r = a + b·r (measured) |
@@ -91,12 +90,17 @@ role's opening. All have +X through the gate, away from the start side, so
 they do not flip once the vehicle is through. Drive them with `GoToFrame`
 (vortex_bt_nodes).
 
-**Coin flip** (prior map only): the start heading relative to
-`initial_pose.yaw`, set at the start; the map is anchored again at once at
-the current pose:
+**The start and the coin flip**: the map is anchored at `mission/wipe` (or
+at the first odometry): the vehicle's pose then is `initial_pose`. So at the
+start: put the vehicle at the start facing along `initial_pose.yaw` (the
+course direction), anchor, then turn it for the coin flip. The odometry
+follows the turn, so the map keeps the course's heading and no angle is
+entered; the tree's first move turns the vehicle to the course. Anchor
+before autonomous mode: `mission/wipe` also stops waypoint_manager's and the
+reference filter's goals.
 
 ```bash
-ros2 param set /nautilus/landmark_slam_node start_yaw_offset_deg 90.0
+ros2 topic pub --once /nautilus/mission/wipe std_msgs/msg/Empty   # or the GUI's Anchor
 ```
 
 **Adding an object type** is a YAML entry only: a class in
@@ -112,9 +116,8 @@ post taken for a slalom pipe) never becomes a landmark.
 vehicle is up): the parameter `prior_map` holds the prior map as text (at
 startup, the file's). Setting it checks it (a bad map is rejected with the
 reason), saves it on the vehicle (`$ROS_HOME/landmark_slam/prior_map.yaml`,
-the old one kept with a time stamp) and uses it from the next mission start
-(`mission/wipe`, sent by `StartRun`), when the map is rebuilt: never halfway
-through a run. After a restart the launch file's map is used again; to keep
+the old one kept with a time stamp) and uses it from the next anchoring
+(`mission/wipe`), when the map is rebuilt: never halfway through a run. After a restart the launch file's map is used again; to keep
 a sent one, launch with the path the log gives or copy it into `config/`.
 
 ```bash
@@ -127,7 +130,8 @@ put in and the objects relative to it (click: new entry, drag: move, right
 click: remove). After a practice run the live map shows where the objects
 really are (crosses in the class colour with how often each was seen; a real
 object is seen far more often than a phantom): drag the entries there.
-*Send* sets `prior_map`; *Save as* keeps a copy on the topside.
+*Send* sets `prior_map`; *Anchor here* starts a new run at the vehicle's
+pose (`mission/wipe`); *Save as* keeps a copy on the topside.
 
 ```bash
 ros2 run landmark_slam prior_map_gui.py --ros-args -r __ns:=/nautilus

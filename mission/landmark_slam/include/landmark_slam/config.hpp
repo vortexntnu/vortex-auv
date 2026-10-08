@@ -66,9 +66,6 @@ struct Params {
     double bearing_sigma{0.03};
     double range_sigma_a{0.1};
     double range_sigma_b{0.05};
-    /// Coin flip: start heading relative to initial_pose.yaw (prior map
-    /// only), set at runtime.
-    double start_yaw_offset_deg{0.0};
     GateParams gate;
 
     /// Range noise sigma_r = a + b * r.

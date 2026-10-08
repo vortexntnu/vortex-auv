@@ -185,10 +185,8 @@ class LandmarkSlamNode : public rclcpp::Node {
         nis_pub_ = create_publisher<std_msgs::msg::Float64>(
             "landmark_slam/nis", qos::reliable_profile(10));
 
-        // The coin flip, set at the start (e.g. ros2 param set ...
-        // start_yaw_offset_deg 90): the map is anchored again at once. A new
-        // prior_map (the file's text, scripts/prior_map_gui.py) counts from
-        // the next mission/wipe.
+        // A new prior_map (the file's text, scripts/prior_map_gui.py) counts
+        // from the next mission/wipe.
         param_cb_ = add_on_set_parameters_callback(
             [this](const std::vector<rclcpp::Parameter>& params) {
                 return on_set_parameters(params);
@@ -222,8 +220,6 @@ class LandmarkSlamNode : public rclcpp::Node {
         p.bearing_sigma = declare_parameter<double>("bearing_sigma");
         p.range_sigma_a = declare_parameter<double>("range_sigma_a");
         p.range_sigma_b = declare_parameter<double>("range_sigma_b");
-        p.start_yaw_offset_deg =
-            declare_parameter<double>("start_yaw_offset_deg", 0.0);
         p.gate.panel_classes =
             declare_parameter<std::vector<std::string>>("gate.panel_classes");
         p.gate.min_separation_m =
@@ -261,30 +257,6 @@ class LandmarkSlamNode : public rclcpp::Node {
                     "mission/wipe; to keep it after a restart: "
                     "prior_map_file:={}",
                     params_.prior_map_file);
-                continue;
-            }
-            if (p.get_name() != "start_yaw_offset_deg") {
-                continue;
-            }
-            const double deg = p.as_double();
-            if (!std::isfinite(deg)) {
-                result.successful = false;
-                result.reason = "start_yaw_offset_deg must be finite";
-                return result;
-            }
-            params_.start_yaw_offset_deg = deg;
-            cfg_.params.start_yaw_offset_deg = deg;
-            if (!cfg_.initial_pose) {
-                spdlog::warn(
-                    "landmark_slam: start_yaw_offset_deg only "
-                    "matters with a prior map");
-            }
-            if (odom_) {
-                reset(odom_->T, odom_->t);
-                spdlog::info(
-                    "landmark_slam: start heading {:+.1f} deg, map "
-                    "anchored again at the current pose",
-                    deg);
             }
         }
         return result;

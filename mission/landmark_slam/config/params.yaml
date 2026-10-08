@@ -38,11 +38,6 @@
     range_sigma_a: 0.1
     range_sigma_b: 0.05
 
-    # Coin flip: start heading relative to initial_pose.yaw (prior map only).
-    # Set it at the start; the map is anchored again at once:
-    #   ros2 param set /nautilus/landmark_slam_node start_yaw_offset_deg 90.0
-    start_yaw_offset_deg: 0.0
-
     # Gate frames from the two role panels (empty list = off), all +X
     # through the gate away from the start side: gate_middle between them,
     # and per panel <panel>_entrance / <panel>_exit, approach_m before / after

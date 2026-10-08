@@ -11,8 +11,10 @@ drawing has them, relative to it. After a practice run the live map shows
 where the objects really are (crosses in the class colour, with how often
 each was seen: a real object is seen far more often than a phantom): drag
 the entries there. Send sets prior_map: landmark_slam checks it, saves
-it on the vehicle and uses it from the next mission start (mission/wipe,
-sent by StartRun), when the map is rebuilt.
+it on the vehicle and uses it from the next anchoring. Anchor here starts a
+new run (mission/wipe): the map is rebuilt with the vehicle's pose as the
+start. Anchor with the vehicle at the start facing the course, then turn it
+for the coin flip.
 
     left click        new entry of the chosen class
     left drag         move an entry or the start
@@ -25,7 +27,7 @@ import os
 import threading
 import time
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import filedialog, messagebox, ttk
 
 import rclpy
 import yaml
@@ -35,6 +37,7 @@ from rcl_interfaces.srv import GetParameters, SetParameters
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+from std_msgs.msg import Empty
 from tf2_ros import Buffer, TransformListener
 from vortex_msgs.msg import LandmarkTrackArray
 
@@ -104,6 +107,11 @@ class Ros(Node):
         self.get_cli = self.create_client(GetParameters, f"{self.slam}/get_parameters")
         self.set_cli = self.create_client(SetParameters, f"{self.slam}/set_parameters")
         self.tracks = []
+        self.wipe_pub = self.create_publisher(
+            Empty,
+            "mission/wipe",
+            QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE),
+        )
         self.tf = Buffer()
         self.tf_listener = TransformListener(self.tf, self)
         self.create_subscription(
@@ -195,6 +203,7 @@ class Gui:
         ttk.Separator(side).pack(fill=tk.X, pady=6)
         for text, cmd in [
             ("Send to landmark_slam", self.send),
+            ("Anchor here (new run)", self.anchor),
             ("Get from landmark_slam", self.get),
             ("Open file...", self.open_file),
             ("Save as...", self.save_as),
@@ -288,6 +297,17 @@ class Gui:
         if path:
             open(path, "w").write(self.prior.dump())
             self.status.set(f"saved {path}")
+
+    def anchor(self):
+        if not messagebox.askyesno(
+            "Anchor",
+            "Start a new run here? The map is rebuilt with the vehicle's pose as "
+            "the start, and waypoint_manager's goals stop. The vehicle should be "
+            "at the start, facing the course.",
+        ):
+            return
+        self.ros.wipe_pub.publish(Empty())
+        self.status.set("anchored: turn the vehicle for the coin flip now")
 
     def send(self):
         ok, reason = self.ros.set_prior_map(self.prior.dump())

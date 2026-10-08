@@ -82,9 +82,7 @@ void LandmarkGraph::reset(const Config& cfg,
         const InitialPose& ip = *cfg.initial_pose;
         const gtsam::Vector3 rpy = T_odom_base.rotation().rpy();
         const double z = ip.z.value_or(T_odom_base.z());
-        const double yaw =
-            ip.yaw + cfg.params.start_yaw_offset_deg * std::numbers::pi / 180.0;
-        X0 = gtsam::Pose3(gtsam::Rot3::Ypr(yaw, rpy(1), rpy(0)),
+        X0 = gtsam::Pose3(gtsam::Rot3::Ypr(ip.yaw, rpy(1), rpy(0)),
                           gtsam::Point3(ip.x, ip.y, z));
         X0_noise = sigmas(kAttitudeSigma, kAttitudeSigma, ip.sigma_yaw,
                           ip.sigma_xy, ip.sigma_xy, kDepthSigma);
