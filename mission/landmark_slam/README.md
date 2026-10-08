@@ -69,7 +69,7 @@ and `prior_map_sim.yaml` (the simulator course).
 | Parameter | Default | |
 |---|---|---|
 | `use_prior_map` | true | Load `prior_map.yaml`; else `map` = odom at startup |
-| `prior_map_file`, `classes_file` | config/ | Paths (launch arguments) |
+| `prior_map_file`, `classes_file` | config/ | Paths (launch arguments); `prior_map_file` also at runtime |
 | `keyframe_dist_m`, `keyframe_time_s` | 0.5, 1.0 | New keyframe after this distance or time |
 | `odom_sigma_trans_per_m`, `odom_sigma_yaw_per_m` | 0.03, 0.01 | Odometry noise per metre (measured) |
 | `default_prior_sigma_xy` | 1.0 | Prior entry `sigma_xy` when it gives none: votes are taken within 3 σ + `vote_radius_m` of an entry |
@@ -106,6 +106,27 @@ drawing). The prior map does not pull the map: a prior with an error per task
 (a whole slalom set 0.5 m off) would bend it. It only decides where votes for
 a class count, so a false detection far from where the object can be (a gate
 post taken for a slalom pipe) never becomes a landmark.
+
+**Changing the prior map at runtime**: set `prior_map_file`. The file is
+read at once (a bad file is rejected with the reason and the old map is
+kept); its entries count at once (`prior_<class>` frames, vote filter), its
+start pose from the next reset (`mission/wipe`, i.e. `StartRun`, or the coin
+flip). The map built so far is kept.
+
+```bash
+ros2 param set /nautilus/landmark_slam_node prior_map_file /path/prior_map.yaml
+```
+
+Or draw it: `prior_map_gui.py` opens the prior map landmark_slam has, with
+the live map and the vehicle on top. Place the start where the vehicle is
+put in and the objects relative to it (click: new entry, drag: move, right
+click: remove); *Send* writes `out_file` (default `~/.ros/prior_map.yaml`)
+and sets `prior_map_file`. The file has to be on the machine landmark_slam
+runs on.
+
+```bash
+ros2 run landmark_slam prior_map_gui.py --ros-args -r __ns:=/nautilus
+```
 
 ## Noise calibration (once, not tuning)
 

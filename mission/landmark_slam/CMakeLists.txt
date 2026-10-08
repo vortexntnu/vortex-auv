@@ -73,7 +73,7 @@ install(DIRECTORY config launch
   DESTINATION share/${PROJECT_NAME}/
 )
 
-install(PROGRAMS scripts/calibrate_noise.py
+install(PROGRAMS scripts/calibrate_noise.py scripts/prior_map_gui.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

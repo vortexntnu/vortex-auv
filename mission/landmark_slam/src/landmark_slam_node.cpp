@@ -136,7 +136,8 @@ class LandmarkSlamNode : public rclcpp::Node {
             "landmark_slam/nis", qos::reliable_profile(10));
 
         // The coin flip, set at the start (e.g. ros2 param set ...
-        // start_yaw_offset_deg 90): the map is anchored again at once.
+        // start_yaw_offset_deg 90): the map is anchored again at once. A new
+        // prior_map_file is read at once (scripts/prior_map_gui.py).
         param_cb_ = add_on_set_parameters_callback(
             [this](const std::vector<rclcpp::Parameter>& params) {
                 return on_set_parameters(params);
@@ -188,6 +189,28 @@ class LandmarkSlamNode : public rclcpp::Node {
         rcl_interfaces::msg::SetParametersResult result;
         result.successful = true;
         for (const auto& p : params) {
+            if (p.get_name() == "prior_map_file") {
+                // A new prior map: its entries (search frames, vote filter)
+                // count at once, its start pose from the next reset.
+                Params next = params_;
+                next.prior_map_file = p.as_string();
+                try {
+                    const Config cfg = load_config(next);
+                    params_ = next;
+                    cfg_.params.prior_map_file = next.prior_map_file;
+                    cfg_.prior_landmarks = cfg.prior_landmarks;
+                    cfg_.initial_pose = cfg.initial_pose;
+                } catch (const std::exception& e) {
+                    result.successful = false;
+                    result.reason = e.what();
+                    return result;
+                }
+                spdlog::info(
+                    "landmark_slam: prior map {} ({} landmarks), start pose "
+                    "from the next reset",
+                    next.prior_map_file, cfg_.prior_landmarks.size());
+                continue;
+            }
             if (p.get_name() != "start_yaw_offset_deg") {
                 continue;
             }
