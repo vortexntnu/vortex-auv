@@ -69,7 +69,8 @@ and `prior_map_sim.yaml` (the simulator course).
 | Parameter | Default | |
 |---|---|---|
 | `use_prior_map` | true | Load `prior_map.yaml`; else `map` = odom at startup |
-| `prior_map_file`, `classes_file` | config/ | Paths (launch arguments); `prior_map_file` can be set while running, used from the next `mission/wipe` |
+| `prior_map_file`, `classes_file` | config/ | Paths (launch arguments) |
+| `prior_map` | the file's text | The prior map as text: set it to send a new one (runtime, see below) |
 | `keyframe_dist_m`, `keyframe_time_s` | 0.5, 1.0 | New keyframe after this distance or time |
 | `odom_sigma_trans_per_m`, `odom_sigma_yaw_per_m` | 0.03, 0.01 | Odometry noise per metre (measured) |
 | `default_prior_sigma_xy` | 1.0 | Prior entry `sigma_xy` when it gives none: votes are taken within 3 σ + `vote_radius_m` of an entry |
@@ -107,21 +108,26 @@ drawing). The prior map does not pull the map: a prior with an error per task
 a class count, so a false detection far from where the object can be (a gate
 post taken for a slalom pipe) never becomes a landmark.
 
-**Changing the prior map without a restart**: set `prior_map_file`. The
-file is checked at once (a bad file is rejected with the reason) and used
-from the next mission start (`mission/wipe`, sent by `StartRun`), when the
-map is rebuilt: never halfway through a run.
+**Changing the prior map without a restart** (from the topside, while the
+vehicle is up): the parameter `prior_map` holds the prior map as text (at
+startup, the file's). Setting it checks it (a bad map is rejected with the
+reason), saves it on the vehicle (`$ROS_HOME/landmark_slam/prior_map.yaml`,
+the old one kept with a time stamp) and uses it from the next mission start
+(`mission/wipe`, sent by `StartRun`), when the map is rebuilt: never halfway
+through a run. After a restart the launch file's map is used again; to keep
+a sent one, launch with the path the log gives or copy it into `config/`.
 
 ```bash
-ros2 param set /nautilus/landmark_slam_node prior_map_file /path/prior_map.yaml
+ros2 param set /nautilus/landmark_slam_node prior_map "$(cat prior_map.yaml)"
 ```
 
-Or draw it: `prior_map_gui.py` opens the prior map landmark_slam has, with
+Or draw it: `prior_map_gui.py` gets the prior map from landmark_slam, with
 the live map and the vehicle on top. Place the start where the vehicle is
 put in and the objects relative to it (click: new entry, drag: move, right
-click: remove); *Send* writes `out_file` (default `~/.ros/prior_map.yaml`)
-and sets `prior_map_file` for the next mission start. The file has to be on
-the machine landmark_slam runs on.
+click: remove). After a practice run the live map shows where the objects
+really are (crosses in the class colour with how often each was seen; a real
+object is seen far more often than a phantom): drag the entries there.
+*Send* sets `prior_map`; *Save as* keeps a copy on the topside.
 
 ```bash
 ros2 run landmark_slam prior_map_gui.py --ros-args -r __ns:=/nautilus

@@ -3,11 +3,16 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 
+#include <cstdlib>
+#include <ctime>
 #include <deque>
+#include <filesystem>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <numeric>
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -87,6 +92,45 @@ std::array<double, 36> to_ros_cov(const LandmarkState& l) {
     return a;
 }
 
+std::string read_text(const std::string& path) {
+    std::ifstream f(path);
+    std::stringstream text;
+    text << f.rdbuf();
+    return text.str();
+}
+
+/// Check a prior map sent as text and keep it on this machine
+/// ($ROS_HOME/landmark_slam/prior_map.yaml, the old one kept with a time
+/// stamp). Returns its path; throws with the reason on a bad map.
+std::string save_prior_map(const std::string& text, Params params) {
+    namespace fs = std::filesystem;
+    const char* ros_home = std::getenv("ROS_HOME");
+    const char* home = std::getenv("HOME");
+    const fs::path dir =
+        (ros_home ? fs::path(ros_home) : fs::path(home ? home : ".") / ".ros") /
+        "landmark_slam";
+    fs::create_directories(dir);
+    const fs::path path = dir / "prior_map.yaml";
+    const fs::path next = dir / "prior_map.yaml.new";
+    std::ofstream(next) << text;
+    params.prior_map_file = next.string();
+    try {
+        load_config(params);
+    } catch (const std::exception&) {
+        fs::remove(next);
+        throw;
+    }
+    if (fs::exists(path)) {
+        const std::time_t now = std::time(nullptr);
+        char stamp[32];
+        std::strftime(stamp, sizeof(stamp), "%Y%m%d_%H%M%S",
+                      std::localtime(&now));
+        fs::rename(path, dir / ("prior_map_" + std::string(stamp) + ".yaml"));
+    }
+    fs::rename(next, path);
+    return path.string();
+}
+
 }  // namespace
 
 class LandmarkSlamNode : public rclcpp::Node {
@@ -95,6 +139,12 @@ class LandmarkSlamNode : public rclcpp::Node {
         : rclcpp::Node("landmark_slam_node", options) {
         declare_params();
         cfg_ = load_config(params_);  // fails loudly on a bad file
+        // The prior map as text: what prior_map_gui.py gets and sends.
+        declare_parameter<std::string>(
+            "prior_map",
+            params_.use_prior_map && !params_.prior_map_file.empty()
+                ? read_text(params_.prior_map_file)
+                : "");
 
         std::string prefix = declare_parameter<std::string>("frame_prefix", "");
         if (!prefix.empty() && prefix.back() == '/') {
@@ -137,8 +187,8 @@ class LandmarkSlamNode : public rclcpp::Node {
 
         // The coin flip, set at the start (e.g. ros2 param set ...
         // start_yaw_offset_deg 90): the map is anchored again at once. A new
-        // prior_map_file counts from the next mission/wipe
-        // (scripts/prior_map_gui.py).
+        // prior_map (the file's text, scripts/prior_map_gui.py) counts from
+        // the next mission/wipe.
         param_cb_ = add_on_set_parameters_callback(
             [this](const std::vector<rclcpp::Parameter>& params) {
                 return on_set_parameters(params);
@@ -190,22 +240,27 @@ class LandmarkSlamNode : public rclcpp::Node {
         rcl_interfaces::msg::SetParametersResult result;
         result.successful = true;
         for (const auto& p : params) {
-            if (p.get_name() == "prior_map_file") {
-                // Checked now, used from the next mission/wipe (the map is
-                // rebuilt with it then).
-                Params next = params_;
-                next.prior_map_file = p.as_string();
+            if (p.get_name() == "prior_map") {
+                // Checked and saved now, used from the next mission/wipe
+                // (the map is rebuilt with it then).
+                if (!params_.use_prior_map) {
+                    result.successful = false;
+                    result.reason = "use_prior_map is false";
+                    return result;
+                }
                 try {
-                    load_config(next);
+                    params_.prior_map_file =
+                        save_prior_map(p.as_string(), params_);
                 } catch (const std::exception& e) {
                     result.successful = false;
                     result.reason = e.what();
                     return result;
                 }
-                params_.prior_map_file = next.prior_map_file;
                 spdlog::info(
-                    "landmark_slam: prior map {} from the next mission/wipe",
-                    next.prior_map_file);
+                    "landmark_slam: new prior map, used from the next "
+                    "mission/wipe; to keep it after a restart: "
+                    "prior_map_file:={}",
+                    params_.prior_map_file);
                 continue;
             }
             if (p.get_name() != "start_yaw_offset_deg") {

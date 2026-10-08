@@ -4,20 +4,20 @@
 Usage:
     ros2 run landmark_slam prior_map_gui.py --ros-args -r __ns:=/nautilus
 
-Opens the prior map landmark_slam has (its prior_map_file), with the live
-map (grey) and the vehicle (black) on top. Place the start where the vehicle
-is put in the water and the objects where the course drawing has them,
-relative to it. Send writes out_file and sets landmark_slam's
-prior_map_file; it is used from the next mission start (mission/wipe, sent
-by StartRun), when the map is rebuilt.
+Gets the prior map from landmark_slam (its prior_map parameter: the file's
+text), with the live map (grey) and the vehicle (black) on top. Place the
+start where the vehicle is put in the water and the objects where the course
+drawing has them, relative to it. After a practice run the live map shows
+where the objects really are (crosses in the class colour, with how often
+each was seen: a real object is seen far more often than a phantom): drag
+the entries there. Send sets prior_map: landmark_slam checks it, saves
+it on the vehicle and uses it from the next mission start (mission/wipe,
+sent by StartRun), when the map is rebuilt.
 
     left click        new entry of the chosen class
     left drag         move an entry or the start
     right click       remove an entry
     wheel, middle drag  zoom, pan
-
-The file must be readable by landmark_slam: on the vehicle, run this there
-or copy out_file over and set prior_map_file by hand.
 """
 
 import math
@@ -94,9 +94,6 @@ class Ros(Node):
         ns = self.get_namespace().strip("/")
         prefix = ns + "/" if ns else ""
         self.slam = self.declare_parameter("slam_node", "landmark_slam_node").value
-        self.out_file = os.path.expanduser(
-            self.declare_parameter("out_file", "~/.ros/prior_map.yaml").value
-        )
         self.classes_file = self.declare_parameter(
             "classes_file", os.path.join(CONFIG_DIR, "landmark_classes.yaml")
         ).value
@@ -129,16 +126,16 @@ class Ros(Node):
             time.sleep(0.05)
         return future.result()
 
-    def prior_map_file(self):
-        res = self.call(self.get_cli, GetParameters.Request(names=["prior_map_file"]))
+    def prior_map(self):
+        res = self.call(self.get_cli, GetParameters.Request(names=["prior_map"]))
         return res.values[0].string_value if res and res.values else None
 
-    def set_prior_map_file(self, path):
-        value = ParameterValue(type=ParameterType.PARAMETER_STRING, string_value=path)
+    def set_prior_map(self, text):
+        value = ParameterValue(type=ParameterType.PARAMETER_STRING, string_value=text)
         res = self.call(
             self.set_cli,
             SetParameters.Request(
-                parameters=[Parameter(name="prior_map_file", value=value)]
+                parameters=[Parameter(name="prior_map", value=value)]
             ),
         )
         if res is None:
@@ -160,7 +157,9 @@ class Ros(Node):
 class Gui:
     def __init__(self, root, ros):
         self.root, self.ros = root, ros
-        self.classes = sorted(yaml.safe_load(open(ros.classes_file)))
+        classes = yaml.safe_load(open(ros.classes_file))
+        self.classes = sorted(classes)
+        self.class_of = {(c["type"], c["subtype"]): n for n, c in classes.items()}
         self.color = {c: COLORS[i % len(COLORS)] for i, c in enumerate(self.classes)}
         self.prior = PriorMap()
         self.scale, self.origin = 30.0, (100.0, 400.0)  # px per m, screen of (0, 0)
@@ -268,15 +267,12 @@ class Gui:
         self.loading = False
 
     def get(self):
-        path = self.ros.prior_map_file()
-        if not path:
+        text = self.ros.prior_map()
+        if text is None:
             self.status.set(f"{self.ros.slam} did not answer: empty map")
             self.load({}, "nothing")
             return
-        try:
-            self.load(yaml.safe_load(open(path)), path)
-        except OSError as e:
-            self.status.set(f"cannot read {path}: {e}")
+        self.load(yaml.safe_load(text), self.ros.slam)
 
     def open_file(self):
         path = filedialog.askopenfilename(
@@ -294,14 +290,9 @@ class Gui:
             self.status.set(f"saved {path}")
 
     def send(self):
-        path = self.ros.out_file
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        open(path + ".tmp", "w").write(self.prior.dump())
-        os.replace(path + ".tmp", path)
-        ok, reason = self.ros.set_prior_map_file(path)
+        ok, reason = self.ros.set_prior_map(self.prior.dump())
         self.status.set(
-            f"sent {len(self.prior.entries)} entries ({path}); the start pose "
-            "counts from the next reset"
+            f"sent {len(self.prior.entries)} entries, used from the next mission start"
             if ok
             else f"rejected: {reason}"
         )
@@ -409,11 +400,21 @@ class Gui:
             text=f"grid {step} m, x right, y up (map frame)",
         )
 
-        for t in self.ros.tracks:
-            p = t.landmark.pose.pose.position
-            px, py = self.to_px(p.x, p.y)
-            c.create_line(px - 4, py - 4, px + 4, py + 4, fill="#999")
-            c.create_line(px - 4, py + 4, px + 4, py - 4, fill="#999")
+        for t in self.ros.tracks:  # the live map
+            lm = t.landmark
+            cls = self.class_of.get((lm.type.value, lm.subtype.value), "?")
+            col = self.color.get(cls, "#999")
+            px, py = self.to_px(lm.pose.pose.position.x, lm.pose.pose.position.y)
+            c.create_line(px - 5, py - 5, px + 5, py + 5, fill=col, width=2)
+            c.create_line(px - 5, py + 5, px + 5, py - 5, fill=col, width=2)
+            c.create_text(
+                px + 6,
+                py + 6,
+                anchor="nw",
+                fill=col,
+                font=("TkDefaultFont", 7),
+                text=f"{cls} n={t.observations}",
+            )
         for e in self.prior.entries:
             col = self.color.get(e["class"], "black")
             px, py = self.to_px(e["x"], e["y"])
