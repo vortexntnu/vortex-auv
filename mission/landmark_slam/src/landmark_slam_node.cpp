@@ -37,6 +37,10 @@ constexpr double kNoOrientationVariance = 1000.0;  // perception convention
 constexpr std::size_t kNisWindow = 50;
 constexpr double kMinRangeM = 0.05;
 constexpr double kFramePeriodS = 0.1;  // landmark and gate TF frames
+// A landmark seen fewer times than this and not for kForgetS is hidden: a
+// phantom or a bad view, not an object.
+constexpr int kMinSupport = 30;
+constexpr double kForgetS = 30.0;
 
 gtsam::Pose3 to_pose3(const geometry_msgs::msg::Pose& p) {
     return {gtsam::Rot3::Quaternion(p.orientation.w, p.orientation.x,
@@ -160,10 +164,6 @@ class LandmarkSlamNode : public rclcpp::Node {
             declare_parameter<double>("odom_sigma_yaw_per_m");
         p.default_prior_sigma_xy =
             declare_parameter<double>("default_prior_sigma_xy");
-        p.default_prior_sigma_z =
-            declare_parameter<double>("default_prior_sigma_z");
-        p.default_prior_sigma_yaw =
-            declare_parameter<double>("default_prior_sigma_yaw");
         p.gate_prob = declare_parameter<double>("gate_prob");
         p.min_votes = declare_parameter<double>("min_votes");
         p.vote_radius_m = declare_parameter<double>("vote_radius_m");
@@ -221,9 +221,6 @@ class LandmarkSlamNode : public rclcpp::Node {
         pending_.clear();
         nis_.clear();
         next_id_ = 1;
-        for (const auto& l : cfg_.prior_landmarks) {
-            next_id_ = std::max(next_id_, l.id + 1);
-        }
         T_map_odom_pub_ = graph_.map_to_odom();
         publish_map(t);
     }
@@ -456,17 +453,22 @@ class LandmarkSlamNode : public rclcpp::Node {
         markers.markers.push_back(clear);
 
         frames_.clear();
-        // Where the run started (return home), and per class the best
-        // landmark (lowest sigma_xy, then most observations): a target for
-        // the tree before it knows the id.
+        // Where the run started (return home), and per class the landmark
+        // seen most often (a real object is seen far more often than a
+        // phantom or a confused detection): a target for the tree before it
+        // knows the id.
         frames_.push_back(frame("start", graph_.keyframe_pose(0)));
-        std::map<std::string, const LandmarkState*> best;
+        std::vector<LandmarkState> shown;
         for (const LandmarkState& l : graph_.landmarks()) {
+            if (l.n_obs == 0 || l.n_obs >= kMinSupport ||
+                t - l.last_seen < kForgetS) {
+                shown.push_back(l);
+            }
+        }
+        std::map<std::string, const LandmarkState*> best;
+        for (const LandmarkState& l : shown) {
             const LandmarkState*& b = best[l.cls.name];
-            const double s = l.relative_cov(0, 0) + l.relative_cov(1, 1);
-            if (!b || s < b->relative_cov(0, 0) + b->relative_cov(1, 1) ||
-                (s == b->relative_cov(0, 0) + b->relative_cov(1, 1) &&
-                 l.n_obs > b->n_obs)) {
+            if (!b || l.n_obs > b->n_obs) {
                 b = &l;
             }
         }
@@ -474,11 +476,11 @@ class LandmarkSlamNode : public rclcpp::Node {
             frames_.push_back(frame(cls, l->pose));
         }
         for (const TargetFrame& g :
-             gate_frames(graph_.landmarks(), cfg_.params.gate,
+             gate_frames(shown, cfg_.params.gate,
                          graph_.keyframe_pose(0).translation())) {
             frames_.push_back(frame(g.name, g.pose));
         }
-        for (const LandmarkState& l : graph_.landmarks()) {
+        for (const LandmarkState& l : shown) {
             frames_.push_back(
                 frame(fmt::format("{}_{}", l.cls.name, l.id), l.pose));
             vortex_msgs::msg::LandmarkTrack track;

@@ -96,26 +96,6 @@ void LandmarkGraph::reset(const Config& cfg,
     keyframes_.push_back({T_odom_base, t});
     add_absolute_factors(0, T_odom_base);
 
-    for (const PriorLandmark& pl : cfg.prior_landmarks) {
-        const auto cls = std::find_if(
-            cfg.classes.begin(), cfg.classes.end(),
-            [&](const ClassConfig& c) { return c.name == pl.class_name; });
-        const bool yaw_free = cls->symmetry_deg >= 360.0;
-        const gtsam::Pose3 pose(gtsam::Rot3::Yaw(pl.yaw),
-                                gtsam::Point3(pl.x, pl.y, pl.z));
-        new_factors_.emplace_shared<gtsam::PriorFactor<gtsam::Pose3>>(
-            L(pl.id), pose,
-            robust(sigmas(kLevelSigma, kLevelSigma,
-                          yaw_free ? kFreeYawSigma : pl.sigma_yaw, pl.sigma_xy,
-                          pl.sigma_xy, pl.sigma_z)));
-        new_values_.insert(L(pl.id), pose);
-        LandmarkState s;
-        s.id = pl.id;
-        s.cls = *cls;
-        s.pose = pose;
-        s.yaw_known = !yaw_free;
-        landmarks_[pl.id] = s;
-    }
     update();
 }
 

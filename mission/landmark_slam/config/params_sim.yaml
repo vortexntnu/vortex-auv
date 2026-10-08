@@ -1,0 +1,8 @@
+# Simulator values, loaded on top of params.yaml with env:=sim. Detection
+# noise of the dummy perception's realistic profile, measured with
+# scripts/calibrate_noise.py on a course run (NIS ~1 with these).
+/**:
+  ros__parameters:
+    bearing_sigma: 0.0216
+    range_sigma_a: 0.0647
+    range_sigma_b: 0.0338

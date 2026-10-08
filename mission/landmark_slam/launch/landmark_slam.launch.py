@@ -30,6 +30,12 @@ def launch_setup(context, *args, **kwargs):
             namespace=namespace,
             parameters=[
                 LaunchConfiguration("params_file").perform(context),
+                # Simulator noise values on top (env:=sim).
+                *(
+                    [os.path.join(CONFIG_DIR, "params_sim.yaml")]
+                    if LaunchConfiguration("env").perform(context) == "sim"
+                    else []
+                ),
                 drone_params,
                 {
                     "classes_file": LaunchConfiguration("classes_file").perform(
@@ -72,6 +78,11 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "prior_map_file",
                 default_value=os.path.join(CONFIG_DIR, "prior_map.yaml"),
+            ),
+            DeclareLaunchArgument(
+                "env",
+                default_value="pool",
+                description="pool, or sim (params_sim.yaml on top)",
             ),
             DeclareLaunchArgument(
                 "odom_topic",

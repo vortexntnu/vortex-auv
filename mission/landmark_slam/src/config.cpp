@@ -80,54 +80,24 @@ void load_prior_map(const std::string& path, Config& cfg) {
     }
     cfg.initial_pose = init;
 
-    std::set<int> ids;
     for (const auto& n : root["landmarks"]) {
         PriorLandmark l;
         const std::string where = fmt::format("{}: landmark", path);
-        l.id = required<int>(n, "id", where);
         l.class_name = required<std::string>(n, "class", where);
         l.x = required<double>(n, "x", where);
         l.y = required<double>(n, "y", where);
-        l.z = required<double>(n, "z", where);
-        l.yaw = optional_or<double>(n, "yaw", 0.0);
         l.sigma_xy =
             optional_or<double>(n, "sigma_xy", p.default_prior_sigma_xy);
-        l.sigma_z = optional_or<double>(n, "sigma_z", p.default_prior_sigma_z);
-        l.sigma_yaw =
-            optional_or<double>(n, "sigma_yaw", p.default_prior_sigma_yaw);
         bool known = false;
         for (const auto& c : cfg.classes) {
             known = known || c.name == l.class_name;
         }
         if (!known) {
             throw std::runtime_error(
-                fmt::format("{} {}: class '{}' is not in the class file", where,
-                            l.id, l.class_name));
-        }
-        if (!ids.insert(l.id).second) {
-            throw std::runtime_error(
-                fmt::format("{}: id {} used twice", where, l.id));
+                fmt::format("{}: class '{}' is not in the class file", where,
+                            l.class_name));
         }
         cfg.prior_landmarks.push_back(l);
-    }
-
-    // Two entries of one class closer than their uncertainty cannot be told
-    // apart: a detection of one fits the other's prior as well.
-    const auto& pl = cfg.prior_landmarks;
-    for (std::size_t a = 0; a < pl.size(); ++a) {
-        for (std::size_t b = a + 1; b < pl.size(); ++b) {
-            const double d = std::hypot(pl[a].x - pl[b].x, pl[a].y - pl[b].y);
-            if (pl[a].class_name == pl[b].class_name &&
-                d < 2.0 * (pl[a].sigma_xy + pl[b].sigma_xy)) {
-                spdlog::warn(
-                    "landmark_slam: prior landmarks {} and {} ({}) are {:.2f} "
-                    "m "
-                    "apart with sigma_xy {:.2f} and {:.2f}: too loose to tell "
-                    "them apart, use sigma_xy <= {:.2f}",
-                    pl[a].id, pl[b].id, pl[a].class_name, d, pl[a].sigma_xy,
-                    pl[b].sigma_xy, d / 4.0);
-            }
-        }
     }
 }
 

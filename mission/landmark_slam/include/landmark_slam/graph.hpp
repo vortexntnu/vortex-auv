@@ -49,7 +49,7 @@ struct LandmarkState {
     int n_obs{0};
     double first_seen{0.0};
     double last_seen{0.0};
-    /// Yaw is meaningful: from the prior map or an orientation measurement.
+    /// Yaw is meaningful: from an orientation measurement.
     bool yaw_known{false};
 };
 
@@ -62,11 +62,11 @@ gtsam::Vector3 bearing_range_sigmas(const Params& p, double range);
  */
 class LandmarkGraph {
    public:
-    /// Clear everything; X(0) at the current odometry pose, plus the priors.
+    /// Clear everything; X(0) at the start pose (prior map) or odom.
     void reset(const Config& cfg, const gtsam::Pose3& T_odom_base, double t);
     /// New keyframe: odometry between factor, depth and roll/pitch.
     int add_keyframe(const gtsam::Pose3& T_odom_base, double t);
-    /// New landmark (not from the prior map) at init.
+    /// New landmark at init.
     void add_landmark(int id,
                       const ClassConfig& cls,
                       const gtsam::Pose3& init,

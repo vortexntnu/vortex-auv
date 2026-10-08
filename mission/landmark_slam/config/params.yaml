@@ -16,10 +16,10 @@
     odom_sigma_trans_per_m: 0.03
     odom_sigma_yaw_per_m: 0.01
 
-    # Prior map trust when an entry gives none.
+    # Prior map: votes for a class in it are only taken within
+    # 3 sigma_xy + vote_radius_m of one of its entries (sigma_xy per entry,
+    # else this).
     default_prior_sigma_xy: 1.0
-    default_prior_sigma_z: 0.3
-    default_prior_sigma_yaw: 0.5
 
     # Association gate (chi^2 probability).
     gate_prob: 0.95

@@ -21,12 +21,13 @@ struct ClassConfig {
     bool has_orientation{false};
 };
 
-/// A landmark from prior_map.yaml, in the map frame (z down, as odom).
+/// A landmark from prior_map.yaml (map frame): where an object of its class
+/// may be. Votes for a new landmark of the class are only taken within
+/// 3 sigma_xy + vote_radius_m of one of its entries.
 struct PriorLandmark {
-    int id{0};
     std::string class_name;
-    double x{0.0}, y{0.0}, z{0.0}, yaw{0.0};
-    double sigma_xy{0.0}, sigma_z{0.0}, sigma_yaw{0.0};
+    double x{0.0}, y{0.0};
+    double sigma_xy{0.0};
 };
 
 /// Start pose of the vehicle in the map frame (prior_map.yaml).
@@ -59,8 +60,6 @@ struct Params {
     double odom_sigma_trans_per_m{0.03};
     double odom_sigma_yaw_per_m{0.01};
     double default_prior_sigma_xy{1.0};
-    double default_prior_sigma_z{0.3};
-    double default_prior_sigma_yaw{0.5};
     double gate_prob{0.95};
     double min_votes{3.0};
     double vote_radius_m{0.5};
@@ -93,8 +92,8 @@ struct Config {
 
 /**
  * @brief Read the class file and (if use_prior_map) the prior map named in
- * params. Throws std::runtime_error with the reason on a bad file, an
- * unknown class or a duplicate id.
+ * params. Throws std::runtime_error with the reason on a bad file or an
+ * unknown class.
  */
 Config load_config(const Params& params);
 
