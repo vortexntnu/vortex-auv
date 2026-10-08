@@ -8,8 +8,8 @@ Opens the prior map landmark_slam has (its prior_map_file), with the live
 map (grey) and the vehicle (black) on top. Place the start where the vehicle
 is put in the water and the objects where the course drawing has them,
 relative to it. Send writes out_file and sets landmark_slam's
-prior_map_file: the entries count at once (search frames prior_<class>, vote
-filter), the start pose from the next reset (mission/wipe, StartRun).
+prior_map_file; it is used from the next mission start (mission/wipe, sent
+by StartRun), when the map is rebuilt.
 
     left click        new entry of the chosen class
     left drag         move an entry or the start

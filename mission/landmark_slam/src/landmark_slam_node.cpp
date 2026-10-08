@@ -137,7 +137,8 @@ class LandmarkSlamNode : public rclcpp::Node {
 
         // The coin flip, set at the start (e.g. ros2 param set ...
         // start_yaw_offset_deg 90): the map is anchored again at once. A new
-        // prior_map_file is read at once (scripts/prior_map_gui.py).
+        // prior_map_file counts from the next mission/wipe
+        // (scripts/prior_map_gui.py).
         param_cb_ = add_on_set_parameters_callback(
             [this](const std::vector<rclcpp::Parameter>& params) {
                 return on_set_parameters(params);
@@ -190,25 +191,21 @@ class LandmarkSlamNode : public rclcpp::Node {
         result.successful = true;
         for (const auto& p : params) {
             if (p.get_name() == "prior_map_file") {
-                // A new prior map: its entries (search frames, vote filter)
-                // count at once, its start pose from the next reset.
+                // Checked now, used from the next mission/wipe (the map is
+                // rebuilt with it then).
                 Params next = params_;
                 next.prior_map_file = p.as_string();
                 try {
-                    const Config cfg = load_config(next);
-                    params_ = next;
-                    cfg_.params.prior_map_file = next.prior_map_file;
-                    cfg_.prior_landmarks = cfg.prior_landmarks;
-                    cfg_.initial_pose = cfg.initial_pose;
+                    load_config(next);
                 } catch (const std::exception& e) {
                     result.successful = false;
                     result.reason = e.what();
                     return result;
                 }
+                params_.prior_map_file = next.prior_map_file;
                 spdlog::info(
-                    "landmark_slam: prior map {} ({} landmarks), start pose "
-                    "from the next reset",
-                    next.prior_map_file, cfg_.prior_landmarks.size());
+                    "landmark_slam: prior map {} from the next mission/wipe",
+                    next.prior_map_file);
                 continue;
             }
             if (p.get_name() != "start_yaw_offset_deg") {
