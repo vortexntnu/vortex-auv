@@ -56,11 +56,15 @@ prior_map.yaml ────▶ start pose; where votes of a class are taken (opt
 | TF `<ns>/map → <ns>/<class>_<id>` | out | Every landmark as a frame, 10 Hz, same stamp as `map → odom`. Looked up from `odom`, it is where the drifted vehicle has to go: the correction comes through `map → odom` |
 | TF `<ns>/<class>` | out | Per class the best landmark (lowest σ_xy, then most observations): a target before the id is known, e.g. `torpedo_board` |
 | TF `<ns>/start` | out | Where the run started (keyframe 0): return home |
+| TF `<ns>/prior_<class>` | out | Where the class should be (prior map: the mean of its entries, depth 0, along the map's x axis): the tree's search point before the object is seen |
 | TF `<ns>/gate_middle`, `<ns>/<panel>_entrance`, `<ns>/<panel>_exit` | out | Gate frames (below) |
 
 ## Configuration
 
-`ros2 launch landmark_slam landmark_slam.launch.py [params_file:=…] [classes_file:=…] [prior_map_file:=…]`
+`ros2 launch landmark_slam landmark_slam.launch.py [env:=pool|sim] [params_file:=…] [classes_file:=…] [prior_map_file:=…]`
+
+`env:=sim` loads `params_sim.yaml` on top (the simulator's measured noise)
+and `prior_map_sim.yaml` (the simulator course).
 
 | Parameter | Default | |
 |---|---|---|

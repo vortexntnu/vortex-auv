@@ -458,6 +458,22 @@ class LandmarkSlamNode : public rclcpp::Node {
         // phantom or a confused detection): a target for the tree before it
         // knows the id.
         frames_.push_back(frame("start", graph_.keyframe_pose(0)));
+        // Where each class should be (prior map): the mean of its entries,
+        // at depth 0 and along the map's x axis. A search point for the tree
+        // before the object is seen; the depth comes with the offset.
+        std::map<std::string, std::pair<gtsam::Point3, int>> prior;
+        for (const PriorLandmark& pl : cfg_.prior_landmarks) {
+            auto& [sum, n] =
+                prior.try_emplace(pl.class_name, gtsam::Point3::Zero(), 0)
+                    .first->second;
+            sum += gtsam::Point3(pl.x, pl.y, 0.0);
+            ++n;
+        }
+        for (const auto& [cls, sum_n] : prior) {
+            frames_.push_back(
+                frame("prior_" + cls,
+                      gtsam::Pose3(gtsam::Rot3(), sum_n.first / sum_n.second)));
+        }
         std::vector<LandmarkState> shown;
         for (const LandmarkState& l : graph_.landmarks()) {
             if (l.n_obs == 0 || l.n_obs >= kMinSupport ||

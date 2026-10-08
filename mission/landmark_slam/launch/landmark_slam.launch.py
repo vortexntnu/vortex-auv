@@ -43,6 +43,12 @@ def launch_setup(context, *args, **kwargs):
                     ),
                     "prior_map_file": LaunchConfiguration("prior_map_file").perform(
                         context
+                    )
+                    or os.path.join(
+                        CONFIG_DIR,
+                        "prior_map_sim.yaml"
+                        if LaunchConfiguration("env").perform(context) == "sim"
+                        else "prior_map.yaml",
                     ),
                     "frame_prefix": namespace,
                 },
@@ -77,12 +83,13 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "prior_map_file",
-                default_value=os.path.join(CONFIG_DIR, "prior_map.yaml"),
+                default_value="",
+                description="Default: prior_map.yaml, prior_map_sim.yaml with env:=sim",
             ),
             DeclareLaunchArgument(
                 "env",
                 default_value="pool",
-                description="pool, or sim (params_sim.yaml on top)",
+                description="pool, or sim (params_sim.yaml on top, prior_map_sim.yaml)",
             ),
             DeclareLaunchArgument(
                 "odom_topic",

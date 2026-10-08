@@ -1,0 +1,26 @@
+# Prior map of the simulator course (Stonefish robosub scenario, seed 7):
+# the course as its drawing gives it. Loaded with env:=sim. Same format as
+# prior_map.yaml: votes for a class listed here only count near its entries,
+# and landmark_slam publishes TF prior_<class> (the mean of its entries) as a
+# search point for the mission tree.
+initial_pose: {x: 0.0, y: 0.0, yaw: 0.0, sigma_xy: 0.5, sigma_yaw: 0.3}
+landmarks:
+  - {class: gate, x: 4.0, y: 0.0, sigma_xy: 0.5}
+  - {class: gate_search_rescue, x: 4.0, y: 0.8, sigma_xy: 0.5}
+  - {class: gate_survey_repair, x: 4.0, y: -0.8, sigma_xy: 0.5}
+  - {class: gate_pole_edge, x: 4.0, y: -1.6, sigma_xy: 0.5}
+  - {class: gate_pole_edge, x: 4.0, y: 1.5, sigma_xy: 0.5}
+  - {class: gate_pole_middle, x: 4.0, y: 0.0, sigma_xy: 0.5}
+  - {class: slalom_pipe_white, x: 8.1, y: -1.2, sigma_xy: 0.5}
+  - {class: slalom_pipe_red, x: 8.1, y: 0.3, sigma_xy: 0.5}
+  - {class: slalom_pipe_white, x: 8.1, y: 1.9, sigma_xy: 0.5}
+  - {class: slalom_pipe_white, x: 10.1, y: -0.6, sigma_xy: 0.5}
+  - {class: slalom_pipe_red, x: 10.1, y: 0.9, sigma_xy: 0.5}
+  - {class: slalom_pipe_white, x: 10.1, y: 2.5, sigma_xy: 0.5}
+  - {class: slalom_pipe_white, x: 12.2, y: -1.6, sigma_xy: 0.5}
+  - {class: slalom_pipe_red, x: 12.1, y: -0.1, sigma_xy: 0.5}
+  - {class: slalom_pipe_white, x: 12.2, y: 1.5, sigma_xy: 0.5}
+  - {class: torpedo_board, x: 17.0, y: -5.2, sigma_xy: 1.0}
+  - {class: bin_structure, x: 16.5, y: 4.2, sigma_xy: 1.0}
+  - {class: octagon, x: 19.3, y: 0.1, sigma_xy: 1.0}
+  - {class: table, x: 19.3, y: 0.1, sigma_xy: 1.0}
