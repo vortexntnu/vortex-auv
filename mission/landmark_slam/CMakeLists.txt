@@ -33,6 +33,7 @@ add_library(${LIB_NAME} SHARED
   src/config.cpp
   src/graph.cpp
   src/association.cpp
+  src/targets.cpp
   src/landmark_slam_node.cpp)
 
 target_include_directories(${LIB_NAME} PUBLIC

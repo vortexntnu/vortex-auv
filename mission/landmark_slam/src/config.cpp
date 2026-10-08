@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <set>
@@ -146,6 +147,19 @@ Config load_config(const Params& params) {
     Config cfg;
     cfg.params = params;
     cfg.classes = load_classes(params.classes_file);
+    for (const auto& name : params.gate.panel_classes) {
+        if (std::none_of(
+                cfg.classes.begin(), cfg.classes.end(),
+                [&](const ClassConfig& c) { return c.name == name; })) {
+            throw std::runtime_error(
+                fmt::format("gate: class '{}' is not in the class file", name));
+        }
+    }
+    if (!params.gate.panel_classes.empty() &&
+        params.gate.panel_classes.size() != 2) {
+        throw std::runtime_error(
+            "gate.panel_classes: give two classes or none");
+    }
     if (params.use_prior_map && !params.prior_map_file.empty()) {
         load_prior_map(params.prior_map_file, cfg);
     }

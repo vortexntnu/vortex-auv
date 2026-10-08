@@ -37,6 +37,18 @@ struct InitialPose {
     double sigma_xy{0.5}, sigma_yaw{0.3};
 };
 
+/// Gate frames from the two role panels (gate_middle, and per panel
+/// <panel>_entrance / <panel>_exit through its opening).
+struct GateParams {
+    std::vector<std::string> panel_classes;  // two, or none = off
+    double min_separation_m{0.2};
+    double max_separation_m{2.5};
+    /// Entrance / exit this far before / after the gate line.
+    double approach_m{1.0};
+    /// The opening is this far below the panel (z down).
+    double depth_below_panel_m{0.5};
+};
+
 /// ROS parameters (params.yaml).
 struct Params {
     bool use_prior_map{true};
@@ -55,6 +67,10 @@ struct Params {
     double bearing_sigma{0.03};
     double range_sigma_a{0.1};
     double range_sigma_b{0.05};
+    /// Coin flip: start heading relative to initial_pose.yaw (prior map
+    /// only), set at runtime.
+    double start_yaw_offset_deg{0.0};
+    GateParams gate;
 
     /// Range noise sigma_r = a + b * r.
     double range_sigma(double range) const {

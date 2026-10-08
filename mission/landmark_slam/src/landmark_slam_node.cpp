@@ -25,6 +25,7 @@
 #include "landmark_slam/association.hpp"
 #include "landmark_slam/config.hpp"
 #include "landmark_slam/graph.hpp"
+#include "landmark_slam/targets.hpp"
 
 namespace vortex::landmark_slam {
 
@@ -35,6 +36,7 @@ constexpr double kMaxCorrectionYawRate = 0.2;      // map -> odom step [rad/s]
 constexpr double kNoOrientationVariance = 1000.0;  // perception convention
 constexpr std::size_t kNisWindow = 50;
 constexpr double kMinRangeM = 0.05;
+constexpr double kFramePeriodS = 0.1;  // landmark and gate TF frames
 
 gtsam::Pose3 to_pose3(const geometry_msgs::msg::Pose& p) {
     return {gtsam::Rot3::Quaternion(p.orientation.w, p.orientation.x,
@@ -94,7 +96,8 @@ class LandmarkSlamNode : public rclcpp::Node {
         if (!prefix.empty() && prefix.back() == '/') {
             prefix.pop_back();
         }
-        map_frame_ = prefix.empty() ? "map" : prefix + "/map";
+        frame_prefix_ = prefix.empty() ? "" : prefix + "/";
+        map_frame_ = frame_prefix_ + "map";
 
         tf_buffer_ = std::make_shared<tf2_ros::Buffer>(get_clock());
         tf_listener_ =
@@ -128,6 +131,13 @@ class LandmarkSlamNode : public rclcpp::Node {
         nis_pub_ = create_publisher<std_msgs::msg::Float64>(
             "landmark_slam/nis", qos::reliable_profile(10));
 
+        // The coin flip, set at the start (e.g. ros2 param set ...
+        // start_yaw_offset_deg 90): the map is anchored again at once.
+        param_cb_ = add_on_set_parameters_callback(
+            [this](const std::vector<rclcpp::Parameter>& params) {
+                return on_set_parameters(params);
+            });
+
         spdlog::info(
             "landmark_slam: {} classes, {} prior landmarks ({}), map frame "
             "'{}'",
@@ -160,6 +170,49 @@ class LandmarkSlamNode : public rclcpp::Node {
         p.bearing_sigma = declare_parameter<double>("bearing_sigma");
         p.range_sigma_a = declare_parameter<double>("range_sigma_a");
         p.range_sigma_b = declare_parameter<double>("range_sigma_b");
+        p.start_yaw_offset_deg =
+            declare_parameter<double>("start_yaw_offset_deg", 0.0);
+        p.gate.panel_classes =
+            declare_parameter<std::vector<std::string>>("gate.panel_classes");
+        p.gate.min_separation_m =
+            declare_parameter<double>("gate.min_separation_m");
+        p.gate.max_separation_m =
+            declare_parameter<double>("gate.max_separation_m");
+        p.gate.depth_below_panel_m =
+            declare_parameter<double>("gate.depth_below_panel_m");
+        p.gate.approach_m = declare_parameter<double>("gate.approach_m");
+    }
+
+    rcl_interfaces::msg::SetParametersResult on_set_parameters(
+        const std::vector<rclcpp::Parameter>& params) {
+        rcl_interfaces::msg::SetParametersResult result;
+        result.successful = true;
+        for (const auto& p : params) {
+            if (p.get_name() != "start_yaw_offset_deg") {
+                continue;
+            }
+            const double deg = p.as_double();
+            if (!std::isfinite(deg)) {
+                result.successful = false;
+                result.reason = "start_yaw_offset_deg must be finite";
+                return result;
+            }
+            params_.start_yaw_offset_deg = deg;
+            cfg_.params.start_yaw_offset_deg = deg;
+            if (!cfg_.initial_pose) {
+                spdlog::warn(
+                    "landmark_slam: start_yaw_offset_deg only "
+                    "matters with a prior map");
+            }
+            if (odom_) {
+                reset(odom_->T, odom_->t);
+                spdlog::info(
+                    "landmark_slam: start heading {:+.1f} deg, map "
+                    "anchored again at the current pose",
+                    deg);
+            }
+        }
+        return result;
     }
 
     void reset(const gtsam::Pose3& T_odom_base, double t) {
@@ -367,6 +420,29 @@ class LandmarkSlamNode : public rclcpp::Node {
         tf.transform.translation.z = p.position.z;
         tf.transform.rotation = p.orientation;
         tf_broadcaster_->sendTransform(tf);
+
+        // Landmarks and gate frames, with the same stamp: a lookup from odom
+        // gets them where the drifted vehicle needs them.
+        if (t - last_frames_t_ >= kFramePeriodS || t < last_frames_t_) {
+            for (auto& f : frames_) {
+                f.header.stamp = tf.header.stamp;
+            }
+            tf_broadcaster_->sendTransform(frames_);
+            last_frames_t_ = t;
+        }
+    }
+
+    geometry_msgs::msg::TransformStamped frame(const std::string& name,
+                                               const gtsam::Pose3& pose) const {
+        geometry_msgs::msg::TransformStamped f;
+        f.header.frame_id = map_frame_;
+        f.child_frame_id = frame_prefix_ + name;
+        const auto p = to_msg(pose);
+        f.transform.translation.x = p.position.x;
+        f.transform.translation.y = p.position.y;
+        f.transform.translation.z = p.position.z;
+        f.transform.rotation = p.orientation;
+        return f;
     }
 
     void publish_map(double t) {
@@ -379,7 +455,15 @@ class LandmarkSlamNode : public rclcpp::Node {
         clear.action = visualization_msgs::msg::Marker::DELETEALL;
         markers.markers.push_back(clear);
 
+        frames_.clear();
+        for (const TargetFrame& g :
+             gate_frames(graph_.landmarks(), cfg_.params.gate,
+                         graph_.keyframe_pose(0).translation())) {
+            frames_.push_back(frame(g.name, g.pose));
+        }
         for (const LandmarkState& l : graph_.landmarks()) {
+            frames_.push_back(
+                frame(fmt::format("{}_{}", l.cls.name, l.id), l.pose));
             vortex_msgs::msg::LandmarkTrack track;
             track.header = array.header;
             track.landmark.header = array.header;
@@ -479,6 +563,10 @@ class LandmarkSlamNode : public rclcpp::Node {
     std::optional<OdomSample> odom_;
     std::string odom_frame_;
     std::string map_frame_;
+    std::string frame_prefix_;
+    std::vector<geometry_msgs::msg::TransformStamped> frames_;
+    double last_frames_t_{0.0};
+    rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_cb_;
     gtsam::Pose3 T_map_odom_pub_;
     int next_id_{1};
     std::deque<double> nis_;

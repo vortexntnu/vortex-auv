@@ -51,6 +51,8 @@ prior_map.yaml ────▶ prior factors (optional)
 | `landmark_slam/markers` | out, `MarkerArray` | Sphere at 2σ per landmark and a label (RViz/Foxglove) |
 | `landmark_slam/nis` | out, `std_msgs/Float64` | See above |
 | TF `<ns>/map → <ns>/odom` | out | With every odometry message, moved toward the graph's value at ≤ 0.2 m/s and 0.2 rad/s so the controller never sees a jump |
+| TF `<ns>/map → <ns>/<class>_<id>` | out | Every landmark as a frame, 10 Hz, same stamp as `map → odom`. Looked up from `odom`, it is where the drifted vehicle has to go: the correction comes through `map → odom` |
+| TF `<ns>/gate_middle`, `<ns>/<panel>_entrance`, `<ns>/<panel>_exit` | out | Gate frames (below) |
 
 ## Configuration
 
@@ -65,10 +67,28 @@ prior_map.yaml ────▶ prior factors (optional)
 | `default_prior_sigma_xy`, `_z`, `_yaw` | 1.0, 0.3, 0.5 | Prior entry trust when the entry gives none |
 | `gate_prob` | 0.95 | Association gate (χ² per degree of freedom) |
 | `min_votes`, `vote_radius_m` | 3, 0.5 | New landmark: vote weight within the radius |
+| `start_yaw_offset_deg` | 0 | Coin flip: start heading relative to `initial_pose.yaw` (runtime) |
+| `gate.panel_classes`, `gate.min_separation_m`, `gate.max_separation_m`, `gate.approach_m`, `gate.depth_below_panel_m` | panels, 0.2, 2.5, 1.0, 0.5 | Gate frames |
 | `bearing_sigma` | 0.03 | Detection bearing noise [rad] (measured) |
 | `range_sigma_a`, `range_sigma_b` | 0.1, 0.05 | Range noise σ_r = a + b·r (measured) |
 
 Everything else is a named constant in the code.
+
+**Gate frames** (`gate`): from the two role panels, when both are mapped
+and `min_separation_m`–`max_separation_m` apart. `gate_middle` between them,
+and per panel `<panel>_entrance` / `<panel>_exit`, `approach_m` before and
+after the gate line and `depth_below_panel_m` below the panel: through that
+role's opening. All have +X through the gate, away from the start side, so
+they do not flip once the vehicle is through. Drive them with `GoToFrame`
+(vortex_bt_nodes).
+
+**Coin flip** (prior map only): the start heading relative to
+`initial_pose.yaw`, set at the start; the map is anchored again at once at
+the current pose:
+
+```bash
+ros2 param set /nautilus/landmark_slam_node start_yaw_offset_deg 90.0
+```
 
 **Adding an object type** is a YAML entry only: a class in
 `landmark_classes.yaml` (the `type`/`subtype` values the detector publishes,
