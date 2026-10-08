@@ -1,0 +1,187 @@
+{
+  "configById": {
+    "3D!map": {
+      "cameraState": {
+        "perspective": true,
+        "distance": 30,
+        "phi": 50,
+        "thetaOffset": -90,
+        "targetOffset": [
+          8,
+          0,
+          0
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "followTf": "nautilus/map",
+      "scene": {
+        "enableStats": false,
+        "labelScaleFactor": 1,
+        "transforms": {
+          "showLabel": true,
+          "axisSize": 0.4,
+          "labelSize": 0.1
+        }
+      },
+      "transforms": {
+        "frame:nautilus/map": {
+          "visible": true
+        },
+        "frame:nautilus/odom": {
+          "visible": true
+        },
+        "frame:nautilus/base_link": {
+          "visible": true
+        },
+        "frame:nautilus/start": {
+          "visible": true
+        }
+      },
+      "topics": {
+        "/nautilus/landmark_slam/markers": {
+          "visible": true,
+          "namespaces": {
+            "landmarks": {
+              "visible": true
+            },
+            "labels": {
+              "visible": true
+            }
+          }
+        },
+        "/nautilus/debug/raw_detections": {
+          "visible": true
+        },
+        "/nautilus/guidance/dp_quat_target_pose": {
+          "visible": true,
+          "type": "arrow",
+          "arrowScale": [
+            0.6,
+            0.12,
+            0.12
+          ],
+          "color": "#ffb000ff"
+        },
+        "/nautilus/odom_nav": {
+          "visible": true,
+          "type": "arrow",
+          "arrowScale": [
+            0.6,
+            0.12,
+            0.12
+          ],
+          "color": "#2f8fffff"
+        }
+      },
+      "layers": {
+        "grid": {
+          "visible": true,
+          "frameId": "nautilus/map",
+          "layerId": "foxglove.Grid",
+          "size": 60,
+          "divisions": 60,
+          "lineWidth": 1,
+          "color": "#248eff40",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        }
+      },
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "imageMode": {},
+      "synchronize": false
+    },
+    "Plot!nis": {
+      "paths": [
+        {
+          "value": "/nautilus/landmark_slam/nis.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "NIS (expect ~1)"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "foxglovePanelTitle": "Map consistency (NIS)"
+    },
+    "RosOut!log": {
+      "searchTerms": [],
+      "minLogLevel": 1,
+      "nameFilter": {},
+      "fontSize": 12,
+      "showLevel": true,
+      "showDate": false,
+      "showTime": true,
+      "showTimezone": false,
+      "showName": true,
+      "showSourceLocation": false,
+      "foxglovePanelTitle": "Mission log"
+    },
+    "RawMessages!landmarks": {
+      "topicPath": "/nautilus/landmark_slam/landmarks.landmark_tracks",
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "fontSize": 12,
+      "defaultExpanded": false
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "first": "3D!map",
+    "second": {
+      "first": "RosOut!log",
+      "second": {
+        "first": "Plot!nis",
+        "second": "RawMessages!landmarks",
+        "direction": "column",
+        "splitPercentage": 40
+      },
+      "direction": "column",
+      "splitPercentage": 55
+    },
+    "direction": "row",
+    "splitPercentage": 68
+  }
+}

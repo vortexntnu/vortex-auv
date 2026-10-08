@@ -40,6 +40,18 @@ def launch_setup(context, *args, **kwargs):
                     ),
                     "frame_prefix": namespace,
                 },
+                # The simulator's odometry comes through sim_odom_relay_node.
+                *(
+                    [
+                        {
+                            "topics.odom": LaunchConfiguration("odom_topic").perform(
+                                context
+                            )
+                        }
+                    ]
+                    if LaunchConfiguration("odom_topic").perform(context)
+                    else []
+                ),
             ],
             output="screen",
         )
@@ -60,6 +72,11 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "prior_map_file",
                 default_value=os.path.join(CONFIG_DIR, "prior_map.yaml"),
+            ),
+            DeclareLaunchArgument(
+                "odom_topic",
+                default_value="",
+                description="Odometry topic (default: the robot file's, odom)",
             ),
             OpaqueFunction(function=launch_setup),
         ]

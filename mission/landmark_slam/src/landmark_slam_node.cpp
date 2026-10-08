@@ -456,6 +456,23 @@ class LandmarkSlamNode : public rclcpp::Node {
         markers.markers.push_back(clear);
 
         frames_.clear();
+        // Where the run started (return home), and per class the best
+        // landmark (lowest sigma_xy, then most observations): a target for
+        // the tree before it knows the id.
+        frames_.push_back(frame("start", graph_.keyframe_pose(0)));
+        std::map<std::string, const LandmarkState*> best;
+        for (const LandmarkState& l : graph_.landmarks()) {
+            const LandmarkState*& b = best[l.cls.name];
+            const double s = l.relative_cov(0, 0) + l.relative_cov(1, 1);
+            if (!b || s < b->relative_cov(0, 0) + b->relative_cov(1, 1) ||
+                (s == b->relative_cov(0, 0) + b->relative_cov(1, 1) &&
+                 l.n_obs > b->n_obs)) {
+                b = &l;
+            }
+        }
+        for (const auto& [cls, l] : best) {
+            frames_.push_back(frame(cls, l->pose));
+        }
         for (const TargetFrame& g :
              gate_frames(graph_.landmarks(), cfg_.params.gate,
                          graph_.keyframe_pose(0).translation())) {

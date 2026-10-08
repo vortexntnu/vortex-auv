@@ -52,6 +52,8 @@ prior_map.yaml ────▶ prior factors (optional)
 | `landmark_slam/nis` | out, `std_msgs/Float64` | See above |
 | TF `<ns>/map → <ns>/odom` | out | With every odometry message, moved toward the graph's value at ≤ 0.2 m/s and 0.2 rad/s so the controller never sees a jump |
 | TF `<ns>/map → <ns>/<class>_<id>` | out | Every landmark as a frame, 10 Hz, same stamp as `map → odom`. Looked up from `odom`, it is where the drifted vehicle has to go: the correction comes through `map → odom` |
+| TF `<ns>/<class>` | out | Per class the best landmark (lowest σ_xy, then most observations): a target before the id is known, e.g. `torpedo_board` |
+| TF `<ns>/start` | out | Where the run started (keyframe 0): return home |
 | TF `<ns>/gate_middle`, `<ns>/<panel>_entrance`, `<ns>/<panel>_exit` | out | Gate frames (below) |
 
 ## Configuration
