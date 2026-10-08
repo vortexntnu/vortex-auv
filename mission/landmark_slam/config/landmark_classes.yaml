@@ -5,14 +5,17 @@
 #                    360 = yaw meaningless (round objects)
 #   has_orientation: use the detector's orientation when it sends one
 #                    (rotation variance < 1000)
+#   group:           classes the detector mixes up share a group: they are
+#                    associated as one kind, and a landmark's class is the one
+#                    most of its detections gave (optional)
 # Detections of classes not listed here are ignored.
 gate_search_rescue:   {type: 6, subtype: 1, symmetry_deg: 0, has_orientation: true}
 gate_survey_repair:   {type: 6, subtype: 2, symmetry_deg: 0, has_orientation: true}
 gate:                 {type: 6, subtype: 3, symmetry_deg: 180, has_orientation: true}
 gate_pole_edge:       {type: 6, subtype: 4, symmetry_deg: 360, has_orientation: false}
 gate_pole_middle:     {type: 6, subtype: 5, symmetry_deg: 360, has_orientation: false}
-slalom_pipe_white:    {type: 7, subtype: 1, symmetry_deg: 360, has_orientation: false}
-slalom_pipe_red:      {type: 7, subtype: 2, symmetry_deg: 360, has_orientation: false}
+slalom_pipe_white:    {type: 7, subtype: 1, symmetry_deg: 360, has_orientation: false, group: slalom_pipe}
+slalom_pipe_red:      {type: 7, subtype: 2, symmetry_deg: 360, has_orientation: false, group: slalom_pipe}
 torpedo_board:        {type: 8, subtype: 1, symmetry_deg: 0, has_orientation: true}
 torpedo_icon_fire:    {type: 8, subtype: 6, symmetry_deg: 0, has_orientation: true}
 torpedo_icon_blood:   {type: 8, subtype: 7, symmetry_deg: 0, has_orientation: true}

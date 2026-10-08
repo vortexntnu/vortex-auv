@@ -46,6 +46,7 @@ std::vector<ClassConfig> load_classes(const std::string& path) {
         c.subtype = required<std::uint16_t>(n, "subtype", where);
         c.symmetry_deg = optional_or<double>(n, "symmetry_deg", 0.0);
         c.has_orientation = optional_or<bool>(n, "has_orientation", false);
+        c.group = optional_or<std::string>(n, "group", "");
         if (c.symmetry_deg < 0.0 || c.symmetry_deg > 360.0) {
             throw std::runtime_error(
                 fmt::format("{}: symmetry_deg must be in [0, 360]", where));
