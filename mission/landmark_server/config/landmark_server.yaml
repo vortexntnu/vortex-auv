@@ -1,0 +1,125 @@
+# landmark_server: every tunable value. Topics (odom, landmarks,
+# mission_wipe) come from auv_setup's robot file; premap_file from the launch
+# file. env:=sim loads sim.yaml on top (the simulator's measured noise).
+#
+# Write floats with a decimal point (3.0, not 3): ROS parameters are typed.
+/**:
+  ros__parameters:
+    # --- Keyframes and intake -------------------------------------------------
+    # A new keyframe (graph update, association) after this distance [m] or
+    # time [s]. Detections wait for the next keyframe.
+    keyframe_dist_m: 0.5
+    keyframe_time_s: 1.0
+    # Per source (frame + types), the newest messages used per keyframe. More
+    # looks at a hovering vehicle add little and cost time.
+    max_messages_per_keyframe: 5
+    # Detections farther than this [m] are dropped: far views are the
+    # noisiest and bring most false detections.
+    max_range_m: 10.0
+
+    # --- Odometry noise (one keyframe step) -----------------------------------
+    # x/y and yaw drift grow with the distance travelled. Measure them: drive
+    # a loop past known landmarks and compare. Too small: loop closures are
+    # rejected (gate too tight) or bend the map; too large: the map trusts
+    # the odometry too little between landmarks.
+    odom:
+      sigma_trans_per_m: 0.03   # [m per m]
+      sigma_yaw_per_m: 0.01     # [rad per m]
+      min_sigma_trans: 0.01     # floor per step [m] (hovering still drifts)
+      min_sigma_yaw: 0.002      # floor per step [rad]
+      sigma_roll_pitch: 0.01    # per step [rad]
+      sigma_z: 0.02             # per step [m]
+      attitude_sigma: 0.02      # absolute roll/pitch from the IMU [rad]
+      depth_sigma: 0.05         # absolute depth from the pressure sensor [m]
+
+    # --- Detection noise ------------------------------------------------------
+    # A camera knows the direction far better than the distance:
+    # sigma_bearing [rad], sigma_range = a + b * range [m]. Check with the
+    # landmark_server/nis topic: ~1 = right, >> 1 = too optimistic (matches
+    # rejected, duplicates), << 1 = too pessimistic (gate too wide).
+    detection:
+      bearing_sigma: 0.03
+      range_sigma_a: 0.1
+      range_sigma_b: 0.05
+      # Detections with an orientation (rotation variance < 1000), e.g. the
+      # torpedo board's surface normal, for classes with has_orientation.
+      orientation_yaw_sigma: 0.1           # [rad]
+      orientation_roll_pitch_sigma: 0.5    # [rad]
+      # Robust kernel (Dynamic Covariance Scaling): a factor with a large
+      # error is down-weighted. Smaller = stricter with outliers.
+      dcs_phi: 1.0
+      # Detections of one landmark in one keyframe are averaged into one
+      # factor, counted as at most this many (they share the view's errors).
+      max_merged_per_factor: 4
+
+    # --- Association (Hungarian, Mahalanobis gate) ---------------------------
+    association:
+      # chi^2 probability of the gate (3 dof): a detection farther than this
+      # from a landmark (in its own uncertainty) cannot be that landmark.
+      gate_prob: 0.999
+      # A match is dropped when another landmark of the class is within this
+      # d^2 of the best (4.6 = likelihood ratio 10): ambiguous, wait for a
+      # clearer view instead of joining two objects.
+      ambiguity_d2: 4.6
+
+    # --- New landmarks ---------------------------------------------------------
+    # A detection in no landmark's gate is a candidate. Candidate detections
+    # of a class within candidate_radius_m are one candidate; confirm_hits of
+    # them within confirm_window_s make it a landmark. Raise confirm_hits
+    # against phantoms, lower it for slow detectors (a 2 Hz detector gives
+    # at most 2 per second).
+    new_landmarks:
+      candidate_radius_m: 0.5   # under half the spacing of same-class objects
+      confirm_hits: 5
+      confirm_window_s: 3.0
+
+    # --- Map upkeep -----------------------------------------------------------
+    # Landmarks are kept for the whole run (the retained map). Phantoms are
+    # kept out by the prior gate (classes.*.prior), confirm_hits and
+    # max_instances (only the most observed are published), not deleted.
+    upkeep:
+      # Duplicates: two landmarks of a class closer than this whose
+      # positions agree -> the one seen less is retired.
+      merge_radius_m: 0.5
+
+    # --- Gate frames (navigation) ---------------------------------------------
+    # From the two role panels: gate_middle, and per panel <panel>_entrance /
+    # <panel>_exit, approach_m before / after the gate line and
+    # depth_below_panel_m below the panel (through its opening). +X through
+    # the gate, away from the start side. Empty panel_classes = off.
+    gate:
+      panel_classes: ["gate_search_rescue", "gate_survey_repair"]
+      min_separation_m: 0.2
+      max_separation_m: 2.5
+      approach_m: 1.0
+      depth_below_panel_m: 0.5
+
+    # --- Classes ----------------------------------------------------------------
+    # One entry per object class; detections of other types are ignored.
+    #   type, subtype     vortex_msgs LandmarkType / LandmarkSubtype values
+    #   symmetry_deg      0 = none; 90, 180 = yaw known modulo this;
+    #                     360 = yaw meaningless (round objects)
+    #   has_orientation   use the detector's orientation when it sends one
+    #   prior             task label in the prior map ("" = none): new
+    #                     landmarks only within prior_radius_m (xy) of it
+    #   max_instances     landmarks of the class shown, the most observed
+    #                     (0 = any): extra ones are kept but hidden
+    classes:
+      gate_search_rescue: {type: 6, subtype: 1, symmetry_deg: 0.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
+      gate_survey_repair: {type: 6, subtype: 2, symmetry_deg: 0.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
+      gate: {type: 6, subtype: 3, symmetry_deg: 180.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
+      gate_pole_edge: {type: 6, subtype: 4, symmetry_deg: 360.0, has_orientation: false, prior: "gate", prior_radius_m: 3.0, max_instances: 2}
+      gate_pole_middle: {type: 6, subtype: 5, symmetry_deg: 360.0, has_orientation: false, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
+      slalom_pipe_white: {type: 7, subtype: 1, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 6}
+      slalom_pipe_red: {type: 7, subtype: 2, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 3}
+      torpedo_board: {type: 8, subtype: 1, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_icon_fire: {type: 8, subtype: 6, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_icon_blood: {type: 8, subtype: 7, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_icon_firetruck: {type: 8, subtype: 8, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_icon_ambulance: {type: 8, subtype: 9, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      bin_search_rescue: {type: 9, subtype: 1, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 2}
+      bin_survey_repair: {type: 9, subtype: 2, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 2}
+      bin_structure: {type: 9, subtype: 4, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 1}
+      path_marker: {type: 10, subtype: 1, symmetry_deg: 0.0, has_orientation: true, prior: "", prior_radius_m: 5.0, max_instances: 0}
+      table: {type: 11, subtype: 1, symmetry_deg: 180.0, has_orientation: true, prior: "octagon", prior_radius_m: 3.0, max_instances: 1}
+      octagon: {type: 12, subtype: 1, symmetry_deg: 360.0, has_orientation: false, prior: "octagon", prior_radius_m: 3.0, max_instances: 1}

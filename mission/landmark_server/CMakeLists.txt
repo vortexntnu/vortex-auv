@@ -11,69 +11,70 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(fmt REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
-find_package(vortex_utils REQUIRED)
 find_package(vortex_utils_ros REQUIRED)
-find_package(vortex_utils_ros_tf REQUIRED)
-find_package(tf2_geometry_msgs REQUIRED)
-find_package(pose_filtering REQUIRED)
-
-include_directories(include)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(GTSAM REQUIRED)
+find_package(yaml-cpp REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
+find_package(Boost REQUIRED)
 
 set(LIB_NAME "${PROJECT_NAME}_component")
 
 add_library(${LIB_NAME} SHARED
-  src/landmark_server_ros.cpp
-  src/landmark_server_convergence.cpp
-  src/landmark_server_ros_debug.cpp
-  src/landmark_ros_conversion.cpp)
+  src/config.cpp
+  src/graph.cpp
+  src/association.cpp
+  src/premap.cpp
+  src/landmark_server_node.cpp)
+
+target_include_directories(${LIB_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
 
 ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp
   rclcpp_components
-  std_msgs
-  vortex_msgs
-  vortex_utils
-  vortex_utils_ros
-  vortex_utils_ros_tf
-  tf2_geometry_msgs
   geometry_msgs
   nav_msgs
-  pose_filtering
+  std_msgs
+  std_srvs
+  visualization_msgs
+  vortex_msgs
+  vortex_utils_ros
+  tf2
+  tf2_ros
   spdlog
   fmt
 )
+target_link_libraries(${LIB_NAME} PUBLIC gtsam yaml-cpp Boost::boost)
 
 rclcpp_components_register_node(
   ${LIB_NAME}
-  PLUGIN "LandmarkServerNode"
+  PLUGIN "vortex::landmark_server::LandmarkServerNode"
   EXECUTABLE ${PROJECT_NAME}_node
 )
 
-ament_export_targets(export_${LIB_NAME})
-
 install(TARGETS ${LIB_NAME}
-  EXPORT export_${LIB_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
 
-install(
-  DIRECTORY include/
-  DESTINATION include
+install(DIRECTORY config launch
+  DESTINATION share/${PROJECT_NAME}/
 )
 
-install(DIRECTORY
-  config
-  launch
-  DESTINATION share/${PROJECT_NAME}/
+install(PROGRAMS scripts/competition_map_gui.py
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 ament_package()

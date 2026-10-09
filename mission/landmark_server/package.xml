@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>landmark_server</name>
   <version>0.0.0</version>
-  <description>Landmark server for mission planning (skeleton)</description>
-  <maintainer email="jorgen.fjermedal@hotmail.com">Jorgen Fjermedal</maintainer>
+  <description>The landmark map: iSAM2 landmark SLAM with a retained map, a prior map outside the graph and TF frames to navigate by</description>
+  <maintainer email="Hinthu5@hotmail.no">hinthujan</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -12,18 +13,21 @@
   <depend>rclcpp_components</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
-  <depend>vortex_msgs</depend>
-  <depend>vortex_utils</depend>
-  <depend>pose_filtering</depend>
-  <depend>vortex_utils_ros_tf</depend>
-  <depend>vortex_utils_ros</depend>
-  <depend>auv_setup</depend>
-  <depend>tf2_geometry_msgs</depend>
   <depend>std_msgs</depend>
-
-  <test_depend>launch_testing</test_depend>
-  <test_depend>launch_testing_ros</test_depend>
-  <test_depend>launch_testing_ament_cmake</test_depend>
+  <depend>std_srvs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>vortex_msgs</depend>
+  <depend>vortex_utils_ros</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>gtsam</depend>
+  <depend>yaml-cpp</depend>
+  <depend>spdlog</depend>
+  <depend>fmt</depend>
+  <exec_depend>auv_setup</exec_depend>
+  <exec_depend>python3-tk</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>rclpy</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

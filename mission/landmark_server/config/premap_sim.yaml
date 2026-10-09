@@ -1,0 +1,22 @@
+# Prior map of the simulator course (Stonefish robosub scenario): where each
+# task is relative to the start (map frame: x along the start heading, y
+# right, z down = depth). Format of competition_map_gui.py / set_premap.
+# Classes name their task in landmark_server.yaml (prior).
+reference_frame: start
+created_at: '2026-10-09T00:00:00'
+objects:
+  gate:
+    position: [4.0, 0.0, 2.3]
+    orientation: [0.0, 0.0, 0.0, 1.0]
+  slalom:
+    position: [10.1, 0.4, 2.6]
+    orientation: [0.0, 0.0, 0.0, 1.0]
+  torpedo:
+    position: [17.0, -5.2, 2.55]
+    orientation: [0.0, 0.0, 1.0, 0.0]
+  bin:
+    position: [16.5, 4.2, 3.15]
+    orientation: [0.0, 0.0, 0.0, 1.0]
+  octagon:
+    position: [19.3, 0.1, 0.0]
+    orientation: [0.0, 0.0, 0.0, 1.0]

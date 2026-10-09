@@ -1,0 +1,6 @@
+# Prior map of the pool: draw it with competition_map_gui.py (Send writes
+# this file through landmark_server/set_premap, the old one kept with a time
+# stamp). Empty: no prior gate, no prior_<task> frames.
+reference_frame: start
+created_at: ''
+objects: {}
