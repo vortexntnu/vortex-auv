@@ -132,14 +132,27 @@ ros2 run landmark_server competition_map_gui.py --ros-args -r __ns:=/nautilus \
     [-p pool_width_m:=50.0 -p pool_height_m:=25.0]
 ```
 
-Draw the pool from above: select an object, click to place it, set the yaw
-of lines and the reference with the slider. Place `reference` where the
-vehicle starts, its arrow along the start heading (the map's x), then the
-tasks. **Send to Vehicle** sends them relative to the reference
-(`reference_frame: start`; with `odom` the poses are taken as odom
-coordinates and converted with the current `map → odom`). **Get from
-Vehicle** loads what the vehicle has. Depths come from `DEFAULT_Z` in the
-script.
+The GUI is the pool from above (50 x 25 m by default). It opens with the
+prior map the vehicle has (the same as **Get from Vehicle**) and draws the
+**live map** on top: every landmark the vehicle has found, as a cross in its
+task's colour with the number of detections ("Show live map").
+
+- **reference = the start of the run**: where the vehicle is when the map
+  is anchored (`mission/wipe`), its arrow the vehicle's heading then (the
+  map's x). Everything is measured from it: the side panel shows each task
+  as x ahead / y right of the start, which is what is sent.
+- Select an object, click to place it, turn lines (gate, slalom, torpedo:
+  the arrow is the side the vehicle comes from) and the reference with the
+  yaw slider.
+- **Send to Vehicle** sets the prior map at once and saves it (the old file
+  kept with a time stamp); `prior_<task>` moves in Foxglove. Depths are the
+  ones loaded from the vehicle, else `DEFAULT_Z` in the script.
+- After a practice run, the crosses show where the objects really are:
+  move the tasks onto them and Send. A task only needs to be within its
+  classes' `prior_radius_m` (3 m, slalom 4 m).
+- Reference frame `start` (default): poses relative to the reference.
+  `odom`: the poses are odom coordinates, converted with the current
+  `map → odom`.
 
 ## Parameters
 

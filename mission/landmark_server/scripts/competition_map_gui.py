@@ -23,9 +23,10 @@ import rclpy
 import yaml
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.signals import SignalHandlerOptions
 from std_srvs.srv import Trigger
-from vortex_msgs.msg import ObjectPose
+from vortex_msgs.msg import LandmarkTrackArray, ObjectPose
 from vortex_msgs.srv import SetPremap
 
 SERVICE_TIMEOUT_S = 5.0
@@ -85,6 +86,17 @@ class CompetitionMapGUI:
         label: obj for obj, labels in SERVICE_LABEL_MAP.items() for label in labels
     }
 
+    # The live map: landmark type (vortex_msgs LandmarkType) -> (task, colour).
+    LIVE_TYPES = {
+        6: ("gate", "red"),
+        7: ("slalom", "gray"),
+        8: ("torpedo", "blue"),
+        9: ("bin", "purple"),
+        10: ("path", "black"),
+        11: ("table", "orange"),
+        12: ("octagon", "orange"),
+    }
+
     REFERENCE_FRAME = "start"
     REFERENCE_FRAME_OPTIONS = ("start", "odom")
 
@@ -118,15 +130,38 @@ class CompetitionMapGUI:
         self.reference_frame_var = tk.StringVar(value=default_reference_frame)
         self.selected_object = tk.StringVar(value="reference")
         self.placed_objects = {}
+        # Depth per object as loaded from the vehicle (else DEFAULT_Z), so a
+        # Send keeps the depths it was given.
+        self.object_z = {}
         self.canvas_padding = 40
         self.scale = 1.0
         self.pool_x_offset = 0
         self.pool_y_offset = 0
         self.service_connected = False
 
+        # The live map (landmark_server/landmarks, map frame), drawn relative
+        # to the reference: where the vehicle has found the objects.
+        self.live_map = None
+        self.show_live = tk.BooleanVar(value=True)
+        node.create_subscription(
+            LandmarkTrackArray,
+            node.declare_parameter(
+                "landmarks_topic", "landmark_server/landmarks"
+            ).value,
+            lambda msg: setattr(self, "live_map", msg),
+            QoSProfile(
+                depth=1,
+                durability=DurabilityPolicy.TRANSIENT_LOCAL,
+                reliability=ReliabilityPolicy.RELIABLE,
+            ),
+        )
+
         self.setup_ui()
         self.root.after(100, self.draw_pool)
         self.root.after(500, self.check_ros_service)
+        self.root.after(1000, self.draw_live_map)
+        self._load_attempts = 0
+        self.root.after(1000, self.load_on_start)
 
     def check_ros_service(self):
         """Check if ROS service is available."""
@@ -159,7 +194,11 @@ class CompetitionMapGUI:
         for obj_name, obj_color, _obj_type, _ in self.OBJECTS:
             rb = tk.Radiobutton(
                 left_frame,
-                text=obj_name,
+                text=(
+                    "reference = start of the run"
+                    if obj_name == "reference"
+                    else obj_name
+                ),
                 variable=self.selected_object,
                 value=obj_name,
                 fg=obj_color,
@@ -218,6 +257,14 @@ class CompetitionMapGUI:
             fg="white",
             font=("Arial", 10, "bold"),
         ).pack(fill=tk.X, padx=10, pady=5)
+
+        tk.Checkbutton(
+            left_frame,
+            text="Show live map (crosses)",
+            variable=self.show_live,
+            command=lambda: self.draw_live_map(reschedule=False),
+            justify=tk.LEFT,
+        ).pack(fill=tk.X, padx=10, pady=2)
 
         self.status_label = tk.Label(left_frame, text="ROS: Checking...", fg="orange")
         self.status_label.pack(pady=5)
@@ -281,6 +328,7 @@ class CompetitionMapGUI:
     def on_resize(self, event):
         self.draw_pool()
         self.redraw_objects()
+        self.draw_live_map(reschedule=False)
 
     def draw_pool(self):
         self.canvas.delete("pool")
@@ -587,7 +635,7 @@ class CompetitionMapGUI:
                 -frame_heading_rad
             )
 
-            z_val = self.DEFAULT_Z.get(obj_name, 0.0)
+            z_val = self.depth_of(obj_name)
 
             self.positions_text.insert(tk.END, f"\n{obj_name}:\n")
             self.positions_text.insert(tk.END, f"  x={rel_x:.2f}  y={-rel_y:.2f}\n")
@@ -668,7 +716,7 @@ class CompetitionMapGUI:
             result[obj_name] = {
                 "x": rel_x,
                 "y": -rel_y,
-                "z": self.DEFAULT_Z.get(obj_name, 0.0),
+                "z": self.depth_of(obj_name),
                 "yaw": -rel_yaw,
             }
 
@@ -797,14 +845,70 @@ class CompetitionMapGUI:
             obj_pose.pose.orientation.w = q[3]
             req.objects.append(obj_pose)
 
-    def get_from_vehicle(self):
+    def load_on_start(self):
+        """Load the vehicle's prior map once the service is there (10 s)."""
+        if self.get_client.service_is_ready():
+            self.get_from_vehicle(quiet=True)
+            return
+        self._load_attempts += 1
+        if self._load_attempts < 10:
+            self.root.after(1000, self.load_on_start)
+
+    def map_to_canvas(self, x, y):
+        """Map frame (x forward, y right of the start) -> pool [m]."""
+        ref = self.placed_objects["reference"]
+        heading = math.radians(ref[5] + 90)
+        # Inverse of get_relative_positions (canvas y is up, map y right).
+        dx = x * math.cos(heading) + y * math.sin(heading)
+        dy = x * math.sin(heading) - y * math.cos(heading)
+        return ref[0] + dx, ref[1] + dy
+
+    def draw_live_map(self, reschedule=True):
+        """Every landmark the vehicle has mapped: a cross, task and detections."""
+        if reschedule:
+            self.root.after(1000, self.draw_live_map)
+        self.canvas.delete("live")
+        live = self.live_map
+        if (
+            not self.show_live.get()
+            or live is None
+            or "reference" not in self.placed_objects
+        ):
+            return
+        r = max(4, int(0.25 * self.scale))
+        for track in live.landmark_tracks:
+            task, color = self.LIVE_TYPES.get(track.landmark.type.value, ("?", "black"))
+            p = track.landmark.pose.pose.position
+            px, py = self.meters_to_pixels(*self.map_to_canvas(p.x, p.y))
+            self.canvas.create_line(
+                px - r, py - r, px + r, py + r, fill=color, width=2, tags="live"
+            )
+            self.canvas.create_line(
+                px - r, py + r, px + r, py - r, fill=color, width=2, tags="live"
+            )
+            self.canvas.create_text(
+                px + r + 2,
+                py - r,
+                text=f"{task} {track.observations}",
+                anchor=tk.W,
+                fill=color,
+                font=("Arial", 7),
+                tags="live",
+            )
+
+    def get_from_vehicle(self, quiet=False):
+        """Load the vehicle's prior map; quiet: log instead of dialogs."""
+
+        def tell(kind, text):
+            if quiet:
+                self.node.get_logger().info(text)
+            else:
+                getattr(messagebox, kind)(kind.removeprefix("show").title(), text)
+
         try:
             resp = call(self.node, self.get_client, Trigger.Request())
-
             if not resp.success:
-                messagebox.showerror(
-                    "Error", f"Service returned error:\n{resp.message}"
-                )
+                tell("showerror", f"Service returned error:\n{resp.message}")
                 return
 
             premap_data = yaml.safe_load(resp.message) or {}
@@ -812,7 +916,7 @@ class CompetitionMapGUI:
             gui_state = premap_data.get("gui_state", {}) or {}
             gui_objects = gui_state.get("objects", {})
             if not objects and not gui_objects:
-                messagebox.showwarning("Warning", "Vehicle has no loaded premap data")
+                tell("showwarning", "Vehicle has no loaded premap data")
                 return
 
             response_frame = gui_state.get(
@@ -821,20 +925,26 @@ class CompetitionMapGUI:
             if response_frame in self.REFERENCE_FRAME_OPTIONS:
                 self.reference_frame_var.set(response_frame)
 
+            self.object_z = {
+                self.SERVICE_LABEL_TO_OBJECT.get(label, label): float(
+                    data.get("position", [0.0, 0.0, 0.0])[2]
+                )
+                for label, data in objects.items()
+            }
             if gui_objects:
                 self.apply_gui_state(gui_objects)
                 loaded_count = len(gui_objects)
             else:
                 self.apply_vehicle_premap(objects, response_frame)
                 loaded_count = len(objects)
-
-            messagebox.showinfo(
-                "Success",
-                f"Loaded {loaded_count} object(s) from vehicle.",
-            )
+            self.draw_live_map(reschedule=False)
+            tell("showinfo", f"Loaded {loaded_count} object(s) from vehicle.")
 
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to get premap:\n{e}")
+            tell("showerror", f"Failed to get premap:\n{e}")
+
+    def depth_of(self, obj_name):
+        return self.object_z.get(obj_name, self.DEFAULT_Z.get(obj_name, 0.0))
 
     def apply_gui_state(self, objects):
         self.placed_objects.clear()
