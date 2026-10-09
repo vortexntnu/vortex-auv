@@ -12,6 +12,8 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
+#include <utility>
 #include <vector>
 
 #include "landmark_slam/config.hpp"
@@ -75,6 +77,13 @@ class LandmarkGraph {
                       const gtsam::Pose3& init,
                       double t);
     void add_observation(int kf, int id, const Measurement& m, double t);
+    /// Of each pair of same-class landmarks closer than max_dist_m whose
+    /// positions are consistent with one object (Mahalanobis d^2 of their
+    /// difference below d2_gate), the one seen less leaves landmarks(): no
+    /// more observations, not shown. Not tied to the other: its factors may
+    /// be wrong ones. Returns the pairs (kept, dropped).
+    std::vector<std::pair<int, int>> drop_duplicates(double max_dist_m,
+                                                     double d2_gate);
     /// isam.update() with what was added, refresh the estimates.
     void update();
     /// Refresh the landmark covariances (once per keyframe, before
@@ -115,6 +124,8 @@ class LandmarkGraph {
     mutable std::optional<gtsam::Marginals> marginals_;
     std::vector<Keyframe> keyframes_;
     std::map<int, LandmarkState> landmarks_;
+    /// Duplicates of another landmark: kept in the graph, not used.
+    std::set<int> duplicates_;
     std::vector<LandmarkState> cache_;
     /// Depth offset: map z = odom z + z_offset_.
     double z_offset_{0.0};

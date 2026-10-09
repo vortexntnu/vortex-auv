@@ -406,6 +406,18 @@ class LandmarkSlamNode : public rclcpp::Node {
                 id, c.cls.name, c.position.x(), c.position.y(), c.position.z(),
                 c.votes.size());
         }
+        // Two landmarks of a class closer than vote_radius_m cannot be two
+        // objects: the one seen less is dropped once their positions agree.
+        const auto dropped =
+            graph_.drop_duplicates(cfg_.params.vote_radius_m,
+                                   chi2_threshold(cfg_.params.gate_prob, 3));
+        for (const auto& [keep, drop] : dropped) {
+            spdlog::info("landmark_slam: landmark {} is a duplicate of {}",
+                         drop, keep);
+        }
+        if (!dropped.empty()) {
+            graph_.update();  // refresh landmarks() without them
+        }
         publish_map(t);
     }
 

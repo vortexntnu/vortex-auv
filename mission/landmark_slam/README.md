@@ -37,6 +37,11 @@ prior_map.yaml ────▶ start pose; where votes of a class are taken (opt
   from every prior entry are rejected. A landmark seen fewer than 30 times
   and not for 30 s is hidden (a phantom or a bad view); the class frame
   `<class>` is the landmark of the class seen most often.
+- **Duplicates.** Two landmarks of a class closer than `vote_radius_m`
+  whose positions agree (χ² at `gate_prob`) are one object: the one seen
+  less is dropped (no more observations, not shown). It is not tied to the
+  other: its factors may come from wrong detections, and tying them in
+  pulled the kept one off by up to 0.5 m in the replays.
 - **Consistency (NIS).** `landmark_slam/nis` is the mean normalised
   innovation squared of the last 50 matches. ≈ 1: the noise values fit;
   ≫ 1: too optimistic; ≪ 1: too pessimistic. Outside [0.5, 2] the node

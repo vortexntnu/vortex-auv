@@ -75,6 +75,7 @@ void LandmarkGraph::reset(const Config& cfg,
     estimate_.clear();
     keyframes_.clear();
     landmarks_.clear();
+    duplicates_.clear();
     cache_.clear();
 
     // X(0): the start pose from the prior map, else odom (map = odom).
@@ -196,6 +197,60 @@ void LandmarkGraph::add_observation(int kf,
     s.last_seen = std::max(s.last_seen, t);
 }
 
+std::vector<std::pair<int, int>> LandmarkGraph::drop_duplicates(
+    double max_dist_m,
+    double d2_gate) {
+    std::vector<std::pair<int, int>> pairs;
+    gtsam::KeyVector keys;
+    for (const LandmarkState& a : cache_) {
+        for (const LandmarkState& b : cache_) {
+            if (a.id < b.id && a.cls.name == b.cls.name &&
+                (a.pose.translation() - b.pose.translation()).norm() <
+                    max_dist_m) {
+                pairs.emplace_back(a.id, b.id);
+                for (const int id : {a.id, b.id}) {
+                    if (std::find(keys.begin(), keys.end(), L(id)) ==
+                        keys.end()) {
+                        keys.push_back(L(id));
+                    }
+                }
+            }
+        }
+    }
+    std::vector<std::pair<int, int>> dropped;
+    if (pairs.empty()) {
+        return dropped;
+    }
+    const gtsam::JointMarginal P = joint_cov(keys);
+    for (const auto& [ia, ib] : pairs) {
+        if (duplicates_.count(ia) > 0 || duplicates_.count(ib) > 0) {
+            continue;
+        }
+        const LandmarkState& a = landmarks_.at(ia);
+        const LandmarkState& b = landmarks_.at(ib);
+        // Position covariance of a - b in the map frame (the tangent
+        // translation is in each landmark's own frame).
+        const gtsam::Matrix3 Ra = a.pose.rotation().matrix();
+        const gtsam::Matrix3 Rb = b.pose.rotation().matrix();
+        const auto t = [&](int i, int j) {
+            return gtsam::Matrix3(P(L(i), L(j)).block<3, 3>(3, 3));
+        };
+        const gtsam::Matrix3 S =
+            Ra * t(ia, ia) * Ra.transpose() + Rb * t(ib, ib) * Rb.transpose() -
+            Ra * t(ia, ib) * Rb.transpose() - Rb * t(ib, ia) * Ra.transpose();
+        const gtsam::Vector3 d = a.pose.translation() - b.pose.translation();
+        if (d.dot(S.ldlt().solve(d)) > d2_gate) {
+            continue;
+        }
+        const bool a_keeps = a.n_obs >= b.n_obs;
+        const int keep = a_keeps ? ia : ib;
+        const int drop = a_keeps ? ib : ia;
+        duplicates_.insert(drop);
+        dropped.emplace_back(keep, drop);
+    }
+    return dropped;
+}
+
 void LandmarkGraph::update() {
     isam_->update(new_factors_, new_values_);
     new_factors_.resize(0);
@@ -206,7 +261,9 @@ void LandmarkGraph::update() {
     cache_.clear();
     for (auto& [id, s] : landmarks_) {
         s.pose = estimate_.at<gtsam::Pose3>(L(id));
-        cache_.push_back(s);
+        if (duplicates_.count(id) == 0) {
+            cache_.push_back(s);
+        }
     }
 }
 
@@ -217,7 +274,9 @@ void LandmarkGraph::update_covariances() {
     const gtsam::Key xk = X(last_keyframe());
     gtsam::KeyVector keys{xk};
     for (const auto& [id, s] : landmarks_) {
-        keys.push_back(L(id));
+        if (duplicates_.count(id) == 0) {
+            keys.push_back(L(id));
+        }
     }
     const gtsam::JointMarginal P = joint_cov(keys);
     const gtsam::Pose3 Xk = keyframe_pose(last_keyframe());
@@ -225,6 +284,9 @@ void LandmarkGraph::update_covariances() {
 
     cache_.clear();
     for (auto& [id, s] : landmarks_) {
+        if (duplicates_.count(id) > 0) {
+            continue;
+        }
         s.cov = P(L(id), L(id));
         // Landmark position in the keyframe frame: d/dX and d/dL.
         gtsam::Matrix36 H_x;
