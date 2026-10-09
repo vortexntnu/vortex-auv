@@ -110,7 +110,15 @@ Premap load_premap(const std::string& path, std::vector<std::string>& skipped) {
 }
 
 std::string premap_to_yaml(const Premap& premap) {
+    // Rounding noise (6e-17 for 0) out of the file.
+    const auto clean = [](std::vector<double> v) {
+        for (double& x : v) {
+            x = std::abs(x) < 1e-9 ? 0.0 : x;
+        }
+        return v;
+    };
     YAML::Emitter out;
+    out.SetDoublePrecision(7);
     out << YAML::BeginMap;
     out << YAML::Key << "reference_frame" << YAML::Value << kMapReference;
     out << YAML::Key << "created_at" << YAML::Value << YAML::SingleQuoted
@@ -120,9 +128,9 @@ std::string premap_to_yaml(const Premap& premap) {
         const gtsam::Quaternion q = pose.rotation().toQuaternion();
         out << YAML::Key << label << YAML::Value << YAML::BeginMap;
         out << YAML::Key << "position" << YAML::Value << YAML::Flow
-            << std::vector<double>{pose.x(), pose.y(), pose.z()};
+            << clean({pose.x(), pose.y(), pose.z()});
         out << YAML::Key << "orientation" << YAML::Value << YAML::Flow
-            << std::vector<double>{q.x(), q.y(), q.z(), q.w()};
+            << clean({q.x(), q.y(), q.z(), q.w()});
         out << YAML::EndMap;
     }
     out << YAML::EndMap;

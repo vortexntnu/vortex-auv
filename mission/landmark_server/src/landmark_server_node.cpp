@@ -366,13 +366,22 @@ class LandmarkServerNode : public rclcpp::Node {
                 if (key.rfind("reference_frame/", 0) == 0) {
                     gui_reference = key.substr(16);
                 } else if (key.rfind("object/", 0) == 0) {
+                    // Kept as the GUI sent it, 7 significant digits.
                     const auto& p = o.pose;
+                    const auto list = [](std::initializer_list<double> v) {
+                        YAML::Node seq(YAML::NodeType::Sequence);
+                        seq.SetStyle(YAML::EmitterStyle::Flow);
+                        for (const double x : v) {
+                            seq.push_back(fmt::format(
+                                "{:.7g}", std::abs(x) < 1e-9 ? 0.0 : x));
+                        }
+                        return seq;
+                    };
                     YAML::Node n;
-                    n["position"] = std::vector<double>{
-                        p.position.x, p.position.y, p.position.z};
-                    n["orientation"] =
-                        std::vector<double>{p.orientation.x, p.orientation.y,
-                                            p.orientation.z, p.orientation.w};
+                    n["position"] =
+                        list({p.position.x, p.position.y, p.position.z});
+                    n["orientation"] = list({p.orientation.x, p.orientation.y,
+                                             p.orientation.z, p.orientation.w});
                     gui_objects[key.substr(7)] = n;
                 }
                 continue;
