@@ -42,6 +42,9 @@ constexpr double kNoOrientationVariance = 1000.0;  // perception convention
 constexpr std::size_t kNisWindow = 50;
 constexpr double kMinRangeM = 0.05;
 constexpr double kFramePeriodS = 0.1;  // landmark and gate TF frames
+// Detection messages per source and keyframe that update the map (the
+// newest; only the last one votes for new landmarks).
+constexpr std::size_t kMaxMessagesPerKeyframe = 5;
 // A landmark seen fewer times than this and not for kForgetS is hidden: a
 // phantom or a bad view, not an object.
 constexpr int kMinSupport = 30;
@@ -316,8 +319,8 @@ class LandmarkSlamNode : public rclcpp::Node {
         if (msg->landmarks.empty()) {
             return;
         }
-        // Throttled to the keyframe rate: the latest message per source
-        // (frame and the types it carries) waits for the next keyframe.
+        // Every message since the last keyframe waits for the next, per
+        // source (frame and the types it carries).
         std::string source = msg->header.frame_id;
         std::set<std::uint16_t> types;
         for (const auto& l : msg->landmarks) {
@@ -326,32 +329,62 @@ class LandmarkSlamNode : public rclcpp::Node {
         for (const auto type : types) {
             source += "/" + std::to_string(type);
         }
-        pending_[source] = msg;
+        auto& q = pending_[source];
+        q.push_back(msg);
+        if (q.size() > kMaxMessagesPerKeyframe) {
+            q.pop_front();
+        }
     }
 
     void process_keyframe(const gtsam::Pose3& T_odom_base, double t) {
         const int kf = graph_.add_keyframe(T_odom_base, t);
         graph_.update();
 
-        bool observed = false;
-        for (const auto& [source, msg] : pending_) {
-            const auto detections = to_detections(*msg, T_odom_base);
-            if (detections.empty()) {
-                continue;
-            }
-            const double t_det = rclcpp::Time(msg->header.stamp).seconds();
-            const Association a = associate(graph_, kf, detections);
-            for (const Match& m : a.matches) {
-                graph_.add_observation(kf, m.landmark,
-                                       detections[m.detection].z, t_det);
-                push_nis(m.nis);
-                observed = true;
-            }
-            const gtsam::Pose3 T_map_base = graph_.keyframe_pose(kf);
-            for (const std::size_t i : a.unmatched) {
-                votes_.add(detections[i], kf, T_map_base, t_det, cfg_);
+        // Each message is associated on its own; the detections matched to
+        // one landmark become one factor (their mean, Measurement::merged).
+        std::map<int, std::pair<Measurement, gtsam::Point3>> matched;
+        double t_obs = 0.0;
+        const gtsam::Pose3 T_map_base = graph_.keyframe_pose(kf);
+        for (const auto& [source, msgs] : pending_) {
+            for (const auto& msg : msgs) {
+                // Votes for new landmarks only from the newest message: more
+                // looks at one object must not make a misclassification a
+                // landmark sooner.
+                const bool newest = msg == msgs.back();
+                const auto detections = to_detections(*msg, T_odom_base);
+                if (detections.empty()) {
+                    continue;
+                }
+                const double t_det = rclcpp::Time(msg->header.stamp).seconds();
+                const Association a = associate(graph_, kf, detections);
+                for (const Match& m : a.matches) {
+                    const Measurement& z = detections[m.detection].z;
+                    auto [it, first] = matched.try_emplace(
+                        m.landmark, z, gtsam::Point3::Zero());
+                    auto& [agg, sum] = it->second;
+                    if (first) {
+                        agg.merged = 0;
+                    }
+                    sum += z.position;
+                    agg.merged++;
+                    agg.position = sum / static_cast<double>(agg.merged);
+                    if (z.rotation) {
+                        agg.rotation = z.rotation;
+                    }
+                    push_nis(m.nis);
+                    t_obs = std::max(t_obs, t_det);
+                }
+                for (const std::size_t i : a.unmatched) {
+                    if (newest) {
+                        votes_.add(detections[i], kf, T_map_base, t_det, cfg_);
+                    }
+                }
             }
         }
+        for (const auto& [id, agg] : matched) {
+            graph_.add_observation(kf, id, agg.first, t_obs);
+        }
+        const bool observed = !matched.empty();
         pending_.clear();
         if (observed) {
             graph_.update();
@@ -640,7 +673,9 @@ class LandmarkSlamNode : public rclcpp::Node {
     Config cfg_;
     LandmarkGraph graph_;
     Votes votes_;
-    std::map<std::string, vortex_msgs::msg::LandmarkArray::ConstSharedPtr>
+    /// Per source, the latest kMaxMessagesPerKeyframe messages.
+    std::map<std::string,
+             std::deque<vortex_msgs::msg::LandmarkArray::ConstSharedPtr>>
         pending_;
     std::optional<OdomSample> odom_;
     std::string odom_frame_;

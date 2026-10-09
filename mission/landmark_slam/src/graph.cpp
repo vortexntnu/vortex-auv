@@ -33,7 +33,10 @@ constexpr double kFreeYawSigma = std::numbers::pi;  // yaw nobody measures
 constexpr double kFreeTransSigma = 100.0;  // new landmark: no position prior
 constexpr double kOrientRollPitchSigma = 0.5;  // detector roll/pitch [rad]
 constexpr double kOrientYawSigma = 0.1;        // detector yaw [rad]
-constexpr double kDcsPhi = 1.0;                // Agarwal et al. 2013
+// Detections of one keyframe averaged into one factor are not independent
+// (the same view, the same pose error): at most this many count.
+constexpr std::size_t kMaxMergedWeight = 4;
+constexpr double kDcsPhi = 1.0;  // Agarwal et al. 2013
 
 gtsam::SharedNoiseModel sigmas(double rr,
                                double rp,
@@ -159,6 +162,8 @@ void LandmarkGraph::add_observation(int kf,
     const Params& p = cfg_.params;
     const double range = m.position.norm();
     const double sym = s.cls.symmetry_deg;
+    const double scale =
+        std::sqrt(static_cast<double>(std::min(m.merged, kMaxMergedWeight)));
 
     if (m.rotation && s.cls.has_orientation && sym < 360.0) {
         // Snap the measured yaw to the symmetric hypothesis closest to the
@@ -173,7 +178,7 @@ void LandmarkGraph::add_observation(int kf,
             R_base_obj = R_base_obj * gtsam::Rot3::Yaw(n * step);
         }
         const double trans =
-            std::max(p.range_sigma(range), p.bearing_sigma * range);
+            std::max(p.range_sigma(range), p.bearing_sigma * range) / scale;
         new_factors_.emplace_shared<gtsam::BetweenFactor<gtsam::Pose3>>(
             X(kf), L(id), gtsam::Pose3(R_base_obj, m.position),
             robust(sigmas(kOrientRollPitchSigma, kOrientRollPitchSigma,
@@ -182,7 +187,7 @@ void LandmarkGraph::add_observation(int kf,
     } else {
         new_factors_.emplace_shared<BearingRange>(
             X(kf), L(id), gtsam::Unit3(m.position), range,
-            robust(Diagonal::Sigmas(bearing_range_sigmas(p, range))));
+            robust(Diagonal::Sigmas(bearing_range_sigmas(p, range) / scale)));
     }
     if (s.n_obs == 0) {
         s.first_seen = t;
@@ -196,6 +201,7 @@ void LandmarkGraph::update() {
     new_factors_.resize(0);
     new_values_.clear();
     estimate_ = isam_->calculateEstimate();
+    marginals_.reset();
 
     cache_.clear();
     for (auto& [id, s] : landmarks_) {
@@ -255,8 +261,12 @@ gtsam::Pose3 LandmarkGraph::map_to_odom() const {
 
 gtsam::JointMarginal LandmarkGraph::joint_cov(
     const gtsam::KeyVector& keys) const {
-    const gtsam::Marginals marginals(isam_->getFactorsUnsafe(), estimate_);
-    return marginals.jointMarginalCovariance(keys);
+    // One factorisation per estimate: every association and the published
+    // covariances until the next update share it.
+    if (!marginals_) {
+        marginals_.emplace(isam_->getFactorsUnsafe(), estimate_);
+    }
+    return marginals_->jointMarginalCovariance(keys);
 }
 
 }  // namespace vortex::landmark_slam

@@ -74,7 +74,7 @@ and `prior_map_sim.yaml` (the simulator course).
 | `keyframe_dist_m`, `keyframe_time_s` | 0.5, 1.0 | New keyframe after this distance or time |
 | `odom_sigma_trans_per_m`, `odom_sigma_yaw_per_m` | 0.03, 0.01 | Odometry noise per metre (measured) |
 | `default_prior_sigma_xy` | 1.0 | Prior entry `sigma_xy` when it gives none: votes are taken within 3 σ + `vote_radius_m` of an entry |
-| `gate_prob` | 0.95 | Association gate (χ² per degree of freedom) |
+| `gate_prob` | 0.999 | Association gate (χ² per degree of freedom) |
 | `min_votes`, `vote_radius_m` | 3, 0.5 | New landmark: vote weight within the radius |
 | `gate.panel_classes`, `gate.min_separation_m`, `gate.max_separation_m`, `gate.approach_m`, `gate.depth_below_panel_m` | panels, 0.2, 2.5, 1.0, 0.5 | Gate frames |
 | `bearing_sigma` | 0.03 | Detection bearing noise [rad] (measured) |
@@ -156,4 +156,7 @@ check that `landmark_slam/nis` stays near 1.
 ## Known limits
 
 - Detections are used at the keyframe rate: per source (frame and types),
-  the latest message since the last keyframe.
+  the last 5 messages since the last keyframe, each associated on its own;
+  the detections matched to one landmark become one factor (their mean,
+  counted as at most 4 detections). Only the newest message votes for new
+  landmarks.

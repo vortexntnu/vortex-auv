@@ -32,6 +32,9 @@ struct Measurement {
     gtsam::Point3 position;
     /// Object orientation relative to the base, when the detector gives one.
     std::optional<gtsam::Rot3> rotation;
+    /// Detections averaged into position: the factor's position noise is
+    /// divided by sqrt(merged), at most by 2 (they share the view's errors).
+    std::size_t merged{1};
 };
 
 /// What the map knows about one landmark.
@@ -109,6 +112,7 @@ class LandmarkGraph {
     gtsam::NonlinearFactorGraph new_factors_;
     gtsam::Values new_values_;
     gtsam::Values estimate_;
+    mutable std::optional<gtsam::Marginals> marginals_;
     std::vector<Keyframe> keyframes_;
     std::map<int, LandmarkState> landmarks_;
     std::vector<LandmarkState> cache_;

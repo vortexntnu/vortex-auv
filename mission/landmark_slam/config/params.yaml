@@ -21,8 +21,9 @@
     # else this).
     default_prior_sigma_xy: 1.0
 
-    # Association gate (chi^2 probability).
-    gate_prob: 0.95
+    # Association gate (chi^2 probability). 0.95 left the detections in
+    # front of the torpedo board mostly unmatched (median d^2 12-21).
+    gate_prob: 0.999
 
     # New landmarks by voting: each detection no landmark explains is a vote
     # at its map position (its weight halves every 10 s). Votes of a class
