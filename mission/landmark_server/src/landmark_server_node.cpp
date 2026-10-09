@@ -40,6 +40,8 @@ constexpr std::size_t kNisWindow = 50;
 constexpr double kMinRangeM = 0.05;
 constexpr double kFramePeriodS = 0.1;  // landmark TF frames
 constexpr const char* kGuiPrefix = "__gui/";
+constexpr double kPriorWarnPeriodS = 10.0;
+constexpr int kPriorWarnMinCount = 20;
 
 gtsam::Pose3 to_pose3(const geometry_msgs::msg::Pose& p) {
     return {gtsam::Rot3::Quaternion(p.orientation.w, p.orientation.x,
@@ -552,6 +554,7 @@ class LandmarkServerNode : public rclcpp::Node {
                 c.hits.size());
         }
 
+        warn_prior_rejects(t);
         // Two landmarks of a class this close whose positions agree are one
         // object (e.g. a copy made while the odometry had drifted).
         for (const auto& [keep, drop] : graph_.retire_duplicates(
@@ -561,6 +564,33 @@ class LandmarkServerNode : public rclcpp::Node {
         }
         publish_map(t);
         prev_keyframe_t_ = t;
+    }
+
+    /// Many detections of a class far from its prior: the prior map is
+    /// probably wrong (no landmark of the task can be made). Every 10 s.
+    void warn_prior_rejects(double t) {
+        for (const auto& [cls, n] : candidates_.take_prior_rejects()) {
+            auto& [count, nearest] =
+                prior_rejects_.try_emplace(cls, 0, n.second).first->second;
+            count += n.first;
+            nearest = std::min(nearest, n.second);
+        }
+        if (t - last_prior_warn_ < kPriorWarnPeriodS) {
+            return;
+        }
+        for (const auto& [cls, n] : prior_rejects_) {
+            if (n.first >= kPriorWarnMinCount) {
+                const ClassConfig* c = cfg_.find_class(cls);
+                spdlog::warn(
+                    "landmark_server: {} detections of {} rejected by the "
+                    "prior map in {:.0f} s, the nearest {:.1f} m from task "
+                    "'{}' (prior_radius_m {:.1f}): is the prior map right?",
+                    n.first, cls, kPriorWarnPeriodS, n.second, c->prior,
+                    c->prior_radius_m);
+            }
+        }
+        prior_rejects_.clear();
+        last_prior_warn_ = t;
     }
 
     /// Detections of one message in the base frame of the new keyframe.
@@ -806,6 +836,8 @@ class LandmarkServerNode : public rclcpp::Node {
     std::vector<geometry_msgs::msg::TransformStamped> frames_;
     double last_frames_t_{0.0};
     double prev_keyframe_t_{0.0};
+    std::map<std::string, std::pair<int, double>> prior_rejects_;
+    double last_prior_warn_{0.0};
     int next_id_{1};
     std::deque<double> nis_;
     std::set<std::pair<std::uint16_t, std::uint16_t>> unknown_;

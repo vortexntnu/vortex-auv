@@ -5,6 +5,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "landmark_server/graph.hpp"
@@ -96,8 +97,16 @@ class Candidates {
     std::vector<Candidate> take_confirmed(const LandmarkGraph& graph, double t);
     std::size_t size() const { return candidates_.size(); }
 
+    /// Detections rejected by their class's prior since the last call, per
+    /// class: (count, nearest distance to the prior [m]). A wrong prior map
+    /// rejects every detection of a task, so the node warns about it.
+    std::map<std::string, std::pair<int, double>> take_prior_rejects() {
+        return std::exchange(prior_rejects_, {});
+    }
+
    private:
     std::vector<Candidate> candidates_;
+    std::map<std::string, std::pair<int, double>> prior_rejects_;
 };
 
 }  // namespace vortex::landmark_server

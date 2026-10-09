@@ -107,7 +107,7 @@ ros2 launch landmark_server landmark_server.launch.py env:=sim     # sim.yaml, p
 | `env` | `pool` | `sim`: the simulator's detection noise (`config/sim.yaml`) and course (`config/premap_sim.yaml`) |
 | `config_file` | `config/landmark_server.yaml` | All tunable values |
 | `premap_file` | `config/premap.yaml` (`premap_sim.yaml` with `env:=sim`) | The prior map, written by `set_premap`. Build with `--symlink-install` to write the source file |
-| `odom_topic` | the robot file's `odom` | |
+| `odom_topic`, `landmarks_topic` | the robot file's `odom`, `landmarks` | Other topics, e.g. the drift injector's in the simulator |
 
 Start a new map (anchor) with the vehicle at the start facing the course:
 

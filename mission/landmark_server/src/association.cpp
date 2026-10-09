@@ -229,9 +229,16 @@ void Candidates::add(const std::vector<Detection>& detections,
         // Far from where the class's task is: a false detection.
         if (!d.cls->prior.empty()) {
             const auto it = priors.find(d.cls->prior);
-            if (it != priors.end() && std::hypot(h.point.x() - it->second.x(),
-                                                 h.point.y() - it->second.y()) >
-                                          d.cls->prior_radius_m) {
+            const double dist = it == priors.end()
+                                    ? 0.0
+                                    : std::hypot(h.point.x() - it->second.x(),
+                                                 h.point.y() - it->second.y());
+            if (dist > d.cls->prior_radius_m) {
+                auto& [count, nearest] =
+                    prior_rejects_.try_emplace(d.cls->name, 0, dist)
+                        .first->second;
+                ++count;
+                nearest = std::min(nearest, dist);
                 continue;
             }
         }

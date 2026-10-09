@@ -27,6 +27,7 @@ def launch_setup(context, *args, **kwargs):
         CONFIG_DIR, "premap_sim.yaml" if env == "sim" else "premap.yaml"
     )
     odom_topic = LaunchConfiguration("odom_topic").perform(context)
+    landmarks_topic = LaunchConfiguration("landmarks_topic").perform(context)
     return [
         Node(
             package="landmark_server",
@@ -40,6 +41,7 @@ def launch_setup(context, *args, **kwargs):
                 drone_params,
                 {"premap_file": premap_file, "frame_prefix": namespace},
                 *([{"topics.odom": odom_topic}] if odom_topic else []),
+                *([{"topics.landmarks": landmarks_topic}] if landmarks_topic else []),
             ],
             output="screen",
         )
@@ -70,6 +72,11 @@ def generate_launch_description():
                 "odom_topic",
                 default_value="",
                 description="Odometry topic (default: the robot file's, odom)",
+            ),
+            DeclareLaunchArgument(
+                "landmarks_topic",
+                default_value="",
+                description="Detections (default: the robot file's, landmarks)",
             ),
             OpaqueFunction(function=launch_setup),
         ]
