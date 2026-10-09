@@ -1,0 +1,177 @@
+{
+  "configById": {
+    "3D!map": {
+      "cameraState": {
+        "perspective": true,
+        "distance": 28,
+        "phi": 55,
+        "thetaOffset": -90,
+        "targetOffset": [
+          9,
+          0,
+          0
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "followTf": "nautilus/map",
+      "scene": {
+        "enableStats": false,
+        "labelScaleFactor": 1,
+        "transforms": {
+          "showLabel": true,
+          "axisSize": 0.35,
+          "labelSize": 0.09,
+          "editable": false
+        }
+      },
+      "transforms": {},
+      "topics": {
+        "/nautilus/landmark_server/markers": {
+          "visible": true
+        },
+        "/nautilus/test/truth": {
+          "visible": true
+        },
+        "/nautilus/debug/raw_detections": {
+          "visible": false
+        },
+        "/nautilus/test/true_path": {
+          "visible": true,
+          "type": "line",
+          "lineWidth": 0.06,
+          "gradient": [
+            "#ffffffff",
+            "#ffffffff"
+          ]
+        },
+        "/nautilus/test/odom_path": {
+          "visible": true,
+          "type": "line",
+          "lineWidth": 0.06,
+          "gradient": [
+            "#ff9f1aff",
+            "#ff9f1aff"
+          ]
+        },
+        "/nautilus/test/slam_path": {
+          "visible": true,
+          "type": "line",
+          "lineWidth": 0.06,
+          "gradient": [
+            "#2fbf5aff",
+            "#2fbf5aff"
+          ]
+        }
+      },
+      "layers": {
+        "grid": {
+          "visible": true,
+          "frameId": "nautilus/map",
+          "layerId": "foxglove.Grid",
+          "size": 60,
+          "divisions": 60,
+          "lineWidth": 1,
+          "color": "#248eff40",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "order": 1
+        }
+      },
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26
+      },
+      "imageMode": {},
+      "foxglovePanelTitle": "Map (nautilus/map): spheres = landmarks (green seen now, grey remembered), small green = truth; paths: white true, orange odom, green iSAM2"
+    },
+    "Plot!err": {
+      "paths": [
+        {
+          "value": "/nautilus/test/err_slam.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "iSAM2 (map -> odom)"
+        },
+        {
+          "value": "/nautilus/test/err_odom.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "raw odometry"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "followingViewWidth": 300,
+      "foxglovePanelTitle": "Vehicle position error [m]"
+    },
+    "Plot!nis": {
+      "paths": [
+        {
+          "value": "/nautilus/landmark_server/nis.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "NIS"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "followingViewWidth": 300,
+      "foxglovePanelTitle": "NIS (~1 = noise values fit)"
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "first": "3D!map",
+    "second": {
+      "first": "Plot!err",
+      "second": "Plot!nis",
+      "direction": "column",
+      "splitPercentage": 60
+    },
+    "direction": "row",
+    "splitPercentage": 68
+  }
+}

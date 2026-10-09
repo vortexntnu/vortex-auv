@@ -13,6 +13,7 @@ depth).
 """
 
 import math
+import signal
 import threading
 import time
 import tkinter as tk
@@ -22,6 +23,7 @@ import rclpy
 import yaml
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
+from rclpy.signals import SignalHandlerOptions
 from std_srvs.srv import Trigger
 from vortex_msgs.msg import ObjectPose
 from vortex_msgs.srv import SetPremap
@@ -915,18 +917,35 @@ class CompetitionMapGUI:
 
 
 def main():
-    rclpy.init()
+    # Our own Ctrl-C / SIGTERM handling: rclpy's would only shut ROS down and
+    # leave the window open. The handler sets a flag; the Tk loop polls it.
+    rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
+    stop = threading.Event()
+    signal.signal(signal.SIGINT, lambda *_: stop.set())
+    signal.signal(signal.SIGTERM, lambda *_: stop.set())
+
     node = Node("competition_map_gui")
     executor = SingleThreadedExecutor()
     executor.add_node(node)
-    threading.Thread(target=executor.spin, daemon=True).start()
+    spinner = threading.Thread(target=executor.spin, daemon=True)
+    spinner.start()
 
     root = tk.Tk()
     CompetitionMapGUI(root, node)
+
+    def poll_stop():
+        if stop.is_set():
+            root.destroy()
+        else:
+            root.after(200, poll_stop)
+
+    root.after(200, poll_stop)
     try:
         root.mainloop()
     finally:
-        executor.shutdown()
+        # Stop and join the spin thread before the node goes away.
+        executor.shutdown(timeout_sec=2.0)
+        spinner.join(timeout=2.0)
         node.destroy_node()
         rclpy.try_shutdown()
 

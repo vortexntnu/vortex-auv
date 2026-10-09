@@ -69,7 +69,7 @@ install(TARGETS ${LIB_NAME}
   RUNTIME DESTINATION bin
 )
 
-install(DIRECTORY config launch
+install(DIRECTORY config launch foxglove
   DESTINATION share/${PROJECT_NAME}/
 )
 
