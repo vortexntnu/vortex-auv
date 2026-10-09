@@ -50,3 +50,15 @@
       max_separation_m: 2.5
       approach_m: 1.0
       depth_below_panel_m: 0.5
+
+    # Torpedo opening frames <icon>_opening for the icons below: the opening
+    # of the icon's size nearest to it ("" board_class = off). The board's
+    # axes come from the icons; openings are [right, down] pairs from the
+    # board centre as seen from the front [m] (the sim board: the same for
+    # both decal versions). MEASURE on the board in use.
+    torpedo:
+      board_class: "torpedo_board"
+      large_icons: ["torpedo_icon_fire", "torpedo_icon_blood"]
+      small_icons: ["torpedo_icon_firetruck", "torpedo_icon_ambulance"]
+      large_openings: [-0.210, -0.064, 0.214, 0.216]
+      small_openings: [-0.003, -0.192, -0.006, 0.200]

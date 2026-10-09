@@ -130,6 +130,25 @@ Config load_config(const Params& params) {
         throw std::runtime_error(
             "gate.panel_classes: give two classes or none");
     }
+    const TorpedoParams& t = params.torpedo;
+    if (!t.board_class.empty()) {
+        std::vector<std::string> names{t.board_class};
+        names.insert(names.end(), t.large_icons.begin(), t.large_icons.end());
+        names.insert(names.end(), t.small_icons.begin(), t.small_icons.end());
+        for (const auto& name : names) {
+            if (std::none_of(
+                    cfg.classes.begin(), cfg.classes.end(),
+                    [&](const ClassConfig& c) { return c.name == name; })) {
+                throw std::runtime_error(fmt::format(
+                    "torpedo: class '{}' is not in the class file", name));
+            }
+        }
+        if (t.large_openings.size() % 2 != 0 ||
+            t.small_openings.size() % 2 != 0) {
+            throw std::runtime_error(
+                "torpedo: openings are [right, down] pairs");
+        }
+    }
     if (params.use_prior_map && !params.prior_map_file.empty()) {
         load_prior_map(params.prior_map_file, cfg);
     }

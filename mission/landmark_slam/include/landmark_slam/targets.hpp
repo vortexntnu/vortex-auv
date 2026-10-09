@@ -29,6 +29,20 @@ std::vector<TargetFrame> gate_frames(
     const GateParams& gate,
     const gtsam::Point3& start);
 
+/**
+ * @brief Per mapped torpedo icon, <icon>_opening: the opening of its size
+ * (large or small) on the board nearest to it. +X through the board, away
+ * from the vehicle, +Y right as seen from the front, +Z down; the origin is
+ * the board centre plus the opening's [right, down] offset. The normal is
+ * the board's x axis when the detector gives its orientation, else it
+ * comes from the icons (their horizontal spread is along the board: then
+ * two icons at least 0.2 m apart sideways are needed).
+ */
+std::vector<TargetFrame> torpedo_frames(
+    const std::vector<LandmarkState>& landmarks,
+    const TorpedoParams& torpedo,
+    const gtsam::Point3& vehicle);
+
 }  // namespace vortex::landmark_slam
 
 #endif  // LANDMARK_SLAM__TARGETS_HPP_

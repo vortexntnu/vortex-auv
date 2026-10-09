@@ -232,6 +232,16 @@ class LandmarkSlamNode : public rclcpp::Node {
         p.gate.depth_below_panel_m =
             declare_parameter<double>("gate.depth_below_panel_m");
         p.gate.approach_m = declare_parameter<double>("gate.approach_m");
+        p.torpedo.board_class =
+            declare_parameter<std::string>("torpedo.board_class");
+        p.torpedo.large_icons =
+            declare_parameter<std::vector<std::string>>("torpedo.large_icons");
+        p.torpedo.small_icons =
+            declare_parameter<std::vector<std::string>>("torpedo.small_icons");
+        p.torpedo.large_openings =
+            declare_parameter<std::vector<double>>("torpedo.large_openings");
+        p.torpedo.small_openings =
+            declare_parameter<std::vector<double>>("torpedo.small_openings");
     }
 
     rcl_interfaces::msg::SetParametersResult on_set_parameters(
@@ -587,6 +597,11 @@ class LandmarkSlamNode : public rclcpp::Node {
              gate_frames(shown, cfg_.params.gate,
                          graph_.keyframe_pose(0).translation())) {
             frames_.push_back(frame(g.name, g.pose));
+        }
+        for (const TargetFrame& o : torpedo_frames(
+                 shown, cfg_.params.torpedo,
+                 graph_.keyframe_pose(graph_.last_keyframe()).translation())) {
+            frames_.push_back(frame(o.name, o.pose));
         }
         for (const LandmarkState& l : shown) {
             frames_.push_back(

@@ -50,6 +50,17 @@ struct GateParams {
     double depth_below_panel_m{0.5};
 };
 
+/// Torpedo opening frames <icon>_opening (targets.hpp).
+struct TorpedoParams {
+    std::string board_class;  // "" = off
+    /// Icons that mark a large / a small opening.
+    std::vector<std::string> large_icons;
+    std::vector<std::string> small_icons;
+    /// The openings on the board: [right, down] pairs from its centre [m].
+    std::vector<double> large_openings;
+    std::vector<double> small_openings;
+};
+
 /// ROS parameters (params.yaml).
 struct Params {
     bool use_prior_map{true};
@@ -67,6 +78,7 @@ struct Params {
     double range_sigma_a{0.1};
     double range_sigma_b{0.05};
     GateParams gate;
+    TorpedoParams torpedo;
 
     /// Range noise sigma_r = a + b * r.
     double range_sigma(double range) const {
