@@ -19,10 +19,6 @@ struct ClassConfig {
     double symmetry_deg{0.0};
     /// Use the detector's orientation when it sends one.
     bool has_orientation{false};
-    /// Classes a detector mixes up share a group (empty: none): they are
-    /// associated as one kind, and a landmark's class is the one most of
-    /// its detections gave.
-    std::string group;
 };
 
 /// A landmark from prior_map.yaml (map frame): where an object of its class

@@ -12,8 +12,6 @@
 #include <map>
 #include <memory>
 #include <optional>
-#include <string>
-#include <utility>
 #include <vector>
 
 #include "landmark_slam/config.hpp"
@@ -34,8 +32,6 @@ struct Measurement {
     gtsam::Point3 position;
     /// Object orientation relative to the base, when the detector gives one.
     std::optional<gtsam::Rot3> rotation;
-    /// The class the detector gave.
-    const ClassConfig* cls{nullptr};
 };
 
 /// What the map knows about one landmark.
@@ -55,8 +51,6 @@ struct LandmarkState {
     double last_seen{0.0};
     /// Yaw is meaningful: from an orientation measurement.
     bool yaw_known{false};
-    /// Detections per class (a class group): cls is the most frequent.
-    std::map<std::string, std::pair<ClassConfig, int>> seen_as;
 };
 
 /// Bearing-range noise sigmas [bearing, bearing, range] at this range.

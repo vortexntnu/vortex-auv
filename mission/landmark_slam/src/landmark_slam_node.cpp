@@ -417,7 +417,6 @@ class LandmarkSlamNode : public rclcpp::Node {
             }
             Detection d;
             d.cls = cls;
-            d.z.cls = cls;
             d.z.position = T_base_obj.translation();
             const auto& c = l.pose.covariance;
             if (c[21] < kNoOrientationVariance &&

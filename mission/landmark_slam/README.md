@@ -105,9 +105,7 @@ ros2 topic pub --once /nautilus/mission/wipe std_msgs/msg/Empty   # or the GUI's
 
 **Adding an object type** is a YAML entry only: a class in
 `landmark_classes.yaml` (the `type`/`subtype` values the detector publishes,
-`symmetry_deg`, `has_orientation`, and `group` for classes the detector
-mixes up, like the white and red slalom pipes: associated as one kind, the
-class is the one most detections gave), and optionally entries in
+`symmetry_deg`, `has_orientation`), and optionally entries in
 `prior_map.yaml` (the class, x, y, and how far the object can be from the
 drawing). The prior map does not pull the map: a prior with an error per task
 (a whole slalom set 0.5 m off) would bend it. It only decides where votes for

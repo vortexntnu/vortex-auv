@@ -145,7 +145,6 @@ void LandmarkGraph::add_landmark(int id,
     LandmarkState s;
     s.id = id;
     s.cls = cls;
-    s.seen_as.try_emplace(cls.name, cls, 0);
     s.pose = init;
     s.first_seen = t;
     s.last_seen = t;
@@ -189,13 +188,6 @@ void LandmarkGraph::add_observation(int kf,
         s.first_seen = t;
     }
     s.n_obs++;
-    if (m.cls != nullptr) {
-        auto& [cls, n] =
-            s.seen_as.try_emplace(m.cls->name, *m.cls, 0).first->second;
-        if (++n > s.seen_as.at(s.cls.name).second) {
-            s.cls = cls;
-        }
-    }
     s.last_seen = std::max(s.last_seen, t);
 }
 

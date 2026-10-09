@@ -39,8 +39,7 @@ struct Pair {
 };
 
 bool same_class(const ClassConfig& a, const ClassConfig& b) {
-    return (a.type == b.type && a.subtype == b.subtype) ||
-           (!a.group.empty() && a.group == b.group);
+    return a.type == b.type && a.subtype == b.subtype;
 }
 
 Pair linearise(const LandmarkGraph& graph,
@@ -268,10 +267,7 @@ void Votes::add(const Detection& d,
     bool in_prior = false;
     bool near_prior = false;
     for (const PriorLandmark& pl : cfg.prior_landmarks) {
-        const auto pl_cls = std::find_if(
-            cfg.classes.begin(), cfg.classes.end(),
-            [&](const ClassConfig& c) { return c.name == pl.class_name; });
-        if (pl_cls == cfg.classes.end() || !same_class(*pl_cls, *d.cls)) {
+        if (pl.class_name != d.cls->name) {
             continue;
         }
         in_prior = true;
@@ -345,6 +341,7 @@ std::vector<VoteCluster> Votes::take_clusters(const LandmarkGraph& graph,
                 return gtsam::Point3(sum / w_sum);
             };
             VoteCluster cluster;
+            cluster.cls = cv.cls;
             cluster.position = centroid(centroid(votes[seed].point));
             std::vector<Vote> rest;
             for (Vote& v : votes) {
@@ -361,18 +358,6 @@ std::vector<VoteCluster> Votes::take_clusters(const LandmarkGraph& graph,
             if (cluster.votes.empty()) {
                 break;
             }
-            // Its class: the one most of its votes gave (a class group).
-            std::map<std::string, std::pair<const ClassConfig*, int>> count;
-            for (const Vote& v : cluster.votes) {
-                ++count.try_emplace(v.z.cls->name, v.z.cls, 0)
-                      .first->second.second;
-            }
-            cluster.cls =
-                *std::max_element(count.begin(), count.end(),
-                                  [](const auto& a, const auto& b) {
-                                      return a.second.second < b.second.second;
-                                  })
-                     ->second.first;
 
             // At a landmark of the class already: a second look at it.
             const bool known = std::any_of(
