@@ -224,16 +224,22 @@ class LandmarkServerNode : public rclcpp::Node {
             const std::string k = "classes." + name + ".";
             ClassConfig c;
             c.name = name;
-            int64_t type = -1;
-            int64_t subtype = -1;
+            // Named by the vortex_msgs constants (type: GATE).
+            std::string type;
+            std::string subtype;
             read(k + "type", type);
             read(k + "subtype", subtype);
-            if (type < 0 || subtype < 0) {
+            const auto type_value = landmark_type(type);
+            const auto subtype_value = landmark_subtype(subtype);
+            if (!type_value || !subtype_value) {
                 throw std::runtime_error(fmt::format(
-                    "class '{}': type and subtype are required", name));
+                    "class '{}': type '{}' / subtype '{}': give the names of "
+                    "the vortex_msgs LandmarkType and LandmarkSubtype "
+                    "constants",
+                    name, type, subtype));
             }
-            c.type = static_cast<std::uint16_t>(type);
-            c.subtype = static_cast<std::uint16_t>(subtype);
+            c.type = *type_value;
+            c.subtype = *subtype_value;
             read(k + "symmetry_deg", c.symmetry_deg);
             read(k + "has_orientation", c.has_orientation);
             read(k + "prior", c.prior);

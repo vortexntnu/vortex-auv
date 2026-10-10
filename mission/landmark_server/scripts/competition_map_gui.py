@@ -26,7 +26,7 @@ from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.signals import SignalHandlerOptions
 from std_srvs.srv import Trigger
-from vortex_msgs.msg import LandmarkTrackArray, ObjectPose
+from vortex_msgs.msg import LandmarkTrackArray, LandmarkType, ObjectPose
 from vortex_msgs.srv import SetPremap
 
 SERVICE_TIMEOUT_S = 5.0
@@ -86,15 +86,15 @@ class CompetitionMapGUI:
         label: obj for obj, labels in SERVICE_LABEL_MAP.items() for label in labels
     }
 
-    # The live map: landmark type (vortex_msgs LandmarkType) -> (task, colour).
+    # The live map: landmark type -> (task, colour).
     LIVE_TYPES = {
-        6: ("gate", "red"),
-        7: ("slalom", "gray"),
-        8: ("torpedo", "blue"),
-        9: ("bin", "purple"),
-        10: ("path", "black"),
-        11: ("table", "orange"),
-        12: ("octagon", "orange"),
+        LandmarkType.GATE: ("gate", "red"),
+        LandmarkType.SLALOM_PIPE: ("slalom", "gray"),
+        LandmarkType.TORPEDO_BOARD: ("torpedo", "blue"),
+        LandmarkType.BIN: ("bin", "purple"),
+        LandmarkType.PATH_MARKER: ("path", "black"),
+        LandmarkType.TABLE: ("table", "orange"),
+        LandmarkType.OCTAGON: ("octagon", "orange"),
     }
 
     REFERENCE_FRAME = "start"

@@ -181,6 +181,14 @@ task's colour with the number of detections ("Show live map").
 Everything is in `config/landmark_server.yaml`, with a comment per value.
 Write floats with a decimal point (`3.0`): ROS parameters are typed.
 
+A class names what the detector publishes by the constants of
+`vortex_msgs/LandmarkType` and `LandmarkSubtype`
+(`type: SLALOM_PIPE, subtype: SLALOM_PIPE_RED`), not by their numbers. The
+node takes the values from the message headers, so a renumbered constant
+only needs a rebuild; a new constant is one line in the name table in
+`src/config.cpp`. An unknown name stops the node at startup with the class
+it is in.
+
 | Group | Values | Raise it when | Lower it when |
 |---|---|---|---|
 | keyframes | `keyframe_dist_m`, `keyframe_time_s`, `max_messages_per_keyframe`, `max_range_m` | the node is too slow (larger keyframe steps) | far false detections become landmarks (`max_range_m`) |

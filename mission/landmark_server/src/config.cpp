@@ -4,9 +4,116 @@
 
 #include <set>
 #include <stdexcept>
+#include <string_view>
 #include <utility>
 
+#include <vortex_msgs/msg/landmark_subtype.hpp>
+#include <vortex_msgs/msg/landmark_type.hpp>
+
 namespace vortex::landmark_server {
+
+namespace {
+
+struct NamedValue {
+    std::string_view name;
+    std::uint16_t value;
+};
+
+// The constants a config can name. The values are the messages' own, so a
+// renumbered constant only needs a rebuild; a new one is a line here.
+#define LANDMARK_TYPE(name)                         \
+    NamedValue {                                    \
+        #name, vortex_msgs::msg::LandmarkType::name \
+    }
+#define LANDMARK_SUBTYPE(name)                         \
+    NamedValue {                                       \
+        #name, vortex_msgs::msg::LandmarkSubtype::name \
+    }
+
+constexpr NamedValue kTypes[] = {
+    LANDMARK_TYPE(ARUCO_MARKER),
+    LANDMARK_TYPE(ARUCO_BOARD),
+    LANDMARK_TYPE(PIPELINE_START),
+    LANDMARK_TYPE(PIPELINE_END),
+    LANDMARK_TYPE(VALVE),
+    LANDMARK_TYPE(GATE),
+    LANDMARK_TYPE(SLALOM_PIPE),
+    LANDMARK_TYPE(TORPEDO_BOARD),
+    LANDMARK_TYPE(BIN),
+    LANDMARK_TYPE(PATH_MARKER),
+    LANDMARK_TYPE(TABLE),
+    LANDMARK_TYPE(OCTAGON),
+    LANDMARK_TYPE(PINGER),
+};
+
+constexpr NamedValue kSubtypes[] = {
+    LANDMARK_SUBTYPE(ARUCO_BOARD_CAMERA),
+    LANDMARK_SUBTYPE(ARUCO_BOARD_SONAR),
+    LANDMARK_SUBTYPE(ARUCO_BOARD_DETECTION),
+    LANDMARK_SUBTYPE(VALVE_VERTICAL),
+    LANDMARK_SUBTYPE(VALVE_HORIZONTAL),
+    LANDMARK_SUBTYPE(PIPELINE_START_CAMERA),
+    LANDMARK_SUBTYPE(PIPELINE_START_SONAR),
+    LANDMARK_SUBTYPE(GATE_SEARCH_RESCUE),
+    LANDMARK_SUBTYPE(GATE_SURVEY_REPAIR),
+    LANDMARK_SUBTYPE(SLALOM_PIPE_WHITE),
+    LANDMARK_SUBTYPE(SLALOM_PIPE_RED),
+    LANDMARK_SUBTYPE(TORPEDO_BOARD_WHOLE),
+    LANDMARK_SUBTYPE(TORPEDO_TARGET_LARGE_SEARCH_RESCUE),
+    LANDMARK_SUBTYPE(TORPEDO_TARGET_LARGE_SURVEY_REPAIR),
+    LANDMARK_SUBTYPE(TORPEDO_TARGET_SMALL_SEARCH_RESCUE),
+    LANDMARK_SUBTYPE(TORPEDO_TARGET_SMALL_SURVEY_REPAIR),
+    LANDMARK_SUBTYPE(BIN_SEARCH_RESCUE),
+    LANDMARK_SUBTYPE(BIN_SURVEY_REPAIR),
+    LANDMARK_SUBTYPE(GATE_WHOLE),
+    LANDMARK_SUBTYPE(GATE_POLE_EDGE),
+    LANDMARK_SUBTYPE(GATE_POLE_MIDDLE),
+    LANDMARK_SUBTYPE(TORPEDO_ICON_FIRE),
+    LANDMARK_SUBTYPE(TORPEDO_ICON_BLOOD),
+    LANDMARK_SUBTYPE(TORPEDO_ICON_FIRETRUCK),
+    LANDMARK_SUBTYPE(TORPEDO_ICON_AMBULANCE),
+    LANDMARK_SUBTYPE(BIN_UNCLASSIFIED),
+    LANDMARK_SUBTYPE(BIN_STRUCTURE),
+    LANDMARK_SUBTYPE(PATH_MARKER_WHOLE),
+    LANDMARK_SUBTYPE(TABLE_WHOLE),
+    LANDMARK_SUBTYPE(TABLE_ITEM_NUTBOLT),
+    LANDMARK_SUBTYPE(TABLE_ITEM_ELECTRIC),
+    LANDMARK_SUBTYPE(TABLE_ITEM_PILL),
+    LANDMARK_SUBTYPE(TABLE_ITEM_BANDAID),
+    LANDMARK_SUBTYPE(TABLE_BASKET_SURVEY_REPAIR),
+    LANDMARK_SUBTYPE(TABLE_BASKET_SEARCH_RESCUE),
+    LANDMARK_SUBTYPE(OCTAGON_WHOLE),
+    LANDMARK_SUBTYPE(OCTAGON_IMAGE_REPAIR),
+    LANDMARK_SUBTYPE(OCTAGON_IMAGE_RESCUE),
+    LANDMARK_SUBTYPE(OCTAGON_IMAGE_SEARCH),
+    LANDMARK_SUBTYPE(OCTAGON_IMAGE_SURVEY),
+    LANDMARK_SUBTYPE(PINGER_DEPLOY),
+    LANDMARK_SUBTYPE(PINGER_RESTORE),
+};
+
+#undef LANDMARK_TYPE
+#undef LANDMARK_SUBTYPE
+
+template <std::size_t N>
+std::optional<std::uint16_t> value_of(const NamedValue (&table)[N],
+                                      const std::string& name) {
+    for (const NamedValue& entry : table) {
+        if (entry.name == name) {
+            return entry.value;
+        }
+    }
+    return std::nullopt;
+}
+
+}  // namespace
+
+std::optional<std::uint16_t> landmark_type(const std::string& name) {
+    return value_of(kTypes, name);
+}
+
+std::optional<std::uint16_t> landmark_subtype(const std::string& name) {
+    return value_of(kSubtypes, name);
+}
 
 const ClassConfig* Config::find_class(std::uint16_t type,
                                       std::uint16_t subtype) const {
@@ -37,8 +144,9 @@ void Config::validate() const {
     std::set<std::pair<std::uint16_t, std::uint16_t>> seen;
     for (const ClassConfig& c : classes) {
         if (!seen.insert({c.type, c.subtype}).second) {
-            fail(fmt::format("class '{}': type {} subtype {} is another class",
-                             c.name, c.type, c.subtype));
+            fail(fmt::format(
+                "class '{}': another class has the same type and subtype",
+                c.name));
         }
         if (c.symmetry_deg < 0.0 || c.symmetry_deg > 360.0) {
             fail(fmt::format("class '{}': symmetry_deg must be in [0, 360]",

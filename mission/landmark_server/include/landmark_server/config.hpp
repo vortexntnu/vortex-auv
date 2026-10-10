@@ -2,15 +2,22 @@
 #define LANDMARK_SERVER__CONFIG_HPP_
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace vortex::landmark_server {
 
+/// The value of the vortex_msgs LandmarkType / LandmarkSubtype constant of
+/// this name (GATE, GATE_WHOLE), none for a name that is not one.
+std::optional<std::uint16_t> landmark_type(const std::string& name);
+std::optional<std::uint16_t> landmark_subtype(const std::string& name);
+
 /// One object class (config `classes.<name>`).
 struct ClassConfig {
     std::string name;
-    /// LandmarkType / LandmarkSubtype values the detectors publish.
+    /// LandmarkType / LandmarkSubtype the detectors publish (named by the
+    /// message constants in the config).
     std::uint16_t type{0};
     std::uint16_t subtype{0};
     /// 0 = no symmetry; 90, 180: yaw only known modulo this; 360: yaw

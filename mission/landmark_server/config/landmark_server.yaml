@@ -117,7 +117,8 @@
 
     # --- Classes ----------------------------------------------------------------
     # One entry per object class; detections of other types are ignored.
-    #   type, subtype     vortex_msgs LandmarkType / LandmarkSubtype values
+    #   type, subtype     names of the vortex_msgs LandmarkType /
+    #                     LandmarkSubtype constants the detector publishes
     #   symmetry_deg      0 = none; 90, 180 = yaw known modulo this;
     #                     360 = yaw meaningless (round objects)
     #   has_orientation   use the detector's orientation when it sends one
@@ -131,21 +132,21 @@
     #                     a vote, and the landmark's class is the majority.
     #                     Leave it out for a class nothing is mixed up with
     classes:
-      gate_search_rescue: {type: 6, subtype: 1, symmetry_deg: 0.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
-      gate_survey_repair: {type: 6, subtype: 2, symmetry_deg: 0.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
-      gate: {type: 6, subtype: 3, symmetry_deg: 180.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
-      gate_pole_edge: {type: 6, subtype: 4, symmetry_deg: 360.0, has_orientation: false, prior: "gate", prior_radius_m: 3.0, max_instances: 2}
-      gate_pole_middle: {type: 6, subtype: 5, symmetry_deg: 360.0, has_orientation: false, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
-      slalom_pipe_white: {type: 7, subtype: 1, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 6, group: "slalom_pipe"}
-      slalom_pipe_red: {type: 7, subtype: 2, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 3, group: "slalom_pipe"}
-      torpedo_board: {type: 8, subtype: 1, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
-      torpedo_icon_fire: {type: 8, subtype: 6, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
-      torpedo_icon_blood: {type: 8, subtype: 7, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
-      torpedo_icon_firetruck: {type: 8, subtype: 8, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
-      torpedo_icon_ambulance: {type: 8, subtype: 9, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
-      bin_search_rescue: {type: 9, subtype: 1, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 2}
-      bin_survey_repair: {type: 9, subtype: 2, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 2}
-      bin_structure: {type: 9, subtype: 4, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 1}
-      path_marker: {type: 10, subtype: 1, symmetry_deg: 0.0, has_orientation: true, prior: "", prior_radius_m: 5.0, max_instances: 0}
-      table: {type: 11, subtype: 1, symmetry_deg: 180.0, has_orientation: true, prior: "octagon", prior_radius_m: 3.0, max_instances: 1}
-      octagon: {type: 12, subtype: 1, symmetry_deg: 360.0, has_orientation: false, prior: "octagon", prior_radius_m: 3.0, max_instances: 1}
+      gate_search_rescue: {type: GATE, subtype: GATE_SEARCH_RESCUE, symmetry_deg: 0.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
+      gate_survey_repair: {type: GATE, subtype: GATE_SURVEY_REPAIR, symmetry_deg: 0.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
+      gate: {type: GATE, subtype: GATE_WHOLE, symmetry_deg: 180.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
+      gate_pole_edge: {type: GATE, subtype: GATE_POLE_EDGE, symmetry_deg: 360.0, has_orientation: false, prior: "gate", prior_radius_m: 3.0, max_instances: 2}
+      gate_pole_middle: {type: GATE, subtype: GATE_POLE_MIDDLE, symmetry_deg: 360.0, has_orientation: false, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
+      slalom_pipe_white: {type: SLALOM_PIPE, subtype: SLALOM_PIPE_WHITE, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 6, group: "slalom_pipe"}
+      slalom_pipe_red: {type: SLALOM_PIPE, subtype: SLALOM_PIPE_RED, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 3, group: "slalom_pipe"}
+      torpedo_board: {type: TORPEDO_BOARD, subtype: TORPEDO_BOARD_WHOLE, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_icon_fire: {type: TORPEDO_BOARD, subtype: TORPEDO_ICON_FIRE, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_icon_blood: {type: TORPEDO_BOARD, subtype: TORPEDO_ICON_BLOOD, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_icon_firetruck: {type: TORPEDO_BOARD, subtype: TORPEDO_ICON_FIRETRUCK, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_icon_ambulance: {type: TORPEDO_BOARD, subtype: TORPEDO_ICON_AMBULANCE, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      bin_search_rescue: {type: BIN, subtype: BIN_SEARCH_RESCUE, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 2}
+      bin_survey_repair: {type: BIN, subtype: BIN_SURVEY_REPAIR, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 2}
+      bin_structure: {type: BIN, subtype: BIN_STRUCTURE, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 1}
+      path_marker: {type: PATH_MARKER, subtype: PATH_MARKER_WHOLE, symmetry_deg: 0.0, has_orientation: true, prior: "", prior_radius_m: 5.0, max_instances: 0}
+      table: {type: TABLE, subtype: TABLE_WHOLE, symmetry_deg: 180.0, has_orientation: true, prior: "octagon", prior_radius_m: 3.0, max_instances: 1}
+      octagon: {type: OCTAGON, subtype: OCTAGON_WHOLE, symmetry_deg: 360.0, has_orientation: false, prior: "octagon", prior_radius_m: 3.0, max_instances: 1}
