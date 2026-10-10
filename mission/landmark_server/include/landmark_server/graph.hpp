@@ -13,6 +13,7 @@
 #include <memory>
 #include <optional>
 #include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -52,6 +53,8 @@ struct LandmarkState {
     /// axes: what navigating to it depends on.
     gtsam::Matrix3 relative_cov{gtsam::Matrix3::Identity()};
     int n_obs{0};
+    /// Detections per class of the landmark's group; cls is the majority.
+    std::map<std::string, int> votes;
     double first_seen{0.0};
     double last_seen{0.0};
     /// Yaw is meaningful: from an orientation measurement.
@@ -81,6 +84,9 @@ class LandmarkGraph {
                       const gtsam::Pose3& init,
                       double t);
     void add_observation(int kf, int id, const Measurement& m, double t);
+    /// One detection of the landmark was reported as this class of its
+    /// group: the landmark's class becomes the one with the most votes.
+    void vote(int id, const ClassConfig& cls);
     /// Stop using a landmark: no more observations, not in landmarks(). Its
     /// factors stay (they may be wrong ones, so it is not tied to another).
     void retire(int id);

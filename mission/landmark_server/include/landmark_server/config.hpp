@@ -24,6 +24,11 @@ struct ClassConfig {
     double prior_radius_m{5.0};
     /// Landmarks of the class shown at most (the most observed); 0 = any.
     int max_instances{0};
+    /// Classes one object can be taken for share a group (white and red
+    /// pipe): a detection of any of them belongs to the same landmark, each
+    /// detection is a vote, and the landmark's class is the majority. Empty
+    /// in the config = the class alone.
+    std::string group;
 };
 
 /// Gate frames from the two role panels.

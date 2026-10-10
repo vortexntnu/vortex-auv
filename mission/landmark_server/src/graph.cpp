@@ -179,6 +179,14 @@ void LandmarkGraph::add_observation(int kf,
     s.last_seen = std::max(s.last_seen, t);
 }
 
+void LandmarkGraph::vote(int id, const ClassConfig& cls) {
+    LandmarkState& s = landmarks_.at(id);
+    const int n = ++s.votes[cls.name];
+    if (cls.name != s.cls.name && n > s.votes[s.cls.name]) {
+        s.cls = cls;
+    }
+}
+
 void LandmarkGraph::retire(int id) {
     retired_.insert(id);
     cache_.erase(
@@ -194,7 +202,7 @@ std::vector<std::pair<int, int>> LandmarkGraph::retire_duplicates(
     gtsam::KeyVector keys;
     for (const LandmarkState& a : cache_) {
         for (const LandmarkState& b : cache_) {
-            if (a.id < b.id && a.cls.name == b.cls.name &&
+            if (a.id < b.id && a.cls.group == b.cls.group &&
                 (a.pose.translation() - b.pose.translation()).norm() <
                     max_dist_m) {
                 pairs.emplace_back(a.id, b.id);

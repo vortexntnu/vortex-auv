@@ -34,6 +34,12 @@ premap.yaml / set_premap ─▶ where new landmarks may appear, prior_<task> fra
   landmark), the χ² gate (`gate_prob`) limits it and the Hungarian algorithm
   makes the one-to-one assignment. A match another landmark explains nearly
   as well (`ambiguity_d2`) is dropped until the view is clearer.
+- **Class voting.** Classes one object can be taken for share a `group`
+  (the white and the red slalom pipe). A detection of any class of the
+  group is matched to the same landmark, each detection is a vote, and the
+  landmark's class is the majority. A run of wrong-colour detections from
+  far away then loses the vote instead of becoming a second landmark at the
+  same place.
 - **Loop closure.** Every landmark in the map takes part in the association,
   not only the ones seen lately. Seeing a remembered landmark again after a
   loop adds factors under its id: the graph moves the keyframes since, and
@@ -174,7 +180,7 @@ Write floats with a decimal point (`3.0`): ROS parameters are typed.
 | `new_landmarks.*` | `candidate_radius_m`, `confirm_hits`, `confirm_window_s` | phantoms become landmarks (`confirm_hits`) | real objects take too long to appear, or a slow detector never confirms (hits per window ≤ its rate) |
 | `upkeep.merge_radius_m` | | a drifted copy of an object stays next to it | two real same-class objects get joined |
 | `gate.*` | panel classes, separation limits, `approach_m`, `depth_below_panel_m` | | |
-| `classes.<name>` | `type`, `subtype`, `symmetry_deg`, `has_orientation`, `prior`, `prior_radius_m`, `max_instances` | real objects are rejected near the edge of their task (`prior_radius_m`) | false detections next to a task become landmarks |
+| `classes.<name>` | `type`, `subtype`, `symmetry_deg`, `has_orientation`, `prior`, `prior_radius_m`, `max_instances`, `group` | real objects are rejected near the edge of their task (`prior_radius_m`) | false detections next to a task become landmarks |
 
 Tune with the NIS first (detection noise), then the odometry noise on a
 loop, then the new-landmark values and `max_instances` against phantoms. One change at a time.

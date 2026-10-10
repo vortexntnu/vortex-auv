@@ -37,7 +37,8 @@ struct Association {
 double chi2_threshold(double prob, int dof);
 
 /**
- * @brief Global nearest neighbour per class: the squared Mahalanobis
+ * @brief Global nearest neighbour per group (the classes one object can be
+ * taken for; a class alone when it has no group): the squared Mahalanobis
  * distance of each detection-landmark pair (innovation covariance from the
  * joint marginal of the keyframe and the landmark, cross-covariance
  * included) is the cost, the chi^2 gate at gate_prob the limit, the
@@ -58,6 +59,8 @@ std::vector<int> solve_assignment(const Eigen::MatrixXd& cost);
 
 /// One detection of a candidate.
 struct Hit {
+    /// The class the detection was reported as (a vote within its group).
+    const ClassConfig* cls{nullptr};
     int kf{0};
     Measurement z;
     gtsam::Point3 point;  // map frame
@@ -65,7 +68,7 @@ struct Hit {
     double t{0.0};
 };
 
-/// A possible new landmark: detections of one class close together.
+/// A possible new landmark: detections of one group close together.
 struct Candidate {
     const ClassConfig* cls{nullptr};
     gtsam::Point3 position;  // mean of the hits

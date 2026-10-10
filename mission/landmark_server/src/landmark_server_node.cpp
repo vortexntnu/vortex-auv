@@ -293,6 +293,10 @@ class LandmarkServerNode : public rclcpp::Node {
             read(k + "has_orientation", c.has_orientation);
             read(k + "prior", c.prior);
             read(k + "prior_radius_m", c.prior_radius_m);
+            read(k + "group", c.group);
+            if (c.group.empty()) {
+                c.group = c.name;
+            }
             int64_t max_instances = 0;
             read(k + "max_instances", max_instances);
             c.max_instances = static_cast<int>(max_instances);
@@ -534,6 +538,7 @@ class LandmarkServerNode : public rclcpp::Node {
                     if (z.rotation) {
                         agg.rotation = z.rotation;
                     }
+                    graph_.vote(m.landmark, *detections[m.detection].cls);
                     push_nis(m.nis);
                     t_obs = std::max(t_obs, t_det);
                 }
@@ -561,6 +566,7 @@ class LandmarkServerNode : public rclcpp::Node {
                 c.hits.front().t);
             for (const Hit& h : c.hits) {
                 graph_.add_observation(h.kf, id, h.z, h.t);
+                graph_.vote(id, *h.cls);
             }
             graph_.update();
             spdlog::info(

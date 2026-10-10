@@ -117,12 +117,13 @@ Association associate(const LandmarkGraph& graph,
     const Params& params = graph.params();
     const double gate = chi2_threshold(params.gate_prob, kDof);
 
-    // The landmarks of the classes in this message.
+    // The landmarks of the groups in this message (a group: the classes one
+    // object can be taken for; the class itself when it has none).
     std::vector<const LandmarkState*> landmarks;
     for (const LandmarkState& l : graph.landmarks()) {
         if (std::any_of(detections.begin(), detections.end(),
                         [&](const Detection& d) {
-                            return d.cls->name == l.cls.name;
+                            return d.cls->group == l.cls.group;
                         })) {
             landmarks.push_back(&l);
         }
@@ -139,26 +140,26 @@ Association associate(const LandmarkGraph& graph,
     }
     const gtsam::JointMarginal P = graph.joint_cov(keys);
 
-    // Per class: detections x (landmarks + one "unpaired" column per
+    // Per group: detections x (landmarks + one "unpaired" column per
     // detection, costing the gate). Forbidden pairs cost more than any
     // solution with them unpaired.
     std::vector<std::string> classes;
     for (const Detection& d : detections) {
-        if (std::find(classes.begin(), classes.end(), d.cls->name) ==
+        if (std::find(classes.begin(), classes.end(), d.cls->group) ==
             classes.end()) {
-            classes.push_back(d.cls->name);
+            classes.push_back(d.cls->group);
         }
     }
     for (const std::string& cls : classes) {
         std::vector<std::size_t> dets;
         for (std::size_t i = 0; i < detections.size(); ++i) {
-            if (detections[i].cls->name == cls) {
+            if (detections[i].cls->group == cls) {
                 dets.push_back(i);
             }
         }
         std::vector<const LandmarkState*> lms;
         for (const LandmarkState* l : landmarks) {
-            if (l->cls.name == cls) {
+            if (l->cls.group == cls) {
                 lms.push_back(l);
             }
         }
@@ -219,6 +220,7 @@ void Candidates::add(const std::vector<Detection>& detections,
     for (const std::size_t i : unmatched) {
         const Detection& d = detections[i];
         Hit h;
+        h.cls = d.cls;
         h.kf = kf;
         h.z = d.z;
         h.point = T_map_base.transformFrom(d.z.position);
@@ -247,7 +249,7 @@ void Candidates::add(const std::vector<Detection>& detections,
         for (std::size_t k = 0; k < candidates_.size(); ++k) {
             const Candidate& c = candidates_[k];
             const double dist = (c.position - h.point).norm();
-            if (c.cls->name == d.cls->name && dist < best_dist &&
+            if (c.cls->group == d.cls->group && dist < best_dist &&
                 std::find(hit_now.begin(), hit_now.end(), k) == hit_now.end()) {
                 best = k;
                 best_dist = dist;
@@ -287,10 +289,17 @@ std::vector<Candidate> Candidates::take_confirmed(const LandmarkGraph& graph,
             keep.push_back(std::move(c));
             continue;
         }
+        // The candidate's class: the one most of its detections reported.
+        std::map<const ClassConfig*, int> votes;
+        for (const Hit& h : c.hits) {
+            if (++votes[h.cls] > votes[c.cls]) {
+                c.cls = h.cls;
+            }
+        }
         const bool known =
             std::any_of(graph.landmarks().begin(), graph.landmarks().end(),
                         [&](const LandmarkState& l) {
-                            return l.cls.name == c.cls->name &&
+                            return l.cls.group == c.cls->group &&
                                    (l.pose.translation() - c.position).norm() <
                                        p.merge_radius_m;
                         });

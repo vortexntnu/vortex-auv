@@ -109,14 +109,19 @@
     #                     landmarks only within prior_radius_m (xy) of it
     #   max_instances     landmarks of the class shown, the most observed
     #                     (0 = any): extra ones are kept but hidden
+    #   group             classes one object can be taken for share a group
+    #                     (the white and the red pipe): a detection of any of
+    #                     them updates the same landmark, each detection is
+    #                     a vote, and the landmark's class is the majority.
+    #                     Leave it out for a class nothing is mixed up with
     classes:
       gate_search_rescue: {type: 6, subtype: 1, symmetry_deg: 0.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
       gate_survey_repair: {type: 6, subtype: 2, symmetry_deg: 0.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
       gate: {type: 6, subtype: 3, symmetry_deg: 180.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
       gate_pole_edge: {type: 6, subtype: 4, symmetry_deg: 360.0, has_orientation: false, prior: "gate", prior_radius_m: 3.0, max_instances: 2}
       gate_pole_middle: {type: 6, subtype: 5, symmetry_deg: 360.0, has_orientation: false, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
-      slalom_pipe_white: {type: 7, subtype: 1, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 6}
-      slalom_pipe_red: {type: 7, subtype: 2, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 3}
+      slalom_pipe_white: {type: 7, subtype: 1, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 6, group: "slalom_pipe"}
+      slalom_pipe_red: {type: 7, subtype: 2, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 3, group: "slalom_pipe"}
       torpedo_board: {type: 8, subtype: 1, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
       torpedo_icon_fire: {type: 8, subtype: 6, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
       torpedo_icon_blood: {type: 8, subtype: 7, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
