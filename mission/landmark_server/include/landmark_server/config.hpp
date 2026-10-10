@@ -45,7 +45,7 @@ struct Params {
 
     // Odometry noise per keyframe step.
     double odom_sigma_trans_per_m{0.03};
-    double odom_sigma_yaw_per_m{0.01};
+    double odom_sigma_yaw_per_m{0.03};
     double odom_min_sigma_trans{0.01};
     double odom_min_sigma_yaw{0.002};
     double odom_sigma_roll_pitch{0.01};

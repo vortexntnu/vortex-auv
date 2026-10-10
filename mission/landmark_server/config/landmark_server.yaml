@@ -24,7 +24,12 @@
     # the odometry too little between landmarks.
     odom:
       sigma_trans_per_m: 0.03   # [m per m]
-      sigma_yaw_per_m: 0.01     # [rad per m]
+      # Yaw: a drift that is a bias (the same every metre) needs more than
+      # the drift per metre itself. 0.01 broke the map at 0.5 deg/m over two
+      # laps; 0.03 held to 1 deg/m (60 deg) at the cost of a slightly
+      # noisier pose when the odometry is good. Lower it once the pool's
+      # drift is measured and small.
+      sigma_yaw_per_m: 0.03     # [rad per m]
       min_sigma_trans: 0.01     # floor per step [m] (hovering still drifts)
       min_sigma_yaw: 0.002      # floor per step [rad]
       sigma_roll_pitch: 0.01    # per step [rad]
