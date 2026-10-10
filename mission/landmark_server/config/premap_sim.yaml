@@ -3,13 +3,13 @@ created_at: '2026-10-09T22:28:11'
 objects:
   bin:
     position: [16.5, 4.2, 3.15]
-    orientation: [0, 0, -0.7071068, 0.7071068]
+    orientation: [0, 0, 0, 1]
   gate:
     position: [4, 0, 2.3]
     orientation: [0, 0, 0, 1]
   octagon:
     position: [19.3, 0.1, 0]
-    orientation: [0, 0, -0.7071068, 0.7071068]
+    orientation: [0, 0, 0, 1]
   slalom:
     position: [10.1, 0.4, 2.6]
     orientation: [0, 0, 0, 1]
