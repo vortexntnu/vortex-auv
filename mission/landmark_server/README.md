@@ -62,7 +62,7 @@ Also publishes:
 
 | Topic | |
 |---|---|
-| `landmark_server/markers` | The map for Foxglove: a cube or real-size box per landmark, its name, id and uncertainty, and an arrow along +X when the yaw is known. Faded when not seen lately |
+| `landmark_server/markers` | The map for Foxglove: a cube or real-size box per landmark, its name, id and uncertainty, and an arrow along +X when the yaw is known. Grey when not seen lately |
 | `landmark_server/nis` | Should be near 1. Higher means the `detection` noise in the config is too low |
 
 Off by default.

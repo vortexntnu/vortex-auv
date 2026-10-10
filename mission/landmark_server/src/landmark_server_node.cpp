@@ -784,12 +784,12 @@ class LandmarkServerNode : public rclcpp::Node {
     }
 
     /// Per landmark: a cube or its real-size box, a label, and an arrow
-    /// along +X when the yaw is known. Faded when not seen lately.
+    /// along +X when the yaw is known. Grey when not seen lately.
     void add_markers(const LandmarkState& l,
                      const vortex_msgs::msg::LandmarkTrack& track,
                      visualization_msgs::msg::MarkerArray& out) const {
         using visualization_msgs::msg::Marker;
-        const float alpha = track.retained ? 0.4F : 0.9F;
+        const float alpha = 0.9F;
         const gtsam::Rot3 R = l.yaw_known
                                   ? gtsam::Rot3::Yaw(l.pose.rotation().yaw())
                                   : gtsam::Rot3();
@@ -801,6 +801,9 @@ class LandmarkServerNode : public rclcpp::Node {
         m.pose.position = track.landmark.pose.pose.position;
         m.pose.orientation.w = 1.0;
         m.color = type_color(l.cls.type);
+        if (track.retained) {
+            m.color.r = m.color.g = m.color.b = 0.5F;
+        }
         m.color.a = alpha;
 
         if (!l.cls.box || !l.cls.box->solid) {
@@ -829,12 +832,12 @@ class LandmarkServerNode : public rclcpp::Node {
             b.scale.x = box.size[0];
             b.scale.y = box.size[1];
             b.scale.z = box.size[2];
-            if (box.color) {
+            if (box.color && !track.retained) {
                 b.color.r = static_cast<float>((*box.color)[0]);
                 b.color.g = static_cast<float>((*box.color)[1]);
                 b.color.b = static_cast<float>((*box.color)[2]);
             }
-            b.color.a = box.solid ? alpha : (track.retained ? 0.1F : 0.25F);
+            b.color.a = box.solid ? alpha : 0.25F;
             out.markers.push_back(b);
         }
 
