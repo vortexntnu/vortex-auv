@@ -77,6 +77,7 @@
     # symmetry_deg     0 none, 90 or 180 yaw known modulo this, 360 no yaw
     # has_orientation  use the detector's orientation
     # prior            task label in the prior map, "" for none
+    # prior_radius_m   used when the prior map has no radius for the task
     # max_instances    landmarks shown, 0 = all
     # group            classes that can be mistaken for each other
     classes:

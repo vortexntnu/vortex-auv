@@ -68,7 +68,8 @@ class Candidates {
              const gtsam::Pose3& T_map_base,
              double t,
              const Params& params,
-             const std::map<std::string, gtsam::Point3>& priors);
+             const std::map<std::string, gtsam::Point3>& priors,
+             const std::map<std::string, double>& prior_radius);
     std::vector<Candidate> take_confirmed(const LandmarkGraph& graph, double t);
     std::size_t size() const { return candidates_.size(); }
 

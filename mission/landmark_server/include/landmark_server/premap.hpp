@@ -16,6 +16,8 @@ namespace vortex::landmark_server {
 struct Premap {
     std::string created_at;
     std::map<std::string, gtsam::Pose3> objects;
+    /// Per task, overrides the classes' prior_radius_m.
+    std::map<std::string, double> radius;
     YAML::Node gui_state;
 
     std::map<std::string, gtsam::Point3> positions() const;

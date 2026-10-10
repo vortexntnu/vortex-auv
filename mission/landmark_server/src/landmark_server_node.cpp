@@ -311,13 +311,16 @@ class LandmarkServerNode : public rclcpp::Node {
         warn_unknown_prior_labels();
     }
 
-    /// Largest prior_radius_m per task, for the GUI.
+    /// Prior radius per task, for the GUI.
     std::string prior_radius_yaml() const {
         std::map<std::string, double> radius;
         for (const ClassConfig& c : cfg_.classes) {
             if (!c.prior.empty()) {
                 radius[c.prior] = std::max(radius[c.prior], c.prior_radius_m);
             }
+        }
+        for (const auto& [task, r] : premap_.radius) {
+            radius[task] = r;
         }
         std::string out = "prior_radius_m:\n";
         for (const auto& [task, r] : radius) {
@@ -394,6 +397,9 @@ class LandmarkServerNode : public rclcpp::Node {
                 continue;
             }
             next.objects[label] = T_map_ref * to_pose3(o.pose);
+            if (o.radius > 0.0) {
+                next.radius[label] = o.radius;
+            }
         }
         if (next.objects.empty()) {
             res.success = false;
@@ -526,7 +532,7 @@ class LandmarkServerNode : public rclcpp::Node {
                     t_obs = std::max(t_obs, t_det);
                 }
                 candidates_.add(detections, a.unmatched, kf, T_map_base, t_det,
-                                p, priors);
+                                p, priors, premap_.radius);
             }
         }
         pending_.clear();
@@ -587,9 +593,8 @@ class LandmarkServerNode : public rclcpp::Node {
                 spdlog::warn(
                     "landmark_server: {} detections of {} rejected by the "
                     "prior map in {:.0f} s, the nearest {:.1f} m from task "
-                    "'{}' (prior_radius_m {:.1f}): is the prior map right?",
-                    n.first, cls, kPriorWarnPeriodS, n.second, c->prior,
-                    c->prior_radius_m);
+                    "'{}': is the prior map right?",
+                    n.first, cls, kPriorWarnPeriodS, n.second, c->prior);
             }
         }
         prior_rejects_.clear();

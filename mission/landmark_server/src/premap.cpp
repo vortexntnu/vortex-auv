@@ -101,6 +101,9 @@ Premap load_premap(const std::string& path, std::vector<std::string>& skipped) {
                 gtsam::Pose3(gtsam::Rot3::Quaternion(q[3] / norm, q[0] / norm,
                                                      q[1] / norm, q[2] / norm),
                              gtsam::Point3(p[0], p[1], p[2]));
+            if (n["radius"] && n["radius"].as<double>() > 0.0) {
+                premap.radius[label] = n["radius"].as<double>();
+            }
         } catch (const YAML::Exception&) {
             skipped.push_back(label);
         }
@@ -130,6 +133,10 @@ std::string premap_to_yaml(const Premap& premap) {
             << clean({pose.x(), pose.y(), pose.z()});
         out << YAML::Key << "orientation" << YAML::Value << YAML::Flow
             << clean({q.x(), q.y(), q.z(), q.w()});
+        if (const auto r = premap.radius.find(label);
+            r != premap.radius.end()) {
+            out << YAML::Key << "radius" << YAML::Value << r->second;
+        }
         out << YAML::EndMap;
     }
     out << YAML::EndMap;

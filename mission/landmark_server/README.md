@@ -54,20 +54,21 @@ Children of `map`.
 ## Prior map
 
 Rough position of each task. A class with a `prior` only gets landmarks
-within `prior_radius_m` of it.
+within the task's radius.
 
 ```bash
 ros2 run landmark_server competition_map_gui.py --ros-args -r __ns:=/nautilus
 ```
 
 Place the reference at the start pose, place the tasks, Send to Vehicle. The
-dashed circle is `prior_radius_m`. Crosses are landmarks the vehicle has
-found.
+dashed circle is the task's radius, set with the slider for the selected
+task. Without one the classes' `prior_radius_m` is used. Crosses are
+landmarks the vehicle has found.
 
 ```yaml
 reference_frame: start
 objects:
-  torpedo: {position: [17.0, -5.2, 2.5], orientation: [0.0, 0.0, 1.0, 0.0]}
+  torpedo: {position: [17.0, -5.2, 2.5], orientation: [0.0, 0.0, 1.0, 0.0], radius: 3.0}
 ```
 
 ## Adding an object
@@ -112,7 +113,7 @@ ros2 param set /nautilus/landmark_server_node torpedo.openings.large_left "[-0.2
 | Map wobbles between landmarks | Lower `odom.sigma_*_per_m` |
 | False detections become landmarks | Raise `confirm_hits`, lower `max_range_m` or `prior_radius_m` |
 | Real objects appear late | Lower `confirm_hits` |
-| Object rejected near its task | Raise `prior_radius_m` or fix the prior map |
+| Object rejected near its task | Raise the radius or fix the prior map |
 
 ## Simulator
 

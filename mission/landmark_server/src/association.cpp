@@ -207,7 +207,8 @@ void Candidates::add(const std::vector<Detection>& detections,
                      const gtsam::Pose3& T_map_base,
                      double t,
                      const Params& params,
-                     const std::map<std::string, gtsam::Point3>& priors) {
+                     const std::map<std::string, gtsam::Point3>& priors,
+                     const std::map<std::string, double>& prior_radius) {
     std::vector<std::size_t> hit_now;
     for (const std::size_t i : unmatched) {
         const Detection& d = detections[i];
@@ -227,7 +228,9 @@ void Candidates::add(const std::vector<Detection>& detections,
                                     ? 0.0
                                     : std::hypot(h.point.x() - it->second.x(),
                                                  h.point.y() - it->second.y());
-            if (dist > d.cls->prior_radius_m) {
+            const auto r = prior_radius.find(d.cls->prior);
+            if (dist >
+                (r == prior_radius.end() ? d.cls->prior_radius_m : r->second)) {
                 auto& [count, nearest] =
                     prior_rejects_.try_emplace(d.cls->name, 0, dist)
                         .first->second;

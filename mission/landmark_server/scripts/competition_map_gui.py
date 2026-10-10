@@ -226,6 +226,18 @@ class CompetitionMapGUI:
             left_frame, text="Reset Orientation (0°)", command=self.reset_orientation
         ).pack(fill=tk.X, padx=10, pady=5)
 
+        self.radius_var = tk.DoubleVar(value=3.0)
+        tk.Scale(
+            left_frame,
+            from_=0.5,
+            to=10.0,
+            resolution=0.5,
+            orient=tk.HORIZONTAL,
+            variable=self.radius_var,
+            label="Prior radius (m)",
+            command=self.on_radius_change,
+        ).pack(fill=tk.X, padx=10)
+
         tk.Frame(left_frame, height=2, bg="gray").pack(fill=tk.X, padx=10, pady=10)
 
         tk.Label(
@@ -307,9 +319,18 @@ class CompetitionMapGUI:
 
     def on_select(self):
         """The slider shows the selected object's yaw: moving it keeps it."""
-        placed = self.placed_objects.get(self.selected_object.get())
+        name = self.selected_object.get()
+        placed = self.placed_objects.get(name)
         if placed and placed[3] in ("line", "frame"):
             self.yaw_var.set(placed[5])
+        if name in self.prior_radius:
+            self.radius_var.set(self.prior_radius[name])
+
+    def on_radius_change(self, value):
+        name = self.selected_object.get()
+        if name in self.SERVICE_LABEL_MAP:
+            self.prior_radius[name] = float(value)
+            self.redraw_objects()
 
     def on_yaw_change(self, value):
         """Update the yaw of selected line/frame object if it's placed."""
@@ -818,6 +839,8 @@ class CompetitionMapGUI:
                 for service_label in service_labels:
                     obj_pose = ObjectPose()
                     obj_pose.label = service_label
+
+                    obj_pose.radius = self.prior_radius.get(obj_name, 0.0)
 
                     obj_pose.pose.position.x = pos_data["x"]
                     obj_pose.pose.position.y = pos_data["y"]
