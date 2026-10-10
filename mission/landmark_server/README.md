@@ -204,10 +204,10 @@ the two gate panels.
 
 ### To write
 
-| Target | Frames | Built from |
-|---|---|---|
-| Slalom gaps | `slalom_left_<n>`, `slalom_right_<n>`, +X through the row | Red and white pipes |
-| Torpedo openings | `torpedo_opening_<name>`, +X through the board | Board centre and normal |
+| Target | Owner | Frames | Built from |
+|---|---|---|---|
+| Slalom gaps | André | `slalom_left_<n>`, `slalom_right_<n>`, +X through the row | Red and white pipes |
+| Torpedo openings | Johannes | `torpedo_opening_<name>`, +X through the board | Board centre and normal |
 
 Slalom hints:
 - Each red pipe is one row. The white pipes belong to the nearest red one.
