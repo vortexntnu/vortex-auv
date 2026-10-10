@@ -12,12 +12,10 @@ namespace vortex::landmark_server {
 namespace {
 
 constexpr int kDof = 3;  // bearing (2) + range (1)
-// A candidate keeps at most this many hits (the newest): enough to start a
-// landmark with, bounded while the candidate waits.
+// Newest hits kept per candidate.
 constexpr std::size_t kMaxHitsPerCandidate = 50;
 
-/// Squared Mahalanobis distance of a detection to a landmark, linearised at
-/// the current estimate: S = H P H^T + R over the keyframe and the landmark.
+/// Squared Mahalanobis distance, S = H P H^T + R.
 double pair_d2(const LandmarkGraph& graph,
                int kf,
                const Measurement& z,
@@ -54,8 +52,7 @@ double chi2_threshold(double prob, int dof) {
 }
 
 std::vector<int> solve_assignment(const Eigen::MatrixXd& cost) {
-    // Shortest augmenting path with potentials, 1-indexed (row/col 0 is a
-    // virtual start).
+    // Shortest augmenting path with potentials, 1-indexed.
     const int n = static_cast<int>(cost.rows());
     const int m = static_cast<int>(cost.cols());
     const double inf = std::numeric_limits<double>::infinity();
@@ -117,8 +114,7 @@ Association associate(const LandmarkGraph& graph,
     const Params& params = graph.params();
     const double gate = chi2_threshold(params.gate_prob, kDof);
 
-    // The landmarks of the groups in this message (a group: the classes one
-    // object can be taken for; the class itself when it has none).
+    // Landmarks of the groups in this message.
     std::vector<const LandmarkState*> landmarks;
     for (const LandmarkState& l : graph.landmarks()) {
         if (std::any_of(detections.begin(), detections.end(),
@@ -140,9 +136,7 @@ Association associate(const LandmarkGraph& graph,
     }
     const gtsam::JointMarginal P = graph.joint_cov(keys);
 
-    // Per group: detections x (landmarks + one "unpaired" column per
-    // detection, costing the gate). Forbidden pairs cost more than any
-    // solution with them unpaired.
+    // One extra "unpaired" column per detection, costing the gate.
     std::vector<std::string> classes;
     for (const Detection& d : detections) {
         if (std::find(classes.begin(), classes.end(), d.cls->group) ==
@@ -193,7 +187,6 @@ Association associate(const LandmarkGraph& graph,
                 }
                 continue;
             }
-            // Ambiguous: another landmark explains it nearly as well.
             bool ambiguous = false;
             for (Eigen::Index k = 0; k < m; ++k) {
                 ambiguous =
@@ -215,7 +208,6 @@ void Candidates::add(const std::vector<Detection>& detections,
                      double t,
                      const Params& params,
                      const std::map<std::string, gtsam::Point3>& priors) {
-    // Candidates hit by this message: one detection each.
     std::vector<std::size_t> hit_now;
     for (const std::size_t i : unmatched) {
         const Detection& d = detections[i];
@@ -228,7 +220,7 @@ void Candidates::add(const std::vector<Detection>& detections,
         if (d.z.rotation && d.cls->has_orientation) {
             h.yaw = (T_map_base.rotation() * *d.z.rotation).yaw();
         }
-        // Far from where the class's task is: a false detection.
+        // Too far from where the prior map puts this task.
         if (!d.cls->prior.empty()) {
             const auto it = priors.find(d.cls->prior);
             const double dist = it == priors.end()
@@ -280,7 +272,7 @@ std::vector<Candidate> Candidates::take_confirmed(const LandmarkGraph& graph,
     std::vector<Candidate> keep;
     for (Candidate& c : candidates_) {
         if (c.hits.empty() || t - c.hits.back().t > p.confirm_window_s) {
-            continue;  // forgotten
+            continue;
         }
         const auto recent = std::count_if(
             c.hits.begin(), c.hits.end(),
@@ -289,7 +281,6 @@ std::vector<Candidate> Candidates::take_confirmed(const LandmarkGraph& graph,
             keep.push_back(std::move(c));
             continue;
         }
-        // The candidate's class: the one most of its detections reported.
         std::map<const ClassConfig*, int> votes;
         for (const Hit& h : c.hits) {
             if (++votes[h.cls] > votes[c.cls]) {

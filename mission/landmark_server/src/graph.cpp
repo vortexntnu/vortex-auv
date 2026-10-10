@@ -20,9 +20,7 @@ using gtsam::noiseModel::Isotropic;
 using gtsam::noiseModel::Robust;
 using gtsam::noiseModel::mEstimator::DCS;
 
-// Structural values, not tuning: the start defines the map frame, and a new
-// landmark has no position prior and stays level. Pose3 tangent order:
-// roll, pitch, yaw, x, y, z.
+// Pose3 tangent order: roll, pitch, yaw, x, y, z.
 constexpr double kAnchorSigma = 1e-3;
 constexpr double kLevelSigma = 0.02;
 constexpr double kFreeYawSigma = std::numbers::pi;
@@ -70,8 +68,7 @@ void LandmarkGraph::reset(const Params& params,
     retired_.clear();
     cache_.clear();
 
-    // X(0): the start, levelled by the odometry's roll and pitch, at the
-    // pressure depth.
+    // X(0) is the start, levelled, at the pressure depth.
     const gtsam::Vector3 rpy = T_odom_base.rotation().rpy();
     const gtsam::Pose3 X0(gtsam::Rot3::Ypr(0.0, rpy(1), rpy(0)),
                           gtsam::Point3(0.0, 0.0, T_odom_base.z()));
@@ -87,8 +84,7 @@ void LandmarkGraph::add_absolute_factors(int kf,
                                          const gtsam::Pose3& T_odom_base) {
     new_factors_.emplace_shared<DepthFactor>(
         X(kf), T_odom_base.z(), Isotropic::Sigma(1, params_.depth_sigma));
-    // Gravity (map z axis) seen in the base frame, from the odometry's
-    // roll and pitch.
+    // Gravity seen in the base frame.
     const gtsam::Unit3 b_gravity(
         T_odom_base.rotation().unrotate(gtsam::Point3(0.0, 0.0, 1.0)));
     new_factors_.emplace_shared<gtsam::Pose3AttitudeFactor>(
@@ -148,8 +144,7 @@ void LandmarkGraph::add_observation(int kf,
     const double scale = std::sqrt(static_cast<double>(merged));
 
     if (m.rotation && s.cls.has_orientation && sym < 360.0) {
-        // Snap the measured yaw to the symmetric hypothesis closest to the
-        // current estimate.
+        // Use the symmetric yaw closest to the current estimate.
         gtsam::Rot3 R_base_obj = *m.rotation;
         if (sym > 0.0) {
             const double step = sym * std::numbers::pi / 180.0;
@@ -226,8 +221,7 @@ std::vector<std::pair<int, int>> LandmarkGraph::retire_duplicates(
         }
         const LandmarkState& a = landmarks_.at(ia);
         const LandmarkState& b = landmarks_.at(ib);
-        // Covariance of a - b in the map frame (the tangent translation is
-        // in each landmark's own frame).
+        // The tangent translation is in each landmark's own frame.
         const gtsam::Matrix3 Ra = a.pose.rotation().matrix();
         const gtsam::Matrix3 Rb = b.pose.rotation().matrix();
         const auto t = [&](int i, int j) {
@@ -280,7 +274,6 @@ void LandmarkGraph::update_covariances() {
 
     for (LandmarkState& s : cache_) {
         s.cov = P(L(s.id), L(s.id));
-        // Landmark position in the keyframe frame: d/dX and d/dL.
         gtsam::Matrix36 H_x;
         gtsam::Matrix36 H_lt;
         gtsam::Matrix3 H_p;
@@ -316,8 +309,6 @@ gtsam::Pose3 LandmarkGraph::map_to_odom() const {
 
 gtsam::JointMarginal LandmarkGraph::joint_cov(
     const gtsam::KeyVector& keys) const {
-    // One factorisation per estimate: every association and the published
-    // covariances until the next update share it.
     if (!marginals_) {
         marginals_.emplace(isam_->getFactorsUnsafe(), estimate_);
     }

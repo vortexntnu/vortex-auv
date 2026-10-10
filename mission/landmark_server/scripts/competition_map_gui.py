@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
-"""Competition map GUI: draw the prior map of the pool for landmark_server.
+"""Draw the prior map of the pool and send it to landmark_server.
 
-Sends it with landmark_server/set_premap, loads it with get_premap.
-
-Place the reference where the vehicle starts, facing the course (the
-landmark_server map frame is the vehicle at mission/wipe), then the tasks.
-The canvas is the pool from above (x right, y up); the poses sent are
-relative to the reference in the map frame (x forward, y right, z down =
-depth).
+Place the reference where the vehicle starts, facing the course, then the
+tasks. Poses are sent relative to the reference (x forward, y right, z down).
 
     ros2 run landmark_server competition_map_gui.py --ros-args -r __ns:=/nautilus
 """
@@ -64,7 +59,7 @@ class CompetitionMapGUI:
         ("octagon", "orange", "point", 0),
     ]
 
-    # Depth of each task's search point [m, down].
+    # Search depth per task [m].
     DEFAULT_Z = {
         "gate": 1.0,
         "slalom": 1.0,
@@ -73,8 +68,7 @@ class CompetitionMapGUI:
         "octagon": 0.5,
     }
 
-    # GUI object -> prior map labels (the classes' `prior` in
-    # landmark_server.yaml).
+    # GUI object -> prior label in landmark_server.yaml.
     SERVICE_LABEL_MAP = {
         "gate": ["gate"],
         "slalom": ["slalom"],
@@ -86,7 +80,6 @@ class CompetitionMapGUI:
         label: obj for obj, labels in SERVICE_LABEL_MAP.items() for label in labels
     }
 
-    # The live map: landmark type -> (task, colour).
     LIVE_TYPES = {
         LandmarkType.GATE: ("gate", "red"),
         LandmarkType.SLALOM_PIPE: ("slalom", "gray"),
@@ -128,17 +121,12 @@ class CompetitionMapGUI:
             default_reference_frame = self.REFERENCE_FRAME
 
         self.reference_frame_var = tk.StringVar(value=default_reference_frame)
-        # Nothing is selected at first: a stray click must not move anything.
         self.selected_object = tk.StringVar(value="")
         self.placed_objects = {}
-        # The reference as the vehicle has it (x, y, yaw): a Send that moves
-        # it shifts every task in the map and asks first.
+        # The vehicle's current reference (x, y, yaw).
         self.vehicle_reference = None
-        # Per object, how far from it the vehicle accepts new landmarks of
-        # the task (the classes' prior_radius_m, from the vehicle).
+        # prior_radius_m per object, from the vehicle.
         self.prior_radius = {}
-        # Depth per object as loaded from the vehicle (else DEFAULT_Z), so a
-        # Send keeps the depths it was given.
         self.object_z = {}
         self.canvas_padding = 40
         self.scale = 1.0
@@ -146,8 +134,7 @@ class CompetitionMapGUI:
         self.pool_y_offset = 0
         self.service_connected = False
 
-        # The live map (landmark_server/landmarks, map frame), drawn relative
-        # to the reference: where the vehicle has found the objects.
+        # Landmarks the vehicle has mapped so far.
         self.live_map = None
         self.show_live = tk.BooleanVar(value=True)
         node.create_subscription(
@@ -208,7 +195,7 @@ class CompetitionMapGUI:
                 ),
                 variable=self.selected_object,
                 value=obj_name,
-                # Empty (nothing selected) must look unselected, not tri-state.
+                # Without this an empty selection shows as tri-state.
                 tristatevalue="-",
                 fg=obj_color,
                 anchor=tk.W,
@@ -603,7 +590,6 @@ class CompetitionMapGUI:
             px, py + 20, text=name, font=("Arial", 9, "bold"), tags="object"
         )
 
-        # Where the vehicle accepts new landmarks of this task.
         radius = self.prior_radius.get(name)
         if radius:
             r = radius * self.scale
@@ -1100,8 +1086,7 @@ class CompetitionMapGUI:
 
 
 def main():
-    # Our own Ctrl-C / SIGTERM handling: rclpy's would only shut ROS down and
-    # leave the window open. The handler sets a flag; the Tk loop polls it.
+    # rclpy's own signal handler would leave the Tk window open.
     rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
     stop = threading.Event()
     signal.signal(signal.SIGINT, lambda *_: stop.set())
@@ -1126,7 +1111,6 @@ def main():
     try:
         root.mainloop()
     finally:
-        # Stop and join the spin thread before the node goes away.
         executor.shutdown(timeout_sec=2.0)
         spinner.join(timeout=2.0)
         node.destroy_node()

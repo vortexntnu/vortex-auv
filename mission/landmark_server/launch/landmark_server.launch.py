@@ -36,7 +36,6 @@ def launch_setup(context, *args, **kwargs):
             namespace=namespace,
             parameters=[
                 LaunchConfiguration("config_file").perform(context),
-                # The simulator's measured detection noise on top.
                 *([os.path.join(CONFIG_DIR, "sim.yaml")] if env == "sim" else []),
                 drone_params,
                 {"premap_file": premap_file, "frame_prefix": namespace},

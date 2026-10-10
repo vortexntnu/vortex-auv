@@ -1,8 +1,4 @@
-# Simulator values, loaded on top of landmark_server.yaml with env:=sim:
-# the detection noise of robosub_dummy_publisher's realistic profile
-# (across ~1 deg, range 3 cm + 3 %/m, up to twice that at the edge of the
-# view). Keep in sync with that profile; landmark_server/nis should stay
-# near 1.
+# Detection noise of robosub_dummy_publisher's realistic profile.
 /**:
   ros__parameters:
     detection:

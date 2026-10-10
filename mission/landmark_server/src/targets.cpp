@@ -66,7 +66,6 @@ std::vector<NamedPose> slalom_frames(
     const auto xy = [](const LandmarkState& l) {
         return Vec2(l.pose.x(), l.pose.y());
     };
-    // Each red pipe is a row, nearest the start first.
     std::vector<const LandmarkState*> reds;
     std::vector<const LandmarkState*> whites;
     for (const LandmarkState& l : landmarks) {
@@ -83,23 +82,19 @@ std::vector<NamedPose> slalom_frames(
               });
 
     std::vector<NamedPose> out;
-    Vec2 through(1.0, 0.0);  // the start heading until a row gives its own
+    Vec2 through(1.0, 0.0);
     int last_row = -1;
     for (std::size_t k = 0; k < reds.size(); ++k) {
         const Vec2 red = xy(*reds[k]);
-        // The row's number: how many row spacings behind the first row, so a
-        // row that is not mapped yet leaves its number free instead of
-        // shifting the rows behind it.
+        // Numbered by distance, so an unmapped row keeps its number free.
         const int n = static_cast<int>(std::lround(
             (red - xy(*reds[0])).dot(through) / slalom.row_spacing_m));
         if (n <= last_row) {
-            continue;  // a second red pipe in a row: a false one
+            continue;
         }
         last_row = n;
-        // y is to the right of x (z down): right of the way through.
         const auto right_of = [](const Vec2& t) { return Vec2(-t.y(), t.x()); };
-        // The row's white pipes: the nearest one on each side within the
-        // spacing limits, not ahead of or behind the red pipe.
+        // Nearest white pipe on each side.
         std::optional<Vec2> white[2];  // 0 = left, 1 = right
         for (const LandmarkState* w : whites) {
             const Vec2 d = xy(*w) - red;
@@ -115,7 +110,6 @@ std::vector<NamedPose> slalom_frames(
                 slot = xy(*w);
             }
         }
-        // Straight through the row: across the line of its pipes.
         if (white[0] || white[1]) {
             const Vec2 line =
                 (white[1] ? *white[1] : red) - (white[0] ? *white[0] : red);
@@ -148,7 +142,7 @@ std::vector<NamedPose> torpedo_frames(
     if (!board) {
         return {};
     }
-    // The board's x is its normal, out of the front: shoot against it.
+    // The board's x is its normal, pointing out of the front.
     const gtsam::Rot3 R = gtsam::Rot3::Yaw(board->pose.rotation().yaw() + M_PI);
     std::vector<NamedPose> out;
     for (const auto& [name, yz] : torpedo.openings) {

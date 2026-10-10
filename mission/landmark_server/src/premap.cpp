@@ -21,11 +21,10 @@ std::string format_time(std::time_t t, const char* format) {
     return buf;
 }
 
-/// created_at '2026-10-09T12:00:00[.ffffff]' -> 20261009_1200.
 std::string backup_stamp(const std::string& created_at,
                          const std::filesystem::path& path) {
     std::tm tm{};
-    tm.tm_isdst = -1;  // let mktime decide (summer time)
+    tm.tm_isdst = -1;
     if (!created_at.empty() &&
         strptime(created_at.c_str(), "%Y-%m-%dT%H:%M:%S", &tm) != nullptr) {
         return format_time(std::mktime(&tm), "%Y%m%d_%H%M");
@@ -64,7 +63,7 @@ Premap load_premap(const std::string& path, std::vector<std::string>& skipped) {
     const YAML::Node root = YAML::LoadFile(path);
     Premap premap;
     if (!root || root.IsNull()) {
-        return premap;  // an empty file: no prior map
+        return premap;
     }
     const auto reference = root["reference_frame"]
                                ? root["reference_frame"].as<std::string>()
@@ -110,7 +109,7 @@ Premap load_premap(const std::string& path, std::vector<std::string>& skipped) {
 }
 
 std::string premap_to_yaml(const Premap& premap) {
-    // Rounding noise (6e-17 for 0) out of the file.
+    // Avoid writing -0 and 6e-17.
     const auto clean = [](std::vector<double> v) {
         for (double& x : v) {
             x = std::abs(x) < 1e-9 ? 0.0 : x;
@@ -143,8 +142,7 @@ std::string premap_to_yaml(const Premap& premap) {
 
 std::string save_premap(const std::string& path, const Premap& premap) {
     namespace fs = std::filesystem;
-    // With --symlink-install the installed file links to the source: write
-    // the source.
+    // With --symlink-install, write the source file.
     const fs::path file = fs::exists(path) && fs::is_symlink(path)
                               ? fs::canonical(path)
                               : fs::path(path);

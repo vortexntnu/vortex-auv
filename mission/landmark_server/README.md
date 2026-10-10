@@ -1,231 +1,184 @@
 # landmark_server
 
-The landmark map. It estimates the pose of every course object in the `map`
-frame, keeps them for the whole run (the retained map), corrects odometry
-drift with `map → odom`, and publishes TF frames to navigate by: search
-points from the prior map, the objects, the gate's entrance and exit, and
-the start (return home). It never moves the vehicle.
-
-```
-odom ─────────▶ keyframes (every keyframe_dist_m / keyframe_time_s)
-detections ──▶ association (per class: Mahalanobis gate + Hungarian)
-                 ├─ matched ─────────▶ factors ─▶ iSAM2 ─▶ landmarks, map → odom
-                 └─ in no gate ─▶ candidate ─▶ confirmed (N hits in T s) ─▶ new landmark
-upkeep: phantoms retired, duplicates retired, max_instances shown per class
-premap.yaml / set_premap ─▶ where new landmarks may appear, prior_<task> frames (never in the graph)
-```
+Builds the map of the course. It estimates the pose of every detected object
+in the `map` frame, keeps them for the whole run, corrects odometry drift
+through `map -> odom`, and publishes TF frames the mission can navigate to.
+It never moves the vehicle.
 
 ## How it works
 
-- **Graph (iSAM2).** Keyframes `X(k)` and landmarks `L(id)`, both `Pose3` in
-  `map`. Factors: odometry between keyframes (noise grows with the distance
-  travelled), absolute depth (pressure) and roll/pitch (gravity) per
-  keyframe, and detections: bearing-range, or the relative pose when the
-  detector gives an orientation and the class has one (the torpedo board's
-  surface normal). Detection factors use Dynamic Covariance Scaling, so a
-  wrong match is down-weighted instead of bending the map.
-- **The map frame** is the vehicle at startup or at `mission/wipe`: x along
-  its heading, y right, z down (depth, as odom). Anchor with the vehicle at
-  the start facing the course, then turn it for the coin flip: the map keeps
-  the course heading.
-- **Association.** Per keyframe, each detection message on its own. Per
-  class, every detection–landmark pair gets the squared Mahalanobis distance
-  of its innovation (from the joint marginal of the keyframe and the
-  landmark), the χ² gate (`gate_prob`) limits it and the Hungarian algorithm
-  makes the one-to-one assignment. A match another landmark explains nearly
-  as well (`ambiguity_d2`) is dropped until the view is clearer.
-- **Class voting.** Classes one object can be taken for share a `group`
-  (the white and the red slalom pipe). A detection of any class of the
-  group is matched to the same landmark, each detection is a vote, and the
-  landmark's class is the majority. A run of wrong-colour detections from
-  far away then loses the vote instead of becoming a second landmark at the
-  same place.
-- **Loop closure.** Every landmark in the map takes part in the association,
-  not only the ones seen lately. Seeing a remembered landmark again after a
-  loop adds factors under its id: the graph moves the keyframes since, and
-  `map → odom` takes the drift out. The gate grows with the uncertainty since
-  the landmark was last seen, so a drifted landmark is still found.
-- **New landmarks.** A detection in no landmark's gate is a candidate.
-  Candidate detections of a class within `candidate_radius_m` add up;
-  `confirm_hits` of them within `confirm_window_s` make a landmark, with all
-  of them as its first factors. A candidate at an existing landmark of its
-  class is a second look at it and dropped.
-- **Retained map.** Landmarks are never deleted: not for being out of view,
-  not for being seen rarely. Phantoms (things that are not there but are
-  detected again and again at one place) are kept out by the prior gate
-  (none far from their task), `confirm_hits` (none from one-off detections)
-  and `max_instances`: per class only the most observed are published, and
-  the rest keep absorbing their own detections so they never pull a real
-  landmark. The one exception: two landmarks of a class closer than
-  `merge_radius_m` whose positions agree (χ² at `gate_prob`) are one object,
-  for example a copy made while the odometry had drifted. The one seen less
-  is retired: no more matches, not published, its factors stay.
-- **Prior map (outside the graph).** It only says where each task is
-  roughly (one entry per task: `gate`, `slalom`, `torpedo`, `bin`,
-  `octagon`). A class names its task (`prior`); a new landmark of the class
-  is only made within `prior_radius_m` (xy) of it, so a false detection far
-  from where the object can be never becomes a landmark. It also gives the
-  search frames `prior_<task>`. It never pulls the map: a prior with an
-  error per task would bend it.
+Keyframes and landmarks live in one iSAM2 graph. A new keyframe is added
+every `keyframe_dist_m` or `keyframe_time_s`, with odometry, depth and
+roll/pitch factors. Detections are matched to landmarks per class with a
+Mahalanobis gate and the Hungarian algorithm, and each match becomes a factor
+in the graph.
 
-## Interfaces (under the drone namespace)
+A detection that matches nothing becomes a candidate. When `confirm_hits`
+detections land within `candidate_radius_m` of each other inside
+`confirm_window_s`, the candidate becomes a landmark.
 
-| Interface | Type | |
+Landmarks are never deleted for being out of view. Seeing an old landmark
+again after a loop adds factors to the same landmark, which is what corrects
+the drift. Two landmarks of the same class that end up on top of each other
+are merged.
+
+Classes that can be mistaken for each other, like the red and white slalom
+pipes, share a `group`. Detections of any class in the group go to the same
+landmark and the landmark takes the class it was seen as most often.
+
+The map frame is the vehicle's pose at startup or at `mission/wipe`: x along
+its heading, y right, z down.
+
+### Prior map
+
+The prior map says roughly where each task is. It is not part of the graph.
+It does two things: a class with a `prior` only gets new landmarks within
+`prior_radius_m` of that task, and each task gets a `prior_<task>` frame to
+search from before the object is seen.
+
+## Interfaces
+
+All under the drone namespace.
+
+| Name | Type | Description |
 |---|---|---|
-| `odom` | in, `nav_msgs/Odometry` | Vehicle pose in odom (frame and child frame from the message) |
-| `landmarks` | in, `vortex_msgs/LandmarkArray` | Detections. `header.stamp` = image time; frame = camera (TF to odom at the image time) or odom. Rotation variance ≥ 1000 = position only |
-| `mission/wipe` | in, `std_msgs/Empty` | New map with the vehicle's pose as the start |
-| `landmark_server/landmarks` | out, `LandmarkTrackArray` (transient local) | The map after every keyframe: `id`, `type`/`subtype`, pose in `map`, `observations`, `first_seen`, `last_measurement`, `retained` (not seen since the last keyframe), `has_orientation`. Position covariance: relative to the vehicle (what navigating to it depends on) |
-| `landmark_server/markers` | out, `MarkerArray` | A sphere at 2σ per landmark (green seen now, grey remembered) and a label |
-| `landmark_server/nis` | out, `Float64` | Mean normalised innovation squared of the last 50 matches: ≈ 1 when the detection noise values fit |
-| `landmark_server/set_premap` | service, `vortex_msgs/SetPremap` | Replace the prior map (poses in `reference_frame`: `start` or `odom`). Saved to `premap_file`, the old file kept as `<name>_<YYYYmmdd_HHMM>.yaml`. Used at once |
-| `landmark_server/get_premap` | service, `std_srvs/Trigger` | The prior map as YAML text in `message` |
-| TF `map → odom` | out | With every odometry message |
-| TF `map → <class>_<id>` | out | Every published landmark, 10 Hz, same stamp as `map → odom`: looked up from odom it is where the drifted vehicle has to go |
-| TF `map → <class>` | out | Per class the landmark seen most often (a target before its id is known) |
-| TF `map → prior_<task>` | out | Where the task should be (prior map): the search point before it is seen |
-| TF `map → start` | out | Where the run started: return home |
-| TF `gate_middle`, `<panel>_entrance`, `<panel>_exit` | out | From the two gate panels: +X through the gate, away from the start side |
-| TF `slalom_left_<n>`, `slalom_right_<n>` | out | Per row of slalom pipes (n = 0 nearest the start) the point to pass it at, left / right of its red pipe: +X straight through the row |
+| `odom` | sub, `nav_msgs/Odometry` | Vehicle pose |
+| `landmarks` | sub, `vortex_msgs/LandmarkArray` | Detections, stamped with the image time. A rotation variance of 1000 or more means position only |
+| `mission/wipe` | sub, `std_msgs/Empty` | Start a new map at the current pose |
+| `landmark_server/landmarks` | pub, `vortex_msgs/LandmarkTrackArray` | The map, after every keyframe |
+| `landmark_server/markers` | pub, `MarkerArray` | 2 sigma sphere and label per landmark |
+| `landmark_server/nis` | pub, `Float64` | Mean NIS of the last 50 matches, should be near 1 |
+| `landmark_server/set_premap` | srv, `vortex_msgs/SetPremap` | Replace the prior map and save it to `premap_file` |
+| `landmark_server/get_premap` | srv, `std_srvs/Trigger` | The prior map as YAML |
 
-## Navigating with it
+## TF frames
 
-Every target is a TF frame; look it up from odom and send it to
-`waypoint_manager` (a frame moves when the map corrects drift, so re-send it
-when it moves).
+All are children of `map`.
 
-- **Search:** `prior_<task>` until the object is in the map, then `<class>`.
-- **Aim:** `<class>_<id>` or `<class>` up close (the torpedo board's yaw
-  comes from its measured normal: +X out of the front).
-- **Through the gate:** `<panel>_entrance` → `<panel>_exit`.
-- **Through the slalom:** per row n = 0, 1, 2, from a point in front of
-  `slalom_<side>_<n>` (offset −x) to one behind it (+x). The side is the
-  mission's choice: the same side of the red pipe as the half of the gate
-  it went through. The pass point is the middle between the red pipe and
-  that side's white one, or 0.76 m from the red pipe while the white one is
-  not mapped; rows are numbered by their distance behind the first
-  (`slalom.row_spacing_m`), so a row found late does not rename the others.
-  First sightings from far away are 0.3–0.6 m off and settle to about
-  0.1 m: wait for the frame to stand still before passing.
-- **Return home:** `<panel>_exit` → `<panel>_entrance` (the same frames,
-  driven the other way, facing −X), then `start`. These frames come from the
-  corrected map, so the way home uses the loop-closed gate.
+| Frame | Description |
+|---|---|
+| `odom` | Drift correction |
+| `start` | Where the run started |
+| `prior_<task>` | Where the prior map puts the task |
+| `<class>` | The most observed landmark of the class |
+| `gate_middle`, `<panel>_entrance`, `<panel>_exit` | Gate, +X through it away from the start |
+| `slalom_left_<n>`, `slalom_right_<n>` | Where to pass row n on each side of its red pipe, +X through the row |
+| `torpedo_opening_<name>` | Openings on the torpedo board, +X through the board |
+
+A frame moves when the map is corrected, so look it up again before the
+final approach. Frames seen from far away can be 0.3 to 0.6 m off and settle
+to about 0.1 m up close.
 
 ## Running
 
 ```bash
-ros2 launch landmark_server landmark_server.launch.py              # env:=pool
-ros2 launch landmark_server landmark_server.launch.py env:=sim     # sim.yaml, premap_sim.yaml
+ros2 launch landmark_server landmark_server.launch.py
+ros2 launch landmark_server landmark_server.launch.py env:=sim
 ```
 
-| Argument | Default | |
+| Argument | Default | Description |
 |---|---|---|
-| `env` | `pool` | `sim`: the simulator's detection noise (`config/sim.yaml`) and course (`config/premap_sim.yaml`) |
-| `config_file` | `config/landmark_server.yaml` | All tunable values |
-| `premap_file` | `config/premap.yaml` (`premap_sim.yaml` with `env:=sim`) | The prior map, written by `set_premap`. Build with `--symlink-install` to write the source file |
-| `odom_topic`, `landmarks_topic` | the robot file's `odom`, `landmarks` | Other topics, e.g. the drift injector's in the simulator |
+| `env` | `pool` | `sim` loads `sim.yaml` and `premap_sim.yaml` |
+| `config_file` | `config/landmark_server.yaml` | Parameters |
+| `premap_file` | `config/premap.yaml` | Prior map, written by `set_premap` |
+| `odom_topic`, `landmarks_topic` | from the robot file | Topic overrides |
 
-Start a new map (anchor) with the vehicle at the start facing the course:
+Start a new map with the vehicle at the start, facing the course:
 
 ```bash
 ros2 topic pub --once /nautilus/mission/wipe std_msgs/msg/Empty
 ```
 
-## The prior map and its GUI
+## Prior map GUI
 
-`premap.yaml` (written by the GUI through `set_premap`):
+```bash
+ros2 run landmark_server competition_map_gui.py --ros-args -r __ns:=/nautilus
+```
+
+The GUI shows the pool from above. Place the reference where the vehicle
+starts and point it at the course, then place the tasks. Send to Vehicle
+applies the map at once and saves it. The old file is kept with a timestamp.
+
+The dashed circle around a task is its `prior_radius_m`. The real object has
+to be inside it or its detections are rejected. Crosses show the landmarks
+the vehicle has found, so after a practice run you can drag the tasks onto
+the crosses and send again.
+
+File format:
 
 ```yaml
-reference_frame: start            # the map frame
+reference_frame: start
 created_at: '2026-10-09T12:00:00'
 objects:
   torpedo: {position: [17.0, -5.2, 2.5], orientation: [0.0, 0.0, 1.0, 0.0]}
-gui_state: {...}                  # the GUI's drawing
 ```
 
+## Adding a new object
+
+For a new object the detector publishes:
+
+1. Add the constants to `LandmarkType.msg` and `LandmarkSubtype.msg` in
+   vortex-msgs if they are not there.
+2. Add the same names to the tables in `src/config.cpp`.
+3. Add an entry under `classes` in `config/landmark_server.yaml`:
+
+   ```yaml
+   buoy: {type: BUOY, subtype: BUOY_RED, symmetry_deg: 360.0, has_orientation: false, prior: "buoy", prior_radius_m: 3.0, max_instances: 1}
+   ```
+
+4. If it has a `prior`, add that label to `SERVICE_LABEL_MAP` in
+   `scripts/competition_map_gui.py` so it can be placed in the prior map.
+
+The server then publishes it as the TF frame `buoy`. If the mission can
+navigate straight to the object, this is all that is needed.
+
+## Adding a target frame
+
+A target frame is needed when the place to go is not the object itself, like
+the gap between two slalom pipes or an opening on the torpedo board.
+
+1. Add a params struct to `config.hpp` and a member in `Params`.
+2. Read the parameters in `load_config()` in `landmark_server_node.cpp`.
+3. Write a function in `targets.cpp` that takes the landmarks and returns a
+   list of `NamedPose`. Use `best_of()` to get a landmark by class name and
+   return an empty list while the landmarks it needs are missing.
+4. Call it in `publish_map()` next to the existing ones.
+5. Add the parameters to `config/landmark_server.yaml`.
+
+`torpedo_frames()` is the shortest example. Use +X as the direction the
+vehicle should face or drive, so the mission can give offsets as "0.6 m in
+front" without knowing the geometry.
+
+Fixed offsets are easier to tune if they can be changed while running. The
+torpedo openings do this in `on_parameters()`:
+
 ```bash
-ros2 run landmark_server competition_map_gui.py --ros-args -r __ns:=/nautilus \
-    [-p pool_width_m:=50.0 -p pool_height_m:=25.0]
+ros2 param set /nautilus/landmark_server_node torpedo.openings.large_left "[-0.21, -0.064]"
 ```
 
-The GUI is the pool from above (50 x 25 m by default). It opens with the
-prior map the vehicle has (the same as **Get from Vehicle**) and draws the
-**live map** on top: every landmark the vehicle has found, as a cross in its
-task's colour with the number of detections ("Show live map").
+## Tuning
 
-- **reference = the start of the run**: where the vehicle is when the map
-  is anchored (`mission/wipe`), its arrow the vehicle's heading then (the
-  map's x). Everything is measured from it: the side panel shows each task
-  as x ahead / y right of the start, which is what is sent.
-- Select an object, click to place it, turn lines (gate, slalom, torpedo:
-  the arrow is the side the vehicle comes from) and the reference with the
-  yaw slider. Nothing is selected at first, so a stray click moves nothing;
-  the slider takes the selected object's yaw.
-- The **dashed circle** around a task is where the vehicle accepts new
-  landmarks of it (the classes' `prior_radius_m`, from the vehicle): the
-  real object has to be inside.
-- Sending a **moved reference** asks first: it shifts every task in the map,
-  and detections outside the circles are then rejected.
-- **Send to Vehicle** sets the prior map at once and saves it (the old file
-  kept with a time stamp); `prior_<task>` moves in Foxglove. Depths are the
-  ones loaded from the vehicle, else `DEFAULT_Z` in the script.
-- After a practice run, the crosses show where the objects really are:
-  move the tasks onto them and Send. A task only needs to be within its
-  classes' `prior_radius_m` (3 m, slalom 4 m).
-- Reference frame `start` (default): poses relative to the reference.
-  `odom`: the poses are odom coordinates, converted with the current
-  `map → odom`.
+Tune the detection noise first until NIS is near 1, then the odometry noise
+on a loop, then the new landmark values. Change one thing at a time.
 
-## Parameters
+| Symptom | Change |
+|---|---|
+| NIS well above 1 | Raise `detection.*` sigmas |
+| NIS well below 1 | Lower `detection.*` sigmas |
+| Duplicates after a loop | Raise `odom.sigma_*_per_m` |
+| Map wobbles between landmarks | Lower `odom.sigma_*_per_m` |
+| False detections become landmarks | Raise `confirm_hits`, lower `max_range_m` or `prior_radius_m` |
+| Real objects appear late | Lower `confirm_hits` |
+| Real object rejected at the edge of its task | Raise `prior_radius_m` or fix the prior map |
+| A drifted copy stays next to an object | Raise `upkeep.merge_radius_m` |
 
-Everything is in `config/landmark_server.yaml`, with a comment per value.
-Write floats with a decimal point (`3.0`): ROS parameters are typed.
-
-A class names what the detector publishes by the constants of
-`vortex_msgs/LandmarkType` and `LandmarkSubtype`
-(`type: SLALOM_PIPE, subtype: SLALOM_PIPE_RED`), not by their numbers. The
-node takes the values from the message headers, so a renumbered constant
-only needs a rebuild; a new constant is one line in the name table in
-`src/config.cpp`. An unknown name stops the node at startup with the class
-it is in.
-
-| Group | Values | Raise it when | Lower it when |
-|---|---|---|---|
-| keyframes | `keyframe_dist_m`, `keyframe_time_s`, `max_messages_per_keyframe`, `max_range_m` | the node is too slow (larger keyframe steps) | far false detections become landmarks (`max_range_m`) |
-| `odom.*` | odometry noise per metre and per step, absolute roll/pitch/depth | loops do not close (re-seen landmarks fall outside the gate, duplicates after a loop) | the map wobbles between landmarks |
-| `detection.*` | bearing σ, range σ = a + b·r, orientation σ, `dcs_phi`, `max_merged_per_factor` | NIS ≫ 1 | NIS ≪ 1 |
-| `association.*` | `gate_prob`, `ambiguity_d2` | real objects get duplicates (`gate_prob`) | neighbours steal each other's detections |
-| `new_landmarks.*` | `candidate_radius_m`, `confirm_hits`, `confirm_window_s` | phantoms become landmarks (`confirm_hits`) | real objects take too long to appear, or a slow detector never confirms (hits per window ≤ its rate) |
-| `upkeep.merge_radius_m` | | a drifted copy of an object stays next to it | two real same-class objects get joined |
-| `gate.*` | panel classes, separation limits, `approach_m`, `depth_below_panel_m` | | |
-| `slalom.*` | pipe classes, `nominal_spacing_m`, `row_spacing_m`, spacing limits | | |
-| `classes.<name>` | `type`, `subtype`, `symmetry_deg`, `has_orientation`, `prior`, `prior_radius_m`, `max_instances`, `group` | real objects are rejected near the edge of their task (`prior_radius_m`) | false detections next to a task become landmarks |
-
-Tune with the NIS first (detection noise), then the odometry noise on a
-loop, then the new-landmark values and `max_instances` against phantoms. One change at a time.
-
-## Testing with the dummy publisher
-
-`robosub_dummy_publisher` (vortex-cv) publishes the course's detections.
-With `profile:=realistic` it behaves like a camera on a moving vehicle: only
-what is in view (`front_range_m`, `front_half_fov_deg`), and every error
-effect is a `[near, far]` pair. Within `near_range_m` and
-`centre_half_fov_deg` of the image centre, detections are accurate and
-consistent. Toward the range limit and the edge of the view they are noisy,
-missed, occluded, cluttered, sometimes far off or of the wrong class, and
-phantoms (things that are not there) show up. The torpedo board comes with
-its surface normal. Its noise in `sim.yaml` matches the realistic profile.
+## Testing in the simulator
 
 ```bash
-# The simulator (vehicle side), then the server and the dummy
 src/vortex-auv/utility_scripts/launch_drone_sim.sh --headless --detach
 ros2 launch landmark_server landmark_server.launch.py env:=sim
 ros2 launch robosub_dummy_publisher robosub_dummy_publisher.launch.py profile:=realistic seed:=7
 ```
 
-Watch `landmark_server/markers` and the TF frames in Foxglove, and
-`landmark_server/nis`. Drive the vehicle up to the torpedo board: far away
-the board wobbles and phantoms appear and then get retired; up close it
-settles and its yaw (normal) is right. Drive back to the gate after a loop:
-the gate is matched again under its id (no duplicate) and `map → odom` jumps
-by the drift.
+`robosub_dummy_publisher` is in vortex-cv. Watch `landmark_server/markers`,
+the TF frames and `landmark_server/nis` in Foxglove.

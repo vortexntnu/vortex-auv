@@ -39,7 +39,7 @@ namespace {
 constexpr double kNoOrientationVariance = 1000.0;  // perception convention
 constexpr std::size_t kNisWindow = 50;
 constexpr double kMinRangeM = 0.05;
-constexpr double kFramePeriodS = 0.1;  // landmark TF frames
+constexpr double kFramePeriodS = 0.1;
 constexpr const char* kGuiPrefix = "__gui/";
 constexpr double kPriorWarnPeriodS = 10.0;
 constexpr int kPriorWarnMinCount = 20;
@@ -73,8 +73,7 @@ builtin_interfaces::msg::Time to_stamp(double t) {
     return rclcpp::Time(static_cast<int64_t>(t * 1e9));
 }
 
-/// ROS covariance (x, y, z, then rotation; map axes): the position
-/// relative to the vehicle, the rotation from the landmark's marginal.
+/// ROS covariance order: x, y, z, then rotation.
 std::array<double, 36> to_ros_cov(const LandmarkState& l) {
     const gtsam::Matrix3 R = l.pose.rotation().matrix();
     gtsam::Matrix6 out = gtsam::Matrix6::Zero();
@@ -98,7 +97,7 @@ class LandmarkServerNode : public rclcpp::Node {
               "landmark_server_node",
               rclcpp::NodeOptions(options)
                   .automatically_declare_parameters_from_overrides(true)) {
-        load_config();  // fails loudly on a bad config
+        load_config();
         parameter_callback_ = add_on_set_parameters_callback(
             [this](const std::vector<rclcpp::Parameter>& parameters) {
                 return on_parameters(parameters);
@@ -215,7 +214,6 @@ class LandmarkServerNode : public rclcpp::Node {
         read("slalom.min_spacing_m", p.slalom.min_spacing_m);
         read("slalom.max_spacing_m", p.slalom.max_spacing_m);
         read("torpedo.board_class", p.torpedo.board_class);
-        // torpedo.openings.<name>: [y, z]
         const std::string openings = "torpedo.openings.";
         for (const auto& full :
              list_parameters({"torpedo.openings"}, 3).names) {
@@ -223,7 +221,6 @@ class LandmarkServerNode : public rclcpp::Node {
                         get_parameter(full).as_double_array());
         }
 
-        // classes.<name>.<key>
         std::set<std::string> names;
         for (const auto& full : list_parameters({"classes"}, 3).names) {
             const auto first = full.find('.');
@@ -236,7 +233,6 @@ class LandmarkServerNode : public rclcpp::Node {
             const std::string k = "classes." + name + ".";
             ClassConfig c;
             c.name = name;
-            // Named by the vortex_msgs constants (type: GATE).
             std::string type;
             std::string subtype;
             read(k + "type", type);
@@ -277,8 +273,7 @@ class LandmarkServerNode : public rclcpp::Node {
         cfg_.params.torpedo.openings[name] = {yz[0], yz[1]};
     }
 
-    /// The openings can be moved while running (ros2 param set), to tune
-    /// them against the camera image; every other value is read at start.
+    /// Lets the openings be tuned with ros2 param set while running.
     rcl_interfaces::msg::SetParametersResult on_parameters(
         const std::vector<rclcpp::Parameter>& parameters) {
         rcl_interfaces::msg::SetParametersResult result;
@@ -316,8 +311,7 @@ class LandmarkServerNode : public rclcpp::Node {
         warn_unknown_prior_labels();
     }
 
-    /// For the GUI: per task, how far from its prior a new landmark of one
-    /// of its classes may be (the largest prior_radius_m among them).
+    /// Largest prior_radius_m per task, for the GUI.
     std::string prior_radius_yaml() const {
         std::map<std::string, double> radius;
         for (const ClassConfig& c : cfg_.classes) {
@@ -346,7 +340,6 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void on_set_premap(const vortex_msgs::srv::SetPremap::Request& req,
                        vortex_msgs::srv::SetPremap::Response& res) {
-        // Poses in reference_frame -> map.
         gtsam::Pose3 T_map_ref;
         if (!is_map_reference(req.reference_frame)) {
             const std::string ref = req.reference_frame == "odom"
@@ -376,13 +369,11 @@ class LandmarkServerNode : public rclcpp::Node {
         for (const auto& o : req.objects) {
             const std::string& label = o.label;
             if (label.rfind(kGuiPrefix, 0) == 0) {
-                // The GUI's own drawing: kept as it is.
                 const std::string key =
                     label.substr(std::string(kGuiPrefix).size());
                 if (key.rfind("reference_frame/", 0) == 0) {
                     gui_reference = key.substr(16);
                 } else if (key.rfind("object/", 0) == 0) {
-                    // Kept as the GUI sent it, 7 significant digits.
                     const auto& p = o.pose;
                     const auto list = [](std::initializer_list<double> v) {
                         YAML::Node seq(YAML::NodeType::Sequence);
@@ -449,7 +440,7 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void on_wipe() {
         if (!odom_) {
-            return;  // the map starts with the first odometry
+            return;
         }
         reset(odom_->T, odom_->t);
         spdlog::info("landmark_server: new map at the vehicle (mission/wipe)");
@@ -481,8 +472,7 @@ class LandmarkServerNode : public rclcpp::Node {
         if (msg->landmarks.empty()) {
             return;
         }
-        // Messages wait for the next keyframe, per source (frame and the
-        // types it carries): the newest max_messages_per_keyframe.
+        // Messages are queued per source until the next keyframe.
         std::string source = msg->header.frame_id;
         std::set<std::uint16_t> types;
         for (const auto& l : msg->landmarks) {
@@ -506,8 +496,7 @@ class LandmarkServerNode : public rclcpp::Node {
         const gtsam::Pose3 T_map_base = graph_.keyframe_pose(kf);
         const auto priors = premap_.positions();
 
-        // Each message is associated on its own; the detections matched to
-        // one landmark become one factor (their mean, Measurement::merged).
+        // Detections matched to one landmark become one averaged factor.
         std::map<int, std::pair<Measurement, gtsam::Point3>> matched;
         double t_obs = 0.0;
         for (const auto& [source, msgs] : pending_) {
@@ -571,8 +560,7 @@ class LandmarkServerNode : public rclcpp::Node {
         }
 
         warn_prior_rejects(t);
-        // Two landmarks of a class this close whose positions agree are one
-        // object (e.g. a copy made while the odometry had drifted).
+        // Duplicates, e.g. a copy made while the odometry had drifted.
         for (const auto& [keep, drop] : graph_.retire_duplicates(
                  p.merge_radius_m, chi2_threshold(p.gate_prob, 3))) {
             spdlog::info("landmark_server: landmark {} is a duplicate of {}",
@@ -582,8 +570,7 @@ class LandmarkServerNode : public rclcpp::Node {
         prev_keyframe_t_ = t;
     }
 
-    /// Many detections of a class far from its prior: the prior map is
-    /// probably wrong (no landmark of the task can be made). Every 10 s.
+    /// Warns when the prior map rejects many detections of a class.
     void warn_prior_rejects(double t) {
         for (const auto& [cls, n] : candidates_.take_prior_rejects()) {
             auto& [count, nearest] =
@@ -609,11 +596,9 @@ class LandmarkServerNode : public rclcpp::Node {
         last_prior_warn_ = t;
     }
 
-    /// Detections of one message in the base frame of the new keyframe.
     std::vector<Detection> to_detections(
         const vortex_msgs::msg::LandmarkArray& msg,
         const gtsam::Pose3& T_odom_base) {
-        // Detection frame -> odom at the image time; odom -> keyframe base.
         gtsam::Pose3 T_odom_frame;
         if (msg.header.frame_id != odom_frame_) {
             try {
@@ -677,8 +662,7 @@ class LandmarkServerNode : public rclcpp::Node {
         tf.header.stamp = to_stamp(t);
         tf_broadcaster_->sendTransform(tf);
 
-        // The map's frames with the same stamp: a lookup from odom gets them
-        // where the drifted vehicle needs them.
+        // Same stamp as map->odom so lookups from odom are consistent.
         if (t - last_frames_t_ >= kFramePeriodS || t < last_frames_t_) {
             for (auto& f : frames_) {
                 f.header.stamp = tf.header.stamp;
@@ -701,8 +685,7 @@ class LandmarkServerNode : public rclcpp::Node {
         return f;
     }
 
-    /// The landmarks shown: per class at most max_instances, the most
-    /// observed (the rest keep matching their detections, unseen).
+    /// At most max_instances per class, the most observed first.
     std::vector<LandmarkState> shown_landmarks() const {
         std::vector<LandmarkState> all = graph_.landmarks();
         std::stable_sort(all.begin(), all.end(),
@@ -725,14 +708,11 @@ class LandmarkServerNode : public rclcpp::Node {
         const std::vector<LandmarkState> shown = shown_landmarks();
 
         frames_.clear();
-        // Where the run started (return home).
         frames_.push_back(frame("start", graph_.keyframe_pose(0)));
-        // Where each task should be: the search point before it is seen.
         for (const auto& [label, pose] : premap_.objects) {
             frames_.push_back(frame("prior_" + label, pose));
         }
-        // Per class the landmark seen most often: a real object is seen far
-        // more often than a phantom or a confused detection.
+        // The most observed landmark of each class gets the class frame.
         std::set<std::string> classes;
         for (const LandmarkState& l : shown) {
             classes.insert(l.cls.name);
@@ -792,7 +772,6 @@ class LandmarkServerNode : public rclcpp::Node {
         }
     }
 
-    /// Sphere at 2 sigma of the position covariance, and a label.
     void add_markers(const LandmarkState& l,
                      const vortex_msgs::msg::LandmarkTrack& track,
                      visualization_msgs::msg::MarkerArray& out) const {

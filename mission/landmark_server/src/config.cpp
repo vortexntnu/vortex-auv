@@ -19,8 +19,7 @@ struct NamedValue {
     std::uint16_t value;
 };
 
-// The constants a config can name. The values are the messages' own, so a
-// renumbered constant only needs a rebuild; a new one is a line here.
+// Add new constants from vortex_msgs here.
 #define LANDMARK_TYPE(name)                         \
     NamedValue {                                    \
         #name, vortex_msgs::msg::LandmarkType::name \

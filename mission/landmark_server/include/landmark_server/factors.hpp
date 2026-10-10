@@ -6,10 +6,7 @@
 
 namespace vortex::landmark_server {
 
-/**
- * @brief Absolute depth of a pose (pressure sensor). Constrains only z.
- * Error: pose.z() - z_measured.
- */
+/// Depth from the pressure sensor: constrains only z of the pose.
 class DepthFactor : public gtsam::NoiseModelFactorN<gtsam::Pose3> {
    public:
     DepthFactor(gtsam::Key key, double z, const gtsam::SharedNoiseModel& model)

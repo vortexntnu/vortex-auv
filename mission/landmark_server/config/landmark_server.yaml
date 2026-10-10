@@ -1,97 +1,53 @@
-# landmark_server: every tunable value. Topics (odom, landmarks,
-# mission_wipe) come from auv_setup's robot file; premap_file from the launch
-# file. env:=sim loads sim.yaml on top (the simulator's measured noise).
-#
-# Write floats with a decimal point (3.0, not 3): ROS parameters are typed.
+# Topics come from auv_setup's robot file, premap_file from the launch file.
+# env:=sim loads sim.yaml on top. Write floats with a decimal point.
 /**:
   ros__parameters:
-    # --- Keyframes and intake -------------------------------------------------
-    # A new keyframe (graph update, association) after this distance [m] or
-    # time [s]. Detections wait for the next keyframe.
+    # A new keyframe is made after this distance or time.
     keyframe_dist_m: 0.5
     keyframe_time_s: 1.0
-    # Per source (frame + types), the newest messages used per keyframe. More
-    # looks at a hovering vehicle add little and cost time.
-    max_messages_per_keyframe: 5
-    # Detections farther than this [m] are dropped: far views are the
-    # noisiest and bring most false detections.
-    max_range_m: 10.0
+    max_messages_per_keyframe: 5   # per source, newest first
+    max_range_m: 10.0              # detections beyond this are dropped
 
-    # --- Odometry noise (one keyframe step) -----------------------------------
-    # x/y and yaw drift grow with the distance travelled. Measure them: drive
-    # a loop past known landmarks and compare. Too small: loop closures are
-    # rejected (gate too tight) or bend the map; too large: the map trusts
-    # the odometry too little between landmarks.
+    # Odometry noise per keyframe step. Too small and loop closures get
+    # rejected, too large and the map ignores the odometry.
     odom:
       sigma_trans_per_m: 0.03   # [m per m]
-      # Yaw: a drift that is a bias (the same every metre) needs more than
-      # the drift per metre itself. 0.01 broke the map at 0.5 deg/m over two
-      # laps; 0.03 held to 1 deg/m (60 deg) at the cost of a slightly
-      # noisier pose when the odometry is good. Lower it once the pool's
-      # drift is measured and small.
+      # 0.01 broke the map at 0.5 deg/m of yaw drift, 0.03 held to 1 deg/m.
       sigma_yaw_per_m: 0.03     # [rad per m]
-      min_sigma_trans: 0.01     # floor per step [m] (hovering still drifts)
-      min_sigma_yaw: 0.002      # floor per step [rad]
-      sigma_roll_pitch: 0.01    # per step [rad]
-      sigma_z: 0.02             # per step [m]
-      attitude_sigma: 0.02      # absolute roll/pitch from the IMU [rad]
-      depth_sigma: 0.05         # absolute depth from the pressure sensor [m]
+      min_sigma_trans: 0.01     # [m]
+      min_sigma_yaw: 0.002      # [rad]
+      sigma_roll_pitch: 0.01    # [rad]
+      sigma_z: 0.02             # [m]
+      attitude_sigma: 0.02      # IMU roll/pitch [rad]
+      depth_sigma: 0.05         # pressure sensor [m]
 
-    # --- Detection noise ------------------------------------------------------
-    # A camera knows the direction far better than the distance:
-    # sigma_bearing [rad], sigma_range = a + b * range [m]. Check with the
-    # landmark_server/nis topic: ~1 = right, >> 1 = too optimistic (matches
-    # rejected, duplicates), << 1 = too pessimistic (gate too wide).
+    # sigma_range = a + b * range. Check with the landmark_server/nis topic:
+    # it should stay near 1. Much higher means these are too small.
     detection:
-      bearing_sigma: 0.03
-      range_sigma_a: 0.1
+      bearing_sigma: 0.03                  # [rad]
+      range_sigma_a: 0.1                   # [m]
       range_sigma_b: 0.05
-      # Detections with an orientation (rotation variance < 1000), e.g. the
-      # torpedo board's surface normal, for classes with has_orientation.
       orientation_yaw_sigma: 0.1           # [rad]
       orientation_roll_pitch_sigma: 0.5    # [rad]
-      # Robust kernel (Dynamic Covariance Scaling): a factor with a large
-      # error is down-weighted. Smaller = stricter with outliers.
-      dcs_phi: 1.0
-      # Detections of one landmark in one keyframe are averaged into one
-      # factor, counted as at most this many (they share the view's errors).
+      dcs_phi: 1.0                         # robust kernel, smaller = stricter
       max_merged_per_factor: 4
 
-    # --- Association (Hungarian, Mahalanobis gate) ---------------------------
     association:
-      # chi^2 probability of the gate (3 dof): a detection farther than this
-      # from a landmark (in its own uncertainty) cannot be that landmark.
-      gate_prob: 0.999
-      # A match is dropped when another landmark of the class is within this
-      # d^2 of the best (4.6 = likelihood ratio 10): ambiguous, wait for a
-      # clearer view instead of joining two objects.
-      ambiguity_d2: 4.6
+      gate_prob: 0.999     # chi^2 gate, 3 dof
+      ambiguity_d2: 4.6    # drop a match if a second landmark is this close
 
-    # --- New landmarks ---------------------------------------------------------
-    # A detection in no landmark's gate is a candidate. Candidate detections
-    # of a class within candidate_radius_m are one candidate; confirm_hits of
-    # them within confirm_window_s make it a landmark. Raise confirm_hits
-    # against phantoms, lower it for slow detectors (a 2 Hz detector gives
-    # at most 2 per second).
+    # confirm_hits detections within candidate_radius_m and confirm_window_s
+    # make a new landmark.
     new_landmarks:
       candidate_radius_m: 0.5   # under half the spacing of same-class objects
       confirm_hits: 5
       confirm_window_s: 3.0
 
-    # --- Map upkeep -----------------------------------------------------------
-    # Landmarks are kept for the whole run (the retained map). Phantoms are
-    # kept out by the prior gate (classes.*.prior), confirm_hits and
-    # max_instances (only the most observed are published), not deleted.
     upkeep:
-      # Duplicates: two landmarks of a class closer than this whose
-      # positions agree -> the one seen less is retired.
-      merge_radius_m: 0.5
+      merge_radius_m: 0.5   # same-class landmarks this close are merged
 
-    # --- Gate frames (navigation) ---------------------------------------------
-    # From the two role panels: gate_middle, and per panel <panel>_entrance /
-    # <panel>_exit, approach_m before / after the gate line and
-    # depth_below_panel_m below the panel (through its opening). +X through
-    # the gate, away from the start side. Empty panel_classes = off.
+    # Target frames, see "Target frames" in the README. An empty class name
+    # turns a block off.
     gate:
       panel_classes: ["gate_search_rescue", "gate_survey_repair"]
       min_separation_m: 0.2
@@ -99,29 +55,16 @@
       approach_m: 1.0
       depth_below_panel_m: 0.5
 
-    # --- Slalom frames (navigation) -------------------------------------------
-    # Per row of pipes (n = 0 nearest the start, then one per row_spacing_m
-    # behind it, mapped or not yet) the point to pass it at, on
-    # either side of its red pipe: slalom_left_<n>, slalom_right_<n>; the
-    # mission picks the side. The middle between the red pipe and the white
-    # one on that side; without that white pipe, the red pipe plus half of
-    # nominal_spacing_m. +X straight through the row, away from the start.
-    # Empty red_class = off.
     slalom:
       red_class: "slalom_pipe_red"
       white_class: "slalom_pipe_white"
-      nominal_spacing_m: 1.52   # red to white pipe in a row (handbook)
-      row_spacing_m: 2.0        # row to row: rows are numbered by it
-      min_spacing_m: 0.8        # a white pipe is of a red pipe's row
-      max_spacing_m: 2.3        #   between these distances from it
+      nominal_spacing_m: 1.52   # red to white pipe in a row
+      row_spacing_m: 2.0
+      min_spacing_m: 0.8        # a white pipe belongs to a row between
+      max_spacing_m: 2.3        # these distances from its red pipe
 
-    # --- Torpedo frames (navigation) ------------------------------------------
-    # torpedo_opening_<name> per opening, on the face of the mapped board:
-    # [y, z] in metres from the board's centre seen from the front, y to the
-    # right and z down. +X through the board. Tune against the camera image
-    # while running:
-    #   ros2 param set <node> torpedo.openings.large_left "[-0.21, -0.064]"
-    # Empty board_class = off.
+    # [y, z] from the board centre seen from the front, y right, z down.
+    # Can be changed while running with ros2 param set.
     torpedo:
       board_class: "torpedo_board"
       openings:
@@ -130,22 +73,12 @@
         small_top: [-0.003, -0.192]
         small_bottom: [-0.006, 0.200]
 
-    # --- Classes ----------------------------------------------------------------
-    # One entry per object class; detections of other types are ignored.
-    #   type, subtype     names of the vortex_msgs LandmarkType /
-    #                     LandmarkSubtype constants the detector publishes
-    #   symmetry_deg      0 = none; 90, 180 = yaw known modulo this;
-    #                     360 = yaw meaningless (round objects)
-    #   has_orientation   use the detector's orientation when it sends one
-    #   prior             task label in the prior map ("" = none): new
-    #                     landmarks only within prior_radius_m (xy) of it
-    #   max_instances     landmarks of the class shown, the most observed
-    #                     (0 = any): extra ones are kept but hidden
-    #   group             classes one object can be taken for share a group
-    #                     (the white and the red pipe): a detection of any of
-    #                     them updates the same landmark, each detection is
-    #                     a vote, and the landmark's class is the majority.
-    #                     Leave it out for a class nothing is mixed up with
+    # type, subtype    vortex_msgs LandmarkType / LandmarkSubtype constants
+    # symmetry_deg     0 none, 90 or 180 yaw known modulo this, 360 no yaw
+    # has_orientation  use the detector's orientation
+    # prior            task label in the prior map, "" for none
+    # max_instances    landmarks shown, 0 = all
+    # group            classes that can be mistaken for each other
     classes:
       gate_search_rescue: {type: GATE, subtype: GATE_SEARCH_RESCUE, symmetry_deg: 0.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
       gate_survey_repair: {type: GATE, subtype: GATE_SURVEY_REPAIR, symmetry_deg: 0.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
