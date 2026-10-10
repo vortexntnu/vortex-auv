@@ -40,6 +40,21 @@ struct GateParams {
     double depth_below_panel_m{0.5};
 };
 
+/// Slalom frames: the point to pass each row at, per side of its red pipe.
+struct SlalomParams {
+    std::string red_class;  // "" = off
+    std::string white_class;
+    /// Red to white pipe in a row [m]: without the white pipe in the map
+    /// the pass point is half of this from the red pipe.
+    double nominal_spacing_m{1.52};
+    /// Row to row [m]: a red pipe this far behind the first is row 1, twice
+    /// as far row 2, whether or not the row between is mapped yet.
+    double row_spacing_m{2.0};
+    /// A white pipe belongs to a red pipe's row between these distances.
+    double min_spacing_m{0.8};
+    double max_spacing_m{2.3};
+};
+
 /// Everything tunable (config/landmark_server.yaml explains each value).
 struct Params {
     // Keyframes and intake.
@@ -81,6 +96,7 @@ struct Params {
     double merge_radius_m{0.5};
 
     GateParams gate;
+    SlalomParams slalom;
 
     /// Range noise sigma_r = a + b * r.
     double range_sigma(double range) const {

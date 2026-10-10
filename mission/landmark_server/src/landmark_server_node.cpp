@@ -30,6 +30,7 @@
 #include "landmark_server/config.hpp"
 #include "landmark_server/graph.hpp"
 #include "landmark_server/premap.hpp"
+#include "landmark_server/targets.hpp"
 
 namespace vortex::landmark_server {
 
@@ -86,68 +87,6 @@ std::array<double, 36> to_ros_cov(const LandmarkState& l) {
         }
     }
     return a;
-}
-
-/// The most observed landmark of the class, or nullptr.
-const LandmarkState* best_of(const std::vector<LandmarkState>& landmarks,
-                             const std::string& cls) {
-    const LandmarkState* best = nullptr;
-    for (const auto& l : landmarks) {
-        if (l.cls.name == cls && (!best || l.n_obs > best->n_obs)) {
-            best = &l;
-        }
-    }
-    return best;
-}
-
-struct NamedPose {
-    std::string name;
-    gtsam::Pose3 pose;
-};
-
-/**
- * Gate frames from the two role panels, when both are mapped and
- * min_separation_m..max_separation_m apart: gate_middle between them, and
- * per panel <panel>_entrance / <panel>_exit approach_m before / after the
- * gate line and depth_below_panel_m below the panel (through its opening).
- * All have +X through the gate, away from the start side.
- */
-std::vector<NamedPose> gate_frames(const std::vector<LandmarkState>& landmarks,
-                                   const GateParams& gate,
-                                   const gtsam::Point3& start) {
-    if (gate.panel_classes.size() != 2) {
-        return {};
-    }
-    const LandmarkState* a = best_of(landmarks, gate.panel_classes[0]);
-    const LandmarkState* b = best_of(landmarks, gate.panel_classes[1]);
-    if (!a || !b) {
-        return {};
-    }
-    const gtsam::Point3 along = b->pose.translation() - a->pose.translation();
-    const double separation = std::hypot(along.x(), along.y());
-    if (separation < gate.min_separation_m ||
-        separation > gate.max_separation_m) {
-        return {};
-    }
-    const gtsam::Point3 middle =
-        0.5 * (a->pose.translation() + b->pose.translation());
-    double yaw = std::atan2(along.x(), -along.y());
-    const gtsam::Point3 to_middle = middle - start;
-    if (std::cos(yaw) * to_middle.x() + std::sin(yaw) * to_middle.y() < 0.0) {
-        yaw += M_PI;
-    }
-    const gtsam::Rot3 R = gtsam::Rot3::Yaw(yaw);
-    const gtsam::Point3 through(std::cos(yaw), std::sin(yaw), 0.0);
-    const gtsam::Point3 down(0.0, 0.0, gate.depth_below_panel_m);
-    std::vector<NamedPose> out{{"gate_middle", gtsam::Pose3(R, middle)}};
-    for (const LandmarkState* panel : {a, b}) {
-        const gtsam::Point3 p = panel->pose.translation() + down;
-        out.push_back({panel->cls.name + "_entrance",
-                       gtsam::Pose3(R, p - gate.approach_m * through)});
-        out.push_back({panel->cls.name + "_exit",
-                       gtsam::Pose3(R, p + gate.approach_m * through)});
-    }
-    return out;
 }
 
 }  // namespace
@@ -265,6 +204,12 @@ class LandmarkServerNode : public rclcpp::Node {
         read("gate.max_separation_m", p.gate.max_separation_m);
         read("gate.approach_m", p.gate.approach_m);
         read("gate.depth_below_panel_m", p.gate.depth_below_panel_m);
+        read("slalom.red_class", p.slalom.red_class);
+        read("slalom.white_class", p.slalom.white_class);
+        read("slalom.nominal_spacing_m", p.slalom.nominal_spacing_m);
+        read("slalom.row_spacing_m", p.slalom.row_spacing_m);
+        read("slalom.min_spacing_m", p.slalom.min_spacing_m);
+        read("slalom.max_spacing_m", p.slalom.max_spacing_m);
 
         // classes.<name>.<key>
         std::set<std::string> names;
@@ -749,6 +694,11 @@ class LandmarkServerNode : public rclcpp::Node {
         for (const NamedPose& g :
              gate_frames(shown, cfg_.params.gate,
                          graph_.keyframe_pose(0).translation())) {
+            frames_.push_back(frame(g.name, g.pose));
+        }
+        for (const NamedPose& g :
+             slalom_frames(shown, cfg_.params.slalom,
+                           graph_.keyframe_pose(0).translation())) {
             frames_.push_back(frame(g.name, g.pose));
         }
 

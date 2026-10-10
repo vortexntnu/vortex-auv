@@ -86,6 +86,7 @@ premap.yaml / set_premap ─▶ where new landmarks may appear, prior_<task> fra
 | TF `map → prior_<task>` | out | Where the task should be (prior map): the search point before it is seen |
 | TF `map → start` | out | Where the run started: return home |
 | TF `gate_middle`, `<panel>_entrance`, `<panel>_exit` | out | From the two gate panels: +X through the gate, away from the start side |
+| TF `slalom_left_<n>`, `slalom_right_<n>` | out | Per row of slalom pipes (n = 0 nearest the start) the point to pass it at, left / right of its red pipe: +X straight through the row |
 
 ## Navigating with it
 
@@ -97,6 +98,15 @@ when it moves).
 - **Aim:** `<class>_<id>` or `<class>` up close (the torpedo board's yaw
   comes from its measured normal: +X out of the front).
 - **Through the gate:** `<panel>_entrance` → `<panel>_exit`.
+- **Through the slalom:** per row n = 0, 1, 2, from a point in front of
+  `slalom_<side>_<n>` (offset −x) to one behind it (+x). The side is the
+  mission's choice: the same side of the red pipe as the half of the gate
+  it went through. The pass point is the middle between the red pipe and
+  that side's white one, or 0.76 m from the red pipe while the white one is
+  not mapped; rows are numbered by their distance behind the first
+  (`slalom.row_spacing_m`), so a row found late does not rename the others.
+  First sightings from far away are 0.3–0.6 m off and settle to about
+  0.1 m: wait for the frame to stand still before passing.
 - **Return home:** `<panel>_exit` → `<panel>_entrance` (the same frames,
   driven the other way, facing −X), then `start`. These frames come from the
   corrected map, so the way home uses the loop-closed gate.
@@ -180,6 +190,7 @@ Write floats with a decimal point (`3.0`): ROS parameters are typed.
 | `new_landmarks.*` | `candidate_radius_m`, `confirm_hits`, `confirm_window_s` | phantoms become landmarks (`confirm_hits`) | real objects take too long to appear, or a slow detector never confirms (hits per window ≤ its rate) |
 | `upkeep.merge_radius_m` | | a drifted copy of an object stays next to it | two real same-class objects get joined |
 | `gate.*` | panel classes, separation limits, `approach_m`, `depth_below_panel_m` | | |
+| `slalom.*` | pipe classes, `nominal_spacing_m`, `row_spacing_m`, spacing limits | | |
 | `classes.<name>` | `type`, `subtype`, `symmetry_deg`, `has_orientation`, `prior`, `prior_radius_m`, `max_instances`, `group` | real objects are rejected near the edge of their task (`prior_radius_m`) | false detections next to a task become landmarks |
 
 Tune with the NIS first (detection noise), then the odometry noise on a

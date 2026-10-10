@@ -99,6 +99,22 @@
       approach_m: 1.0
       depth_below_panel_m: 0.5
 
+    # --- Slalom frames (navigation) -------------------------------------------
+    # Per row of pipes (n = 0 nearest the start, then one per row_spacing_m
+    # behind it, mapped or not yet) the point to pass it at, on
+    # either side of its red pipe: slalom_left_<n>, slalom_right_<n>; the
+    # mission picks the side. The middle between the red pipe and the white
+    # one on that side; without that white pipe, the red pipe plus half of
+    # nominal_spacing_m. +X straight through the row, away from the start.
+    # Empty red_class = off.
+    slalom:
+      red_class: "slalom_pipe_red"
+      white_class: "slalom_pipe_white"
+      nominal_spacing_m: 1.52   # red to white pipe in a row (handbook)
+      row_spacing_m: 2.0        # row to row: rows are numbered by it
+      min_spacing_m: 0.8        # a white pipe is of a red pipe's row
+      max_spacing_m: 2.3        #   between these distances from it
+
     # --- Classes ----------------------------------------------------------------
     # One entry per object class; detections of other types are ignored.
     #   type, subtype     vortex_msgs LandmarkType / LandmarkSubtype values

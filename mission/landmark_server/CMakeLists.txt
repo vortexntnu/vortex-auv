@@ -34,6 +34,7 @@ add_library(${LIB_NAME} SHARED
   src/graph.cpp
   src/association.cpp
   src/premap.cpp
+  src/targets.cpp
   src/landmark_server_node.cpp)
 
 target_include_directories(${LIB_NAME} PUBLIC
