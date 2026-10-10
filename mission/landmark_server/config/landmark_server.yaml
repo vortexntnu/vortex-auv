@@ -54,6 +54,21 @@
       approach_m: 1.0
       depth_below_panel_m: 0.5
 
+    # Real-size boxes in the debug markers, sizes from the simulator's meshes.
+    # size: [x out of the front, y right, z down], offset: box centre from
+    # the landmark, solid: draw the object itself instead of an outline.
+    markers:
+      boxes:
+        gate_pole_edge: {size: [0.076, 0.076, 1.364], solid: true, color: [0.8, 0.1, 0.1]}
+        gate_pole_middle: {size: [0.051, 0.051, 0.61], solid: true, color: [1.0, 0.0, 0.0]}
+        slalom_pipe_white: {size: [0.03, 0.03, 0.938], solid: true, color: [1.0, 1.0, 1.0]}
+        slalom_pipe_red: {size: [0.03, 0.03, 0.938], solid: true, color: [1.0, 0.0, 0.0]}
+        gate: {size: [0.08, 3.18, 1.36]}
+        torpedo_board: {size: [0.05, 0.61, 0.61]}
+        bin_structure: {size: [1.40, 1.45, 0.69]}
+        table: {size: [0.61, 1.12, 0.77], offset: [0.0, 0.0, 0.33]}
+        octagon: {size: [2.73, 2.73, 0.44], offset: [0.0, 0.0, 0.20]}
+
     # type, subtype    vortex_msgs LandmarkType / LandmarkSubtype constants
     # symmetry_deg     0 none, 90 or 180 yaw known modulo this, 360 no yaw
     # has_orientation  use the detector's orientation

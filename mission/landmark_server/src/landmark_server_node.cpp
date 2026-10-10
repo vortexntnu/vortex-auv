@@ -4,6 +4,7 @@
 #include <tf2_ros/transform_listener.h>
 
 #include <algorithm>
+#include <array>
 #include <deque>
 #include <map>
 #include <memory>
@@ -17,6 +18,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
+#include <std_msgs/msg/color_rgba.hpp>
 #include <std_msgs/msg/empty.hpp>
 #include <std_msgs/msg/float64.hpp>
 #include <std_srvs/srv/trigger.hpp>
@@ -246,6 +248,22 @@ class LandmarkServerNode : public rclcpp::Node {
             int64_t max_instances = 0;
             read(k + "max_instances", max_instances);
             c.max_instances = static_cast<int>(max_instances);
+            const std::string b = "markers.boxes." + name + ".";
+            if (std::vector<double> size;
+                read(b + "size", size), size.size() == 3) {
+                MarkerBox box;
+                std::copy_n(size.begin(), 3, box.size.begin());
+                std::vector<double> v;
+                if (read(b + "offset", v); v.size() == 3) {
+                    std::copy_n(v.begin(), 3, box.offset.begin());
+                }
+                v.clear();
+                if (read(b + "color", v); v.size() == 3) {
+                    box.color = {v[0], v[1], v[2]};
+                }
+                read(b + "solid", box.solid);
+                c.box = box;
+            }
             cfg_.classes.push_back(c);
         }
         cfg_.validate();
@@ -696,10 +714,6 @@ class LandmarkServerNode : public rclcpp::Node {
         clear.action = visualization_msgs::msg::Marker::DELETEALL;
         markers.markers.push_back(clear);
         for (const LandmarkState& l : shown) {
-            if (debug_) {
-                frames_.push_back(
-                    frame(fmt::format("{}_{}", l.cls.name, l.id), l.pose));
-            }
             vortex_msgs::msg::LandmarkTrack track;
             track.header = array.header;
             track.landmark.header = array.header;
@@ -733,51 +747,122 @@ class LandmarkServerNode : public rclcpp::Node {
         }
     }
 
+    static std_msgs::msg::ColorRGBA type_color(std::uint16_t type) {
+        using LT = vortex_msgs::msg::LandmarkType;
+        std::array<float, 3> c{0.7F, 0.7F, 0.7F};
+        switch (type) {
+            case LT::GATE:
+                c = {1.0F, 0.6F, 0.0F};
+                break;
+            case LT::SLALOM_PIPE:
+                c = {0.9F, 0.2F, 0.2F};
+                break;
+            case LT::TORPEDO_BOARD:
+                c = {0.2F, 0.6F, 1.0F};
+                break;
+            case LT::BIN:
+                c = {0.3F, 0.8F, 0.3F};
+                break;
+            case LT::PATH_MARKER:
+                c = {0.9F, 0.9F, 0.2F};
+                break;
+            case LT::TABLE:
+                c = {0.6F, 0.4F, 0.2F};
+                break;
+            case LT::OCTAGON:
+                c = {0.8F, 0.3F, 0.9F};
+                break;
+            default:
+                break;
+        }
+        std_msgs::msg::ColorRGBA out;
+        out.r = c[0];
+        out.g = c[1];
+        out.b = c[2];
+        out.a = 1.0F;
+        return out;
+    }
+
+    /// Per landmark: a cube or its real-size box, a label, and an arrow
+    /// along +X when the yaw is known. Faded when not seen lately.
     void add_markers(const LandmarkState& l,
                      const vortex_msgs::msg::LandmarkTrack& track,
                      visualization_msgs::msg::MarkerArray& out) const {
-        const auto& c = track.landmark.pose.covariance;
-        Eigen::Matrix3d P;
-        for (int r = 0; r < 3; ++r) {
-            for (int k = 0; k < 3; ++k) {
-                P(r, k) = c[r * 6 + k];
-            }
-        }
-        const Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eig(P);
-        Eigen::Matrix3d axes = eig.eigenvectors();
-        if (axes.determinant() < 0.0) {
-            axes.col(2) *= -1.0;
-        }
-        const Eigen::Quaterniond q(axes);
-        const Eigen::Vector3d sd = eig.eigenvalues().cwiseMax(0.0).cwiseSqrt();
+        using visualization_msgs::msg::Marker;
+        const float alpha = track.retained ? 0.4F : 0.9F;
+        const gtsam::Rot3 R = l.yaw_known
+                                  ? gtsam::Rot3::Yaw(l.pose.rotation().yaw())
+                                  : gtsam::Rot3();
+        const gtsam::Quaternion q = R.toQuaternion();
 
-        visualization_msgs::msg::Marker m;
+        Marker m;
         m.header = track.header;
-        m.ns = "landmarks";
         m.id = l.id;
-        m.type = visualization_msgs::msg::Marker::SPHERE;
         m.pose.position = track.landmark.pose.pose.position;
-        m.pose.orientation.w = q.w();
-        m.pose.orientation.x = q.x();
-        m.pose.orientation.y = q.y();
-        m.pose.orientation.z = q.z();
-        m.scale.x = std::max(0.05, 2.0 * sd(0));
-        m.scale.y = std::max(0.05, 2.0 * sd(1));
-        m.scale.z = std::max(0.05, 2.0 * sd(2));
-        m.color.a = 0.6;
-        m.color.r = track.retained ? 0.6 : 0.1;
-        m.color.g = track.retained ? 0.6 : 0.8;
-        m.color.b = track.retained ? 0.6 : 0.2;
-        out.markers.push_back(m);
+        m.pose.orientation.w = 1.0;
+        m.color = type_color(l.cls.type);
+        m.color.a = alpha;
 
-        m.ns = "labels";
-        m.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
-        m.pose.orientation = geometry_msgs::msg::Quaternion();
-        m.pose.position.z -= 0.3;
-        m.scale.x = m.scale.y = m.scale.z = 0.2;
-        m.color.r = m.color.g = m.color.b = m.color.a = 1.0;
-        m.text = fmt::format("{} {} n={}", l.id, l.cls.name, l.n_obs);
-        out.markers.push_back(m);
+        if (!l.cls.box || !l.cls.box->solid) {
+            Marker point = m;
+            point.ns = "landmark";
+            point.type = Marker::CUBE;
+            point.scale.x = point.scale.y = point.scale.z = 0.25;
+            out.markers.push_back(point);
+        }
+
+        if (l.cls.box) {
+            const MarkerBox& box = *l.cls.box;
+            const gtsam::Point3 centre =
+                l.pose.translation() +
+                R * gtsam::Point3(box.offset[0], box.offset[1], box.offset[2]);
+            Marker b = m;
+            b.ns = "structure";
+            b.type = Marker::CUBE;
+            b.pose.position.x = centre.x();
+            b.pose.position.y = centre.y();
+            b.pose.position.z = centre.z();
+            b.pose.orientation.w = q.w();
+            b.pose.orientation.x = q.x();
+            b.pose.orientation.y = q.y();
+            b.pose.orientation.z = q.z();
+            b.scale.x = box.size[0];
+            b.scale.y = box.size[1];
+            b.scale.z = box.size[2];
+            if (box.color) {
+                b.color.r = static_cast<float>((*box.color)[0]);
+                b.color.g = static_cast<float>((*box.color)[1]);
+                b.color.b = static_cast<float>((*box.color)[2]);
+            }
+            b.color.a = box.solid ? alpha : (track.retained ? 0.1F : 0.25F);
+            out.markers.push_back(b);
+        }
+
+        Marker label = m;
+        label.ns = "label";
+        label.type = Marker::TEXT_VIEW_FACING;
+        label.pose.position.z -= 0.35;
+        label.scale.z = 0.18;
+        label.color.r = label.color.g = label.color.b = label.color.a = 1.0F;
+        const auto& c = track.landmark.pose.covariance;
+        label.text =
+            fmt::format("{} #{} (n {}, sigma {:.2f} m)", l.cls.name, l.id,
+                        l.n_obs, std::sqrt(std::max(c[0], c[7])));
+        out.markers.push_back(label);
+
+        if (l.yaw_known) {
+            Marker arrow = m;
+            arrow.ns = "front";
+            arrow.type = Marker::ARROW;
+            arrow.pose.orientation.w = q.w();
+            arrow.pose.orientation.x = q.x();
+            arrow.pose.orientation.y = q.y();
+            arrow.pose.orientation.z = q.z();
+            arrow.scale.x = 0.8;
+            arrow.scale.y = arrow.scale.z = 0.06;
+            arrow.color.a = 1.0F;
+            out.markers.push_back(arrow);
+        }
     }
 
     struct OdomSample {

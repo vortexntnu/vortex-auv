@@ -1,6 +1,7 @@
 #ifndef LANDMARK_SERVER__CONFIG_HPP_
 #define LANDMARK_SERVER__CONFIG_HPP_
 
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -11,6 +12,14 @@ namespace vortex::landmark_server {
 /// Value of the vortex_msgs constant with this name, e.g. "GATE".
 std::optional<std::uint16_t> landmark_type(const std::string& name);
 std::optional<std::uint16_t> landmark_subtype(const std::string& name);
+
+/// Real-size box drawn for a class in the debug markers.
+struct MarkerBox {
+    std::array<double, 3> size{};    // x out of the front, y right, z down
+    std::array<double, 3> offset{};  // box centre from the landmark
+    std::optional<std::array<double, 3>> color;
+    bool solid{false};
+};
 
 /// One entry of `classes` in the config, see landmark_server.yaml.
 struct ClassConfig {
@@ -23,6 +32,7 @@ struct ClassConfig {
     double prior_radius_m{5.0};
     int max_instances{0};
     std::string group;
+    std::optional<MarkerBox> box;
 };
 
 struct GateParams {
