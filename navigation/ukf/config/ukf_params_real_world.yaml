@@ -1,0 +1,55 @@
+/**:
+  ukf_node:
+    ros__parameters:
+      # Continuous noise density std: accel, gyro, gyro-bias RW, accel-bias RW.
+      diag_Q_std: [0.05, 0.05, 0.1, 0.01, 0.01, 0.02, 0.001, 0.001, 0.001, 0.0001, 0.0001, 0.0001]
+      # Variances: position, velocity, local rotation, gyro bias, accel bias.
+      diag_p_init: [1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+      unscented_transform:
+        alpha: 1.0
+        beta: 2.0
+        kappa: 0.0
+      sensors:
+        imu: # Kongsberg Mini MRU
+          use_tf_transform: true
+          transform:
+            r: [ 1.0,  0.0,  0.0,
+                  0.0,  1.0,  0.0,
+                  0.0,  0.0,  1.0 ]
+            t: [ 0.0, 0.0, 0.0 ]
+
+        dvl: # Nortek Nucleus 1000
+          use_tf_transform: true
+          use_msg_noise: true
+          measurement_noise_std_diag: [0.1, 0.1, 0.1] # [m/s]
+          transform:
+            r: [ 0.0, -1.0,  0.0,
+                  1.0,  0.0,  0.0,
+                  0.0,  0.0,  1.0 ]
+            t: [ 0.4, 0.0, 0.2 ]
+
+        magnetometer:
+          use_tf_transform: true
+          measurement_noise_std_diag: [0.05, 0.05, 0.05] # [gauss]
+          # local earth field in the navigation frame, set for the test site
+          reference_field: [0.15, 0.0, 0.48] # [gauss]
+
+        pressure: # MS5837 blue robotics pressure sensor
+          use_tf_transform: true
+          use_msg_noise: false                # MS5837 driver publishes variance=0, use config noise
+          measurement_noise: 40000.0 # [Pa^2] pressure variance
+          transform:
+            t: [ 0.0, 0.0, 0.0 ]
+
+      publish_tf: true
+      publish_pose: true
+      publish_twist: true
+      publish_rate_ms: 5
+      publish_biases: true
+      publish_nis: true
+      pressure_is_gauge: false # MS5837 publishes absolute pressure per ROS convention
+      max_imu_dt: 0.1
+      max_estimate_age: 0.25
+      max_aiding_skew: 0.05
+      dvl_nis_threshold: 16.266
+      depth_nis_threshold: 10.828
