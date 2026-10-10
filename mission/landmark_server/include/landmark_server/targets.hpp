@@ -51,6 +51,16 @@ std::vector<NamedPose> slalom_frames(
     const SlalomParams& slalom,
     const gtsam::Point3& start);
 
+/**
+ * @brief Torpedo frames: torpedo_opening_<name> per configured opening, at
+ * its place on the face of the mapped board. +X goes through the board
+ * (against its normal), level; y is to the right and z down seen from the
+ * front, so the frame is the one a vehicle facing the board shoots along.
+ */
+std::vector<NamedPose> torpedo_frames(
+    const std::vector<LandmarkState>& landmarks,
+    const TorpedoParams& torpedo);
+
 }  // namespace vortex::landmark_server
 
 #endif  // LANDMARK_SERVER__TARGETS_HPP_

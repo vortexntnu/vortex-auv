@@ -141,4 +141,23 @@ std::vector<NamedPose> slalom_frames(
     return out;
 }
 
+std::vector<NamedPose> torpedo_frames(
+    const std::vector<LandmarkState>& landmarks,
+    const TorpedoParams& torpedo) {
+    const LandmarkState* board = best_of(landmarks, torpedo.board_class);
+    if (!board) {
+        return {};
+    }
+    // The board's x is its normal, out of the front: shoot against it.
+    const gtsam::Rot3 R = gtsam::Rot3::Yaw(board->pose.rotation().yaw() + M_PI);
+    std::vector<NamedPose> out;
+    for (const auto& [name, yz] : torpedo.openings) {
+        out.push_back(
+            {"torpedo_opening_" + name,
+             gtsam::Pose3(R, board->pose.translation() +
+                                 R * gtsam::Point3(0.0, yz[0], yz[1]))});
+    }
+    return out;
+}
+
 }  // namespace vortex::landmark_server

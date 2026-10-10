@@ -1,7 +1,9 @@
 #ifndef LANDMARK_SERVER__CONFIG_HPP_
 #define LANDMARK_SERVER__CONFIG_HPP_
 
+#include <array>
 #include <cstdint>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -62,6 +64,14 @@ struct SlalomParams {
     double max_spacing_m{2.3};
 };
 
+/// Torpedo opening frames: fixed points on the board's face.
+struct TorpedoParams {
+    std::string board_class;  // "" = off
+    /// Per opening its centre [m] from the board's centre, seen from the
+    /// front: y to the right, z down.
+    std::map<std::string, std::array<double, 2>> openings;
+};
+
 /// Everything tunable (config/landmark_server.yaml explains each value).
 struct Params {
     // Keyframes and intake.
@@ -104,6 +114,7 @@ struct Params {
 
     GateParams gate;
     SlalomParams slalom;
+    TorpedoParams torpedo;
 
     /// Range noise sigma_r = a + b * r.
     double range_sigma(double range) const {

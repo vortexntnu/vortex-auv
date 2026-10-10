@@ -173,6 +173,9 @@ void Config::validate() const {
                                         !find_class(p.slalom.white_class))) {
         fail("slalom.red_class / white_class: not a configured class");
     }
+    if (!p.torpedo.board_class.empty() && !find_class(p.torpedo.board_class)) {
+        fail("torpedo.board_class: not a configured class");
+    }
     if (!p.gate.panel_classes.empty()) {
         if (p.gate.panel_classes.size() != 2) {
             fail("gate.panel_classes: give two classes or none");

@@ -99,6 +99,10 @@ class LandmarkServerNode : public rclcpp::Node {
               rclcpp::NodeOptions(options)
                   .automatically_declare_parameters_from_overrides(true)) {
         load_config();  // fails loudly on a bad config
+        parameter_callback_ = add_on_set_parameters_callback(
+            [this](const std::vector<rclcpp::Parameter>& parameters) {
+                return on_parameters(parameters);
+            });
 
         std::string prefix = get_parameter_or<std::string>("frame_prefix", "");
         if (!prefix.empty() && prefix.back() == '/') {
@@ -210,6 +214,14 @@ class LandmarkServerNode : public rclcpp::Node {
         read("slalom.row_spacing_m", p.slalom.row_spacing_m);
         read("slalom.min_spacing_m", p.slalom.min_spacing_m);
         read("slalom.max_spacing_m", p.slalom.max_spacing_m);
+        read("torpedo.board_class", p.torpedo.board_class);
+        // torpedo.openings.<name>: [y, z]
+        const std::string openings = "torpedo.openings.";
+        for (const auto& full :
+             list_parameters({"torpedo.openings"}, 3).names) {
+            set_opening(full.substr(openings.size()),
+                        get_parameter(full).as_double_array());
+        }
 
         // classes.<name>.<key>
         std::set<std::string> names;
@@ -254,6 +266,37 @@ class LandmarkServerNode : public rclcpp::Node {
             cfg_.classes.push_back(c);
         }
         cfg_.validate();
+    }
+
+    void set_opening(const std::string& name, const std::vector<double>& yz) {
+        if (yz.size() != 2) {
+            throw std::runtime_error(fmt::format(
+                "torpedo.openings.{}: give [y, z] from the board's centre",
+                name));
+        }
+        cfg_.params.torpedo.openings[name] = {yz[0], yz[1]};
+    }
+
+    /// The openings can be moved while running (ros2 param set), to tune
+    /// them against the camera image; every other value is read at start.
+    rcl_interfaces::msg::SetParametersResult on_parameters(
+        const std::vector<rclcpp::Parameter>& parameters) {
+        rcl_interfaces::msg::SetParametersResult result;
+        result.successful = true;
+        const std::string openings = "torpedo.openings.";
+        for (const auto& p : parameters) {
+            if (p.get_name().rfind(openings, 0) != 0) {
+                continue;
+            }
+            try {
+                set_opening(p.get_name().substr(openings.size()),
+                            p.as_double_array());
+            } catch (const std::exception& e) {
+                result.successful = false;
+                result.reason = e.what();
+            }
+        }
+        return result;
     }
 
     void load_premap_file() {
@@ -707,6 +750,9 @@ class LandmarkServerNode : public rclcpp::Node {
                            graph_.keyframe_pose(0).translation())) {
             frames_.push_back(frame(g.name, g.pose));
         }
+        for (const NamedPose& g : torpedo_frames(shown, cfg_.params.torpedo)) {
+            frames_.push_back(frame(g.name, g.pose));
+        }
 
         vortex_msgs::msg::LandmarkTrackArray array;
         array.header.stamp = to_stamp(t);
@@ -823,6 +869,7 @@ class LandmarkServerNode : public rclcpp::Node {
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+    OnSetParametersCallbackHandle::SharedPtr parameter_callback_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::Subscription<vortex_msgs::msg::LandmarkArray>::SharedPtr
         detection_sub_;

@@ -115,6 +115,21 @@
       min_spacing_m: 0.8        # a white pipe is of a red pipe's row
       max_spacing_m: 2.3        #   between these distances from it
 
+    # --- Torpedo frames (navigation) ------------------------------------------
+    # torpedo_opening_<name> per opening, on the face of the mapped board:
+    # [y, z] in metres from the board's centre seen from the front, y to the
+    # right and z down. +X through the board. Tune against the camera image
+    # while running:
+    #   ros2 param set <node> torpedo.openings.large_left "[-0.21, -0.064]"
+    # Empty board_class = off.
+    torpedo:
+      board_class: "torpedo_board"
+      openings:
+        large_left: [-0.210, -0.064]
+        large_right: [0.214, 0.216]
+        small_top: [-0.003, -0.192]
+        small_bottom: [-0.006, 0.200]
+
     # --- Classes ----------------------------------------------------------------
     # One entry per object class; detections of other types are ignored.
     #   type, subtype     names of the vortex_msgs LandmarkType /
