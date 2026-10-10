@@ -95,9 +95,54 @@ Crosses show what the vehicle has found so far.
 
 The object is now published as the frame `buoy`.
 
-## Adding a target frame
+## Target frames
 
-Example: a point 1 m in front of the buoy.
+A target frame is a place to go that is not an object itself: the gap
+between two pipes, a point in front of a board. It is computed from the
+landmarks every time the map is published.
+
+```
+landmarks ─▶ <task>_frames(landmarks, params) ─▶ NamedPose[] ─▶ TF map -> <name>
+                      │
+                      └─ returns nothing while the landmarks it needs are missing
+```
+
+### Conventions
+
+| | |
+|---|---|
+| Frame | In `map`. +X is the way to drive or face, +Y right, +Z down |
+| Level | Yaw only. Roll and pitch are zero even if the landmark is tilted |
+| Offsets | The mission adds its own offset in the frame: x = -1 is 1 m before it, x = 1 is 1 m past it |
+| Missing landmarks | Return an empty list. The frame then does not exist and the mission waits or falls back |
+| Names | Fixed and predictable, e.g. `<panel>_entrance`. The mission config refers to them by name |
+| Numbers | In `config/landmark_server.yaml`, not in the code |
+| Landmark frame | Origin in the object. For objects with a front (the torpedo board) +X points out of the front |
+
+### API
+
+```cpp
+#include "landmark_server/targets.hpp"
+
+struct NamedPose {
+    std::string name;
+    gtsam::Pose3 pose;   // in map
+};
+
+// Most observed landmark of a class, or nullptr.
+const LandmarkState* best_of(const std::vector<LandmarkState>& landmarks,
+                             const std::string& cls);
+
+// What a landmark gives you.
+landmark->pose.translation();        // position in map
+landmark->pose.rotation().yaw();     // only meaningful if landmark->yaw_known
+landmark->n_obs;                     // number of detections
+landmark->cls.name;                  // class name from the config
+```
+
+### Example
+
+A frame 1 m in front of a buoy, facing it.
 
 1. Params in `config.hpp`, plus a `BuoyParams buoy;` member in `Params`:
 
@@ -119,22 +164,27 @@ Example: a point 1 m in front of the buoy.
 
    ```cpp
    std::vector<NamedPose> buoy_frames(const std::vector<LandmarkState>& landmarks,
-                                      const BuoyParams& buoy) {
+                                      const BuoyParams& buoy,
+                                      const gtsam::Point3& start) {
        const LandmarkState* b = best_of(landmarks, buoy.buoy_class);
        if (!b) {
            return {};
        }
-       const gtsam::Rot3 R = gtsam::Rot3::Yaw(b->pose.rotation().yaw());
+       // A buoy has no front, so face it from the start side.
+       const gtsam::Point3 to_buoy = b->pose.translation() - start;
+       const double yaw = std::atan2(to_buoy.y(), to_buoy.x());
+       const gtsam::Rot3 R = gtsam::Rot3::Yaw(yaw);
        const gtsam::Point3 p =
            b->pose.translation() - R * gtsam::Point3(buoy.standoff_m, 0.0, 0.0);
        return {{"buoy_front", gtsam::Pose3(R, p)}};
    }
    ```
 
-4. Publish it in `publish_map()`, next to the other target frames:
+4. Publish it in `publish_map()`, next to the gate frames:
 
    ```cpp
-   for (const NamedPose& g : buoy_frames(shown, cfg_.params.buoy)) {
+   for (const NamedPose& g : buoy_frames(shown, cfg_.params.buoy,
+                                         graph_.keyframe_pose(0).translation())) {
        frames_.push_back(frame(g.name, g.pose));
    }
    ```
@@ -147,31 +197,34 @@ Example: a point 1 m in front of the buoy.
      standoff_m: 1.0
    ```
 
-`gate_frames()` is a real example.
+The mission can now use `GoToFrame frame="buoy_front"`.
 
-## Target frames to write
+`gate_frames()` in `targets.cpp` is a real one: it builds five frames from
+the two gate panels.
 
-These are not written yet. Both have been tried and work.
+### To write
 
-**Slalom gaps**: one frame per row on each side of the red pipe, e.g.
-`slalom_left_<n>` and `slalom_right_<n>`, with +X through the row.
+Both have been tried in the simulator and work.
 
+| Target | Frames | Built from |
+|---|---|---|
+| Slalom gaps | `slalom_left_<n>`, `slalom_right_<n>`, +X through the row | Red and white pipes |
+| Torpedo openings | `torpedo_opening_<name>`, +X through the board | Board centre and normal |
+
+Slalom hints:
 - Each red pipe is one row. The white pipes belong to the nearest red one.
 - The gap is between the red pipe and the white pipe on that side. Decide
   what to publish when the white pipe has not been seen yet.
 - Number the rows so that a row found late does not rename the others.
-- The red and white pipes share a `group` in the config, so a pipe seen
-  with the wrong colour does not become a second landmark.
+- The row's direction comes from the line through its pipes.
 
-**Torpedo openings**: one frame per opening on the board, with +X through
-the board.
-
-- Perception gives the board centre and its normal. The openings are fixed
-  offsets from the centre in the plane of the board.
-- The board's X axis points out of the front, towards the vehicle.
-- Keep the frames level, even if the board estimate is slightly tilted.
-- Put the offsets in the config. It helps a lot if they can be changed
-  while running with `ros2 param set`, so you can line them up against the
+Torpedo hints:
+- The openings are fixed offsets from the board centre, in the plane of the
+  board.
+- The board's +X points out of the front, towards the vehicle. The opening
+  frame should point the other way.
+- Put the offsets in the config. Being able to change them while running
+  with `ros2 param set` makes them much easier to line up against the
   camera image.
 - Which opening is ours depends on the board version.
 
