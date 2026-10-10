@@ -21,15 +21,28 @@ def generate_launch_description():
     eskf_dir = get_package_share_directory('eskf')
 
     # Mirrors resolve_drone_and_namespace: falls back to drone name if namespace is empty.
-    namespace = PythonExpression([
-        '"', LaunchConfiguration('namespace'), '" or "', LaunchConfiguration('drone'), '"'
-    ])
+    namespace = PythonExpression(
+        [
+            '"',
+            LaunchConfiguration('namespace'),
+            '" or "',
+            LaunchConfiguration('drone'),
+            '"',
+        ]
+    )
 
     # /{namespace}/{container_name}
-    fqn_container = PythonExpression([
-        '"/" + ("', LaunchConfiguration('namespace'), '" or "', LaunchConfiguration('drone'),
-        '") + "/" + "', LaunchConfiguration('container_name'), '"'
-    ])
+    fqn_container = PythonExpression(
+        [
+            '"/" + ("',
+            LaunchConfiguration('namespace'),
+            '" or "',
+            LaunchConfiguration('drone'),
+            '") + "/" + "',
+            LaunchConfiguration('container_name'),
+            '"',
+        ]
+    )
 
     return LaunchDescription(
         [
@@ -37,7 +50,12 @@ def generate_launch_description():
                 'environment',
                 default_value='trondheim_freshwater',
                 description='Environment config to load from auv_setup/config/environments/.',
-                choices=['longbeach', 'stonefish_sim', 'trondheim_freshwater', 'trondheim_saltwater'],
+                choices=[
+                    'longbeach',
+                    'stonefish_sim',
+                    'trondheim_freshwater',
+                    'trondheim_saltwater',
+                ],
             ),
             DeclareLaunchArgument(
                 'container_name',

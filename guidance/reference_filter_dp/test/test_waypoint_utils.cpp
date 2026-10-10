@@ -123,7 +123,7 @@ TEST(HasConverged, FullPoseBelowThreshold) {
     reference(0) += 0.001;
 
     EXPECT_TRUE(
-        has_converged(measured, reference, WaypointMode::FULL_POSE, 0.1));
+        has_converged(measured, reference, WaypointMode::FULL_POSE, {0.1, 0.1}));
 }
 
 TEST(HasConverged, FullPoseAboveThreshold) {
@@ -132,7 +132,7 @@ TEST(HasConverged, FullPoseAboveThreshold) {
     reference << 1.0, 1.0, 1.0, 0.0, 0.0, 0.0;
 
     EXPECT_FALSE(
-        has_converged(measured, reference, WaypointMode::FULL_POSE, 0.1));
+        has_converged(measured, reference, WaypointMode::FULL_POSE, {0.1, 0.1}));
 }
 
 TEST(HasConverged, OnlyPositionIgnoresOrientation) {
@@ -142,7 +142,7 @@ TEST(HasConverged, OnlyPositionIgnoresOrientation) {
     reference << 1.0, 2.0, 3.0, 1.0, 1.0, 1.0;
 
     EXPECT_TRUE(
-        has_converged(measured, reference, WaypointMode::ONLY_POSITION, 0.1));
+        has_converged(measured, reference, WaypointMode::ONLY_POSITION, {0.1, 0.1}));
 }
 
 TEST(HasConverged, OnlyOrientationIgnoresPosition) {
@@ -152,7 +152,7 @@ TEST(HasConverged, OnlyOrientationIgnoresPosition) {
     reference << 0.0, 0.0, 0.0, 0.1, 0.2, 0.3;
 
     EXPECT_TRUE(has_converged(measured, reference,
-                              WaypointMode::ONLY_ORIENTATION, 0.1));
+                              WaypointMode::ONLY_ORIENTATION, {0.1, 0.1}));
 }
 
 TEST(HasConverged, ForwardHeadingUsesPositionAndYawOnly) {
@@ -163,7 +163,7 @@ TEST(HasConverged, ForwardHeadingUsesPositionAndYawOnly) {
 
     // Roll and pitch differ but should be ignored
     EXPECT_TRUE(
-        has_converged(measured, reference, WaypointMode::FORWARD_HEADING, 0.1));
+        has_converged(measured, reference, WaypointMode::FORWARD_HEADING, {0.1, 0.1}));
 }
 
 }  // namespace vortex::guidance

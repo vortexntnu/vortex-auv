@@ -4,6 +4,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 
@@ -31,7 +32,7 @@ can_status can_interface::init(const std::string& ifname) {
     }
 
     struct ifreq ifr;
-    std::strcpy(ifr.ifr_name, interface_name_.c_str());
+    std::snprintf(ifr.ifr_name, IFNAMSIZ, "%s", interface_name_.c_str());
     if (ioctl(socket_fd_, SIOCGIFINDEX, &ifr) < 0) {
         close(socket_fd_);
         return can_status::ERR_INTERFACE_INDEX;

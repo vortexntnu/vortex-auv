@@ -2,12 +2,15 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction, IncludeLaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    OpaqueFunction,
+)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
-
 
 from auv_setup.launch_arg_common import (
     declare_drone_and_namespace_args,
@@ -52,8 +55,8 @@ def launch_setup(context, *args, **kwargs):
     if not act_as_odom_source:
         params.append({"publish_tf": False})
         remappings = [
-            ("odom",  "eskf/odom"),
-            ("pose",  "eskf/pose"),
+            ("odom", "eskf/odom"),
+            ("pose", "eskf/pose"),
             ("twist", "eskf/twist"),
         ]
 
@@ -123,7 +126,10 @@ def launch_setup(context, *args, **kwargs):
         parameters=[
             {
                 "input_topics": ["nucleus/odom_relative", eskf_odom_topic],
-                "output_topics": ["nucleus/odom_relative/rpy", eskf_odom_topic + "/rpy"],
+                "output_topics": [
+                    "nucleus/odom_relative/rpy",
+                    eskf_odom_topic + "/rpy",
+                ],
                 "input_types": ["odometry", "odometry"],
             }
         ],
@@ -144,8 +150,13 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
-
-    return [drone_description_launch, eskf_node, robot_state_publisher_node, rpy_publisher_node, odom_transformer_node]
+    return [
+        drone_description_launch,
+        eskf_node,
+        robot_state_publisher_node,
+        rpy_publisher_node,
+        odom_transformer_node,
+    ]
 
 
 def generate_launch_description():

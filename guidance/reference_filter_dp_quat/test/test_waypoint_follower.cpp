@@ -24,7 +24,7 @@ TEST_F(WaypointFollowerTests, StartAndStepConverges) {
     wp.pose = Pose{1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(zero_pose(), zero_twist(), wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
 
     follower.step();
 
@@ -41,7 +41,7 @@ TEST_F(WaypointFollowerTests, StepDoesNotConvergeWhenFar) {
     wp.pose = Pose{10.0, 10.0, 0.0, 1.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(zero_pose(), zero_twist(), wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
 
     follower.step();
 
@@ -55,7 +55,7 @@ TEST_F(WaypointFollowerTests, SetReferenceUpdatesMidSequence) {
     wp.pose = Pose{1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(zero_pose(), zero_twist(), wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
 
     Pose new_ref{5.0, 5.0, 0.0, 1.0, 0.0, 0.0, 0.0};
     follower.set_reference(new_ref);
@@ -71,7 +71,7 @@ TEST_F(WaypointFollowerTests, SnapStateToReference) {
     wp.pose = Pose{3.0, 4.0, 5.0, 1.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(zero_pose(), zero_twist(), wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
     follower.snap_state_to_reference();
 
     Pose pose = follower.pose();
@@ -93,7 +93,7 @@ TEST_F(WaypointFollowerTests, StateEvolvesWithStep) {
     wp.pose = Pose{1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(zero_pose(), zero_twist(), wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
 
     // Run several steps — state should move toward reference
     for (int i = 0; i < 100; ++i) {

@@ -62,7 +62,7 @@ def _launch_setup(context, *args, **kwargs):
             "ins_pub_topic": f"/{namespace}/nucleus/odom",
             "dvl_pub_topic": robot_topics['dvl_twist'],
             "altimeter_pub_topic": robot_topics['dvl_altitude'],
-            "pressure_pub_topic": f"/{namespace}/nucleus/pressure", # Not used atm
+            "pressure_pub_topic": f"/{namespace}/nucleus/pressure",  # Not used atm
             "magnetometer_pub_topic": robot_topics['magnetometer'],
             "ins_twist_pub_topic": f"/{namespace}/nucleus/ins/twist",
             "ins_position_pub_topic": f"/{namespace}/nucleus/ins/position",

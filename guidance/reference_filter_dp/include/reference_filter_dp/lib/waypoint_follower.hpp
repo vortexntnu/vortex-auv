@@ -3,6 +3,7 @@
 
 #include <mutex>
 #include <vortex/utils/types.hpp>
+#include <vortex/utils/waypoint_utils.hpp>
 #include "reference_filter_dp/lib/eigen_typedefs.hpp"
 #include "reference_filter_dp/lib/reference_filter.hpp"
 #include "reference_filter_dp/lib/waypoint_types.hpp"
@@ -26,12 +27,12 @@ class WaypointFollower {
      * @param pose Current vehicle pose.
      * @param twist Current vehicle twist (body frame).
      * @param waypoint Target waypoint with mode.
-     * @param convergence_threshold Max error norm to consider target reached.
+     * @param tolerance Position [m] and orientation [rad] tolerance.
      */
     void start(const PoseEuler& pose,
                const Twist& twist,
                const Waypoint& waypoint,
-               double convergence_threshold);
+               const vortex::utils::waypoints::ConvergenceTolerance& tolerance);
 
     /**
      * @brief Advance the filter by one time step.
@@ -49,12 +50,14 @@ class WaypointFollower {
      *
      * Thread-safe.
      */
-    void retarget(const Waypoint& waypoint, double convergence_threshold);
+    void retarget(
+        const Waypoint& waypoint,
+        const vortex::utils::waypoints::ConvergenceTolerance& tolerance);
 
     /**
      * @brief Check if the measured pose has converged to the reference goal.
      * @param measured_pose Current measured pose.
-     * @return True if the error norm is within the convergence threshold.
+     * @return True if the errors are within the tolerance.
      */
     bool within_convergance(const Eigen::Vector6d& measured_pose) const;
 
@@ -106,7 +109,7 @@ class WaypointFollower {
     Eigen::Vector18d state_ = Eigen::Vector18d::Zero();
     Eigen::Vector6d reference_goal_ = Eigen::Vector6d::Zero();
     WaypointMode waypoint_mode_{WaypointMode::FULL_POSE};
-    double convergence_threshold_{0.1};
+    vortex::utils::waypoints::ConvergenceTolerance tolerance_{0.1, 0.1};
 };
 
 }  // namespace vortex::guidance

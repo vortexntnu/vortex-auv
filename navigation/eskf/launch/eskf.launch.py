@@ -47,8 +47,8 @@ def launch_setup(context, *args, **kwargs):
     if not act_as_odom_source:
         params.append({'publish_tf': False})
         remappings = [
-            ('odom',  'eskf/odom'),
-            ('pose',  'eskf/pose'),
+            ('odom', 'eskf/odom'),
+            ('pose', 'eskf/pose'),
             ('twist', 'eskf/twist'),
         ]
 
