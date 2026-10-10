@@ -128,8 +128,15 @@ class CompetitionMapGUI:
             default_reference_frame = self.REFERENCE_FRAME
 
         self.reference_frame_var = tk.StringVar(value=default_reference_frame)
-        self.selected_object = tk.StringVar(value="reference")
+        # Nothing is selected at first: a stray click must not move anything.
+        self.selected_object = tk.StringVar(value="")
         self.placed_objects = {}
+        # The reference as the vehicle has it (x, y, yaw): a Send that moves
+        # it shifts every task in the map and asks first.
+        self.vehicle_reference = None
+        # Per object, how far from it the vehicle accepts new landmarks of
+        # the task (the classes' prior_radius_m, from the vehicle).
+        self.prior_radius = {}
         # Depth per object as loaded from the vehicle (else DEFAULT_Z), so a
         # Send keeps the depths it was given.
         self.object_z = {}
@@ -201,8 +208,11 @@ class CompetitionMapGUI:
                 ),
                 variable=self.selected_object,
                 value=obj_name,
+                # Empty (nothing selected) must look unselected, not tri-state.
+                tristatevalue="-",
                 fg=obj_color,
                 anchor=tk.W,
+                command=self.on_select,
             )
             rb.pack(fill=tk.X, padx=10, pady=2)
 
@@ -307,6 +317,12 @@ class CompetitionMapGUI:
         self.canvas.bind("<Button-1>", self.on_click)
         self.canvas.bind("<Motion>", self.on_mouse_move)
         self.canvas.bind("<Configure>", self.on_resize)
+
+    def on_select(self):
+        """The slider shows the selected object's yaw: moving it keeps it."""
+        placed = self.placed_objects.get(self.selected_object.get())
+        if placed and placed[3] in ("line", "frame"):
+            self.yaw_var.set(placed[5])
 
     def on_yaw_change(self, value):
         """Update the yaw of selected line/frame object if it's placed."""
@@ -481,6 +497,9 @@ class CompetitionMapGUI:
             return
 
         obj_name = self.selected_object.get()
+        if not obj_name:
+            self.coord_label.config(text="Select an object first")
+            return
         obj_color = "black"
         obj_type = "point"
         obj_length = 0
@@ -583,6 +602,29 @@ class CompetitionMapGUI:
         self.canvas.create_text(
             px, py + 20, text=name, font=("Arial", 9, "bold"), tags="object"
         )
+
+        # Where the vehicle accepts new landmarks of this task.
+        radius = self.prior_radius.get(name)
+        if radius:
+            r = radius * self.scale
+            self.canvas.create_oval(
+                px - r,
+                py - r,
+                px + r,
+                py + r,
+                outline=color,
+                dash=(4, 4),
+                width=1,
+                tags="object",
+            )
+            self.canvas.create_text(
+                px,
+                py - r - 8,
+                text=f"{radius:g} m",
+                fill=color,
+                font=("Arial", 7),
+                tags="object",
+            )
 
     def redraw_objects(self):
         self.canvas.delete("object")
@@ -767,6 +809,17 @@ class CompetitionMapGUI:
             )
             return
 
+        moved = self.reference_moved()
+        if moved and not messagebox.askyesno(
+            "Reference moved",
+            f"The reference (the start of the run) is {moved[0]:.2f} m and "
+            f"{moved[1]:.1f}° from the one on the vehicle.\n\n"
+            "Every task in the prior map shifts by that much: detections "
+            "outside a task's circle are then rejected.\n\nSend anyway?",
+            default=messagebox.NO,
+        ):
+            return
+
         try:
             req = SetPremap.Request()
             req.reference_frame = selected_frame
@@ -814,6 +867,7 @@ class CompetitionMapGUI:
             )
 
             if resp.success:
+                self.remember_vehicle_reference()
                 messagebox.showinfo(
                     "Success", f"Sent {sent_count} objects to vehicle!\n{resp.message}"
                 )
@@ -931,17 +985,36 @@ class CompetitionMapGUI:
                 )
                 for label, data in objects.items()
             }
+            self.prior_radius = {
+                self.SERVICE_LABEL_TO_OBJECT.get(label, label): float(radius)
+                for label, radius in (premap_data.get("prior_radius_m") or {}).items()
+            }
             if gui_objects:
                 self.apply_gui_state(gui_objects)
                 loaded_count = len(gui_objects)
             else:
                 self.apply_vehicle_premap(objects, response_frame)
                 loaded_count = len(objects)
+            self.remember_vehicle_reference()
             self.draw_live_map(reschedule=False)
             tell("showinfo", f"Loaded {loaded_count} object(s) from vehicle.")
 
         except Exception as e:
             tell("showerror", f"Failed to get premap:\n{e}")
+
+    def remember_vehicle_reference(self):
+        ref = self.placed_objects.get("reference")
+        self.vehicle_reference = (ref[0], ref[1], ref[5]) if ref else None
+
+    def reference_moved(self):
+        """(distance [m], yaw [deg]) the reference moved from the vehicle's, or None."""
+        ref = self.placed_objects.get("reference")
+        if ref is None or self.vehicle_reference is None:
+            return None
+        vx, vy, vyaw = self.vehicle_reference
+        dist = math.hypot(ref[0] - vx, ref[1] - vy)
+        dyaw = abs((ref[5] - vyaw + 180.0) % 360.0 - 180.0)
+        return (dist, dyaw) if dist > 0.05 or dyaw > 0.5 else None
 
     def depth_of(self, obj_name):
         return self.object_z.get(obj_name, self.DEFAULT_Z.get(obj_name, 0.0))

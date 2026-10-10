@@ -216,7 +216,7 @@ class LandmarkServerNode : public rclcpp::Node {
             [this](const std_srvs::srv::Trigger::Request::SharedPtr,
                    std_srvs::srv::Trigger::Response::SharedPtr res) {
                 res->success = true;
-                res->message = premap_to_yaml(premap_);
+                res->message = premap_to_yaml(premap_) + prior_radius_yaml();
             });
 
         spdlog::info(
@@ -316,6 +316,22 @@ class LandmarkServerNode : public rclcpp::Node {
             spdlog::warn("landmark_server: no prior map: {}", e.what());
         }
         warn_unknown_prior_labels();
+    }
+
+    /// For the GUI: per task, how far from its prior a new landmark of one
+    /// of its classes may be (the largest prior_radius_m among them).
+    std::string prior_radius_yaml() const {
+        std::map<std::string, double> radius;
+        for (const ClassConfig& c : cfg_.classes) {
+            if (!c.prior.empty()) {
+                radius[c.prior] = std::max(radius[c.prior], c.prior_radius_m);
+            }
+        }
+        std::string out = "prior_radius_m:\n";
+        for (const auto& [task, r] : radius) {
+            out += fmt::format("  {}: {:.7g}\n", task, r);
+        }
+        return radius.empty() ? "" : out;
     }
 
     void warn_unknown_prior_labels() const {

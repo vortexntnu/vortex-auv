@@ -143,7 +143,13 @@ task's colour with the number of detections ("Show live map").
   as x ahead / y right of the start, which is what is sent.
 - Select an object, click to place it, turn lines (gate, slalom, torpedo:
   the arrow is the side the vehicle comes from) and the reference with the
-  yaw slider.
+  yaw slider. Nothing is selected at first, so a stray click moves nothing;
+  the slider takes the selected object's yaw.
+- The **dashed circle** around a task is where the vehicle accepts new
+  landmarks of it (the classes' `prior_radius_m`, from the vehicle): the
+  real object has to be inside.
+- Sending a **moved reference** asks first: it shifts every task in the map,
+  and detections outside the circles are then rejected.
 - **Send to Vehicle** sets the prior map at once and saves it (the old file
   kept with a time stamp); `prior_<task>` moves in Foxglove. Depths are the
   ones loaded from the vehicle, else `DEFAULT_Z` in the script.
