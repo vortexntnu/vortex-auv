@@ -64,6 +64,7 @@ Also publishes:
 |---|---|
 | `landmark_server/markers` | Landmarks with uncertainty, for Foxglove |
 | `landmark_server/nis` | Should be near 1. Higher means the `detection` noise in the config is too low |
+| TF `<class>_<id>` | One frame per landmark, e.g. `slalom_pipe_white_12` |
 
 Off by default.
 

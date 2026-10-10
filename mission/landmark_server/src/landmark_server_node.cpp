@@ -696,8 +696,10 @@ class LandmarkServerNode : public rclcpp::Node {
         clear.action = visualization_msgs::msg::Marker::DELETEALL;
         markers.markers.push_back(clear);
         for (const LandmarkState& l : shown) {
-            frames_.push_back(
-                frame(fmt::format("{}_{}", l.cls.name, l.id), l.pose));
+            if (debug_) {
+                frames_.push_back(
+                    frame(fmt::format("{}_{}", l.cls.name, l.id), l.pose));
+            }
             vortex_msgs::msg::LandmarkTrack track;
             track.header = array.header;
             track.landmark.header = array.header;
