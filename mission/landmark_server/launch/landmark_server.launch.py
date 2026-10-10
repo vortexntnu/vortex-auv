@@ -38,7 +38,11 @@ def launch_setup(context, *args, **kwargs):
                 LaunchConfiguration("config_file").perform(context),
                 *([os.path.join(CONFIG_DIR, "sim.yaml")] if env == "sim" else []),
                 drone_params,
-                {"premap_file": premap_file, "frame_prefix": namespace},
+                {
+                    "premap_file": premap_file,
+                    "frame_prefix": namespace,
+                    "debug": LaunchConfiguration("debug").perform(context) == "true",
+                },
                 *([{"topics.odom": odom_topic}] if odom_topic else []),
                 *([{"topics.landmarks": landmarks_topic}] if landmarks_topic else []),
             ],
@@ -76,6 +80,11 @@ def generate_launch_description():
                 "landmarks_topic",
                 default_value="",
                 description="Detections (default: the robot file's, landmarks)",
+            ),
+            DeclareLaunchArgument(
+                "debug",
+                default_value="false",
+                description="Also publish markers and NIS",
             ),
             OpaqueFunction(function=launch_setup),
         ]

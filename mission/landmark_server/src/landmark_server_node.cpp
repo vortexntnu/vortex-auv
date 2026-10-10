@@ -141,11 +141,15 @@ class LandmarkServerNode : public rclcpp::Node {
         landmarks_pub_ = create_publisher<vortex_msgs::msg::LandmarkTrackArray>(
             "landmark_server/landmarks",
             qos::reliable_transient_local_profile(1));
-        markers_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(
-            "landmark_server/markers",
-            qos::reliable_transient_local_profile(1));
-        nis_pub_ = create_publisher<std_msgs::msg::Float64>(
-            "landmark_server/nis", qos::reliable_profile(10));
+        debug_ = get_parameter_or<bool>("debug", false);
+        if (debug_) {
+            markers_pub_ =
+                create_publisher<visualization_msgs::msg::MarkerArray>(
+                    "landmark_server/markers",
+                    qos::reliable_transient_local_profile(1));
+            nis_pub_ = create_publisher<std_msgs::msg::Float64>(
+                "landmark_server/nis", qos::reliable_profile(10));
+        }
 
         set_premap_srv_ = create_service<vortex_msgs::srv::SetPremap>(
             "landmark_server/set_premap",
@@ -764,9 +768,14 @@ class LandmarkServerNode : public rclcpp::Node {
             track.first_seen = to_stamp(l.first_seen);
             track.last_measurement = to_stamp(l.last_seen);
             array.landmark_tracks.push_back(track);
-            add_markers(l, track, markers);
+            if (debug_) {
+                add_markers(l, track, markers);
+            }
         }
         landmarks_pub_->publish(array);
+        if (!debug_) {
+            return;
+        }
         markers_pub_->publish(markers);
 
         if (!nis_.empty()) {
@@ -863,6 +872,7 @@ class LandmarkServerNode : public rclcpp::Node {
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
         markers_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
+    bool debug_{false};
     rclcpp::Service<vortex_msgs::srv::SetPremap>::SharedPtr set_premap_srv_;
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr get_premap_srv_;
 };

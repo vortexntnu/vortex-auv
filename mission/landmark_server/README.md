@@ -1,18 +1,26 @@
 # landmark_server
 
-Maps the course objects from detections and odometry, publishes `map -> odom`
-and the TF frames the mission navigates to.
+Takes object detections from perception and builds a map of the course. The
+mission reads the map as TF frames and drives to them.
 
-Keyframes and landmarks are in one iSAM2 graph. Detections are matched to
-landmarks per class (Mahalanobis gate, Hungarian). Unmatched detections
-become a landmark after `confirm_hits` hits. Landmarks are kept for the whole
-run. The map frame is the vehicle pose at startup or at `mission/wipe`.
+## Core concepts
+
+- **Landmark**: one object in the map, built from many detections.
+- **Class**: a kind of object, e.g. `torpedo_board`. Listed under `classes`
+  in `config/landmark_server.yaml`. Detections of other types are ignored.
+- **Map frame**: where the vehicle was at startup. `map -> odom` corrects
+  odometry drift.
+- **Prior map**: roughly where each task is in the pool, drawn in the GUI.
+  Gives a `prior_<task>` frame to search from and rejects detections far
+  from their task.
+- **Target frame**: a frame that is not an object itself, e.g. the gap
+  between two slalom pipes.
 
 ## Run
 
 ```bash
 ros2 launch landmark_server landmark_server.launch.py            # pool
-ros2 launch landmark_server landmark_server.launch.py env:=sim   # sim.yaml + premap_sim.yaml
+ros2 launch landmark_server landmark_server.launch.py env:=sim   # simulator
 ```
 
 Reset the map with the vehicle at the start, facing the course:
@@ -21,59 +29,62 @@ Reset the map with the vehicle at the start, facing the course:
 ros2 topic pub --once /nautilus/mission/wipe std_msgs/msg/Empty
 ```
 
-Launch arguments: `env`, `config_file`, `premap_file`, `odom_topic`,
-`landmarks_topic`.
+## Topics
 
-## Interfaces
-
-| Name | Type | |
+| Topic | Direction | Type |
 |---|---|---|
-| `odom` | sub, `nav_msgs/Odometry` | |
-| `landmarks` | sub, `vortex_msgs/LandmarkArray` | Rotation variance >= 1000 means position only |
-| `mission/wipe` | sub, `std_msgs/Empty` | New map at the current pose |
-| `landmark_server/landmarks` | pub, `vortex_msgs/LandmarkTrackArray` | |
-| `landmark_server/markers` | pub, `MarkerArray` | |
-| `landmark_server/nis` | pub, `Float64` | Should be near 1 |
-| `landmark_server/set_premap` | srv, `vortex_msgs/SetPremap` | Saved to `premap_file` |
-| `landmark_server/get_premap` | srv, `std_srvs/Trigger` | |
+| `odom` | in | `nav_msgs/Odometry` |
+| `landmarks` | in | `vortex_msgs/LandmarkArray` |
+| `mission/wipe` | in | `std_msgs/Empty` |
+| `landmark_server/landmarks` | out | `vortex_msgs/LandmarkTrackArray` |
+
+Perception publishes detections on `landmarks`. To use the map, read
+`landmark_server/landmarks` or look up the TF frames below.
 
 ## TF frames
 
-Children of `map`.
-
 | Frame | |
 |---|---|
-| `odom` | |
+| `<class>` | The object, e.g. `torpedo_board` |
+| `prior_<task>` | Where the prior map puts the task |
 | `start` | Where the run started |
-| `prior_<task>` | From the prior map |
-| `<class>` | Most observed landmark of the class |
-| `gate_middle`, `<panel>_entrance`, `<panel>_exit` | +X through the gate |
-| `slalom_left_<n>`, `slalom_right_<n>` | Pass point of row n, +X through the row |
-| `torpedo_opening_<name>` | +X through the board |
+| `gate_middle`, `<panel>_entrance`, `<panel>_exit` | Gate |
+| `slalom_left_<n>`, `slalom_right_<n>` | Pass point of slalom row n |
+| `torpedo_opening_<name>` | Openings on the torpedo board |
+
+For target frames +X is the direction to drive or face.
+
+## Debug mode
+
+```bash
+ros2 launch landmark_server landmark_server.launch.py debug:=true
+```
+
+Also publishes:
+
+| Topic | |
+|---|---|
+| `landmark_server/markers` | Landmarks with uncertainty, for Foxglove |
+| `landmark_server/nis` | Should be near 1. Higher means the `detection` noise in the config is too low |
+
+Off by default.
 
 ## Prior map
-
-Rough position of each task. A class with a `prior` only gets landmarks
-within the task's radius.
 
 ```bash
 ros2 run landmark_server competition_map_gui.py --ros-args -r __ns:=/nautilus
 ```
 
-Place the reference at the start pose, place the tasks, Send to Vehicle. The
-dashed circle is the task's radius, set with the slider for the selected
-task. Without one the classes' `prior_radius_m` is used. Crosses are
-landmarks the vehicle has found.
+1. Place the reference where the vehicle starts, pointing at the course.
+2. Place each task. The slider sets the radius its detections must be within.
+3. Send to Vehicle. It is saved to `config/premap.yaml`.
 
-```yaml
-reference_frame: start
-objects:
-  torpedo: {position: [17.0, -5.2, 2.5], orientation: [0.0, 0.0, 1.0, 0.0], radius: 3.0}
-```
+Crosses show what the vehicle has found so far.
 
 ## Adding an object
 
-1. Add the constants to `LandmarkType.msg` / `LandmarkSubtype.msg` (vortex-msgs).
+1. Add the constants to `LandmarkType.msg` / `LandmarkSubtype.msg` in
+   vortex-msgs.
 2. Add the names to the tables in `src/config.cpp`.
 3. Add a class in `config/landmark_server.yaml`:
 
@@ -81,23 +92,65 @@ objects:
    buoy: {type: BUOY, subtype: BUOY_RED, symmetry_deg: 360.0, has_orientation: false, prior: "buoy", prior_radius_m: 3.0, max_instances: 1}
    ```
 
-4. If it has a `prior`, add the label to `SERVICE_LABEL_MAP` in
-   `scripts/competition_map_gui.py`.
+4. Add `"buoy": ["buoy"]` to `SERVICE_LABEL_MAP` in
+   `scripts/competition_map_gui.py` to place it in the prior map.
 
-It is then published as the frame `buoy`.
+The object is now published as the frame `buoy`.
 
 ## Adding a target frame
 
-For targets that are not an object, like a gap or an opening.
+Example: a point 1 m in front of the buoy.
 
-1. Params struct in `config.hpp`, member in `Params`.
-2. Read it in `load_config()` in `landmark_server_node.cpp`.
-3. Function in `targets.cpp` returning `NamedPose`s. Return nothing while the
-   landmarks it needs are missing. +X is the driving direction.
-4. Call it in `publish_map()`.
-5. Add the values to `config/landmark_server.yaml`.
+1. Params in `config.hpp`, plus a `BuoyParams buoy;` member in `Params`:
 
-See `torpedo_frames()`. Its offsets can be changed while running:
+   ```cpp
+   struct BuoyParams {
+       std::string buoy_class;
+       double standoff_m{1.0};
+   };
+   ```
+
+2. Read them in `load_config()` in `landmark_server_node.cpp`:
+
+   ```cpp
+   read("buoy.buoy_class", p.buoy.buoy_class);
+   read("buoy.standoff_m", p.buoy.standoff_m);
+   ```
+
+3. The function in `targets.cpp`, declared in `targets.hpp`:
+
+   ```cpp
+   std::vector<NamedPose> buoy_frames(const std::vector<LandmarkState>& landmarks,
+                                      const BuoyParams& buoy) {
+       const LandmarkState* b = best_of(landmarks, buoy.buoy_class);
+       if (!b) {
+           return {};
+       }
+       const gtsam::Rot3 R = gtsam::Rot3::Yaw(b->pose.rotation().yaw());
+       const gtsam::Point3 p =
+           b->pose.translation() - R * gtsam::Point3(buoy.standoff_m, 0.0, 0.0);
+       return {{"buoy_front", gtsam::Pose3(R, p)}};
+   }
+   ```
+
+4. Publish it in `publish_map()`, next to the other target frames:
+
+   ```cpp
+   for (const NamedPose& g : buoy_frames(shown, cfg_.params.buoy)) {
+       frames_.push_back(frame(g.name, g.pose));
+   }
+   ```
+
+5. Add the values to `config/landmark_server.yaml`:
+
+   ```yaml
+   buoy:
+     buoy_class: "buoy"
+     standoff_m: 1.0
+   ```
+
+`torpedo_frames()` is a real example. Its offsets can be changed while
+running:
 
 ```bash
 ros2 param set /nautilus/landmark_server_node torpedo.openings.large_left "[-0.21, -0.064]"
@@ -105,20 +158,12 @@ ros2 param set /nautilus/landmark_server_node torpedo.openings.large_left "[-0.2
 
 ## Tuning
 
+Run with `debug:=true` and change one value at a time.
+
 | Symptom | Change |
 |---|---|
 | NIS above 1 | Raise `detection.*` sigmas |
-| NIS below 1 | Lower `detection.*` sigmas |
 | Duplicates after a loop | Raise `odom.sigma_*_per_m` |
-| Map wobbles between landmarks | Lower `odom.sigma_*_per_m` |
-| False detections become landmarks | Raise `confirm_hits`, lower `max_range_m` or `prior_radius_m` |
+| False detections become landmarks | Raise `confirm_hits` or lower the task radius |
 | Real objects appear late | Lower `confirm_hits` |
-| Object rejected near its task | Raise the radius or fix the prior map |
-
-## Simulator
-
-```bash
-src/vortex-auv/utility_scripts/launch_drone_sim.sh --headless --detach
-ros2 launch landmark_server landmark_server.launch.py env:=sim
-ros2 launch robosub_dummy_publisher robosub_dummy_publisher.launch.py profile:=realistic seed:=7
-```
+| Object rejected near its task | Raise the task radius or fix the prior map |
