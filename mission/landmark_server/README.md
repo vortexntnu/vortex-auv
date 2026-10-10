@@ -204,8 +204,6 @@ the two gate panels.
 
 ### To write
 
-Both have been tried in the simulator and work.
-
 | Target | Frames | Built from |
 |---|---|---|
 | Slalom gaps | `slalom_left_<n>`, `slalom_right_<n>`, +X through the row | Red and white pipes |
