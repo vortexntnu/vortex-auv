@@ -1,9 +1,7 @@
 #ifndef LANDMARK_SERVER__CONFIG_HPP_
 #define LANDMARK_SERVER__CONFIG_HPP_
 
-#include <array>
 #include <cstdint>
-#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -33,21 +31,6 @@ struct GateParams {
     double max_separation_m{2.5};
     double approach_m{1.0};
     double depth_below_panel_m{0.5};
-};
-
-struct SlalomParams {
-    std::string red_class;
-    std::string white_class;
-    double nominal_spacing_m{1.52};
-    double row_spacing_m{2.0};
-    double min_spacing_m{0.8};
-    double max_spacing_m{2.3};
-};
-
-struct TorpedoParams {
-    std::string board_class;
-    /// Opening name -> [y, z] from the board centre.
-    std::map<std::string, std::array<double, 2>> openings;
 };
 
 /// Every value is explained in config/landmark_server.yaml.
@@ -84,8 +67,6 @@ struct Params {
     double merge_radius_m{0.5};
 
     GateParams gate;
-    SlalomParams slalom;
-    TorpedoParams torpedo;
 
     double range_sigma(double range) const {
         return range_sigma_a + range_sigma_b * range;

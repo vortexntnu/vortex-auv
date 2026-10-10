@@ -168,13 +168,6 @@ void Config::validate() const {
         p.max_messages_per_keyframe < 1 || p.max_merged_per_factor < 1) {
         fail("keyframe values and message limits must be positive");
     }
-    if (!p.slalom.red_class.empty() && (!find_class(p.slalom.red_class) ||
-                                        !find_class(p.slalom.white_class))) {
-        fail("slalom.red_class / white_class: not a configured class");
-    }
-    if (!p.torpedo.board_class.empty() && !find_class(p.torpedo.board_class)) {
-        fail("torpedo.board_class: not a configured class");
-    }
     if (!p.gate.panel_classes.empty()) {
         if (p.gate.panel_classes.size() != 2) {
             fail("gate.panel_classes: give two classes or none");

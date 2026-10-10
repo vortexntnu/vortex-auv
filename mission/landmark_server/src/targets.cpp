@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <optional>
 
 namespace vortex::landmark_server {
 
@@ -51,105 +50,6 @@ std::vector<NamedPose> gate_frames(const std::vector<LandmarkState>& landmarks,
                        gtsam::Pose3(R, p - gate.approach_m * through)});
         out.push_back({panel->cls.name + "_exit",
                        gtsam::Pose3(R, p + gate.approach_m * through)});
-    }
-    return out;
-}
-
-std::vector<NamedPose> slalom_frames(
-    const std::vector<LandmarkState>& landmarks,
-    const SlalomParams& slalom,
-    const gtsam::Point3& start) {
-    if (slalom.red_class.empty()) {
-        return {};
-    }
-    using Vec2 = Eigen::Vector2d;
-    const auto xy = [](const LandmarkState& l) {
-        return Vec2(l.pose.x(), l.pose.y());
-    };
-    std::vector<const LandmarkState*> reds;
-    std::vector<const LandmarkState*> whites;
-    for (const LandmarkState& l : landmarks) {
-        if (l.cls.name == slalom.red_class) {
-            reds.push_back(&l);
-        } else if (l.cls.name == slalom.white_class) {
-            whites.push_back(&l);
-        }
-    }
-    const Vec2 origin(start.x(), start.y());
-    std::sort(reds.begin(), reds.end(),
-              [&](const LandmarkState* a, const LandmarkState* b) {
-                  return (xy(*a) - origin).norm() < (xy(*b) - origin).norm();
-              });
-
-    std::vector<NamedPose> out;
-    Vec2 through(1.0, 0.0);
-    int last_row = -1;
-    for (std::size_t k = 0; k < reds.size(); ++k) {
-        const Vec2 red = xy(*reds[k]);
-        // Numbered by distance, so an unmapped row keeps its number free.
-        const int n = static_cast<int>(std::lround(
-            (red - xy(*reds[0])).dot(through) / slalom.row_spacing_m));
-        if (n <= last_row) {
-            continue;
-        }
-        last_row = n;
-        const auto right_of = [](const Vec2& t) { return Vec2(-t.y(), t.x()); };
-        // Nearest white pipe on each side.
-        std::optional<Vec2> white[2];  // 0 = left, 1 = right
-        for (const LandmarkState* w : whites) {
-            const Vec2 d = xy(*w) - red;
-            const double across = d.dot(right_of(through));
-            const double along = d.dot(through);
-            if (d.norm() < slalom.min_spacing_m ||
-                d.norm() > slalom.max_spacing_m ||
-                std::abs(along) > std::abs(across)) {
-                continue;
-            }
-            auto& slot = white[across > 0.0 ? 1 : 0];
-            if (!slot || d.norm() < (*slot - red).norm()) {
-                slot = xy(*w);
-            }
-        }
-        if (white[0] || white[1]) {
-            const Vec2 line =
-                (white[1] ? *white[1] : red) - (white[0] ? *white[0] : red);
-            Vec2 t(line.y(), -line.x());
-            t.normalize();
-            through = t.dot(red - origin) < 0.0 ? Vec2(-t) : t;
-        }
-        const gtsam::Rot3 R =
-            gtsam::Rot3::Yaw(std::atan2(through.y(), through.x()));
-        const Vec2 right = right_of(through);
-        for (const int side : {0, 1}) {
-            const Vec2 p =
-                white[side] ? Vec2(0.5 * (red + *white[side]))
-                            : Vec2(red + (side == 1 ? 0.5 : -0.5) *
-                                             slalom.nominal_spacing_m * right);
-            out.push_back(
-                {std::string(side == 1 ? "slalom_right_" : "slalom_left_") +
-                     std::to_string(n),
-                 gtsam::Pose3(R,
-                              gtsam::Point3(p.x(), p.y(), reds[k]->pose.z()))});
-        }
-    }
-    return out;
-}
-
-std::vector<NamedPose> torpedo_frames(
-    const std::vector<LandmarkState>& landmarks,
-    const TorpedoParams& torpedo) {
-    const LandmarkState* board = best_of(landmarks, torpedo.board_class);
-    if (!board) {
-        return {};
-    }
-    // The board's x is its normal, pointing out of the front.
-    const gtsam::Rot3 R = gtsam::Rot3::Yaw(board->pose.rotation().yaw() + M_PI);
-    std::vector<NamedPose> out;
-    for (const auto& [name, yz] : torpedo.openings) {
-        out.push_back(
-            {"torpedo_opening_" + name,
-             gtsam::Pose3(R, board->pose.translation() +
-                                 R * gtsam::Point3(0.0, yz[0], yz[1]))});
     }
     return out;
 }

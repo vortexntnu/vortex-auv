@@ -25,18 +25,6 @@ std::vector<NamedPose> gate_frames(const std::vector<LandmarkState>& landmarks,
                                    const GateParams& gate,
                                    const gtsam::Point3& start);
 
-/// slalom_left_<n> and slalom_right_<n>: where to pass row n on each side
-/// of its red pipe, +X through the row. Row 0 is nearest the start.
-std::vector<NamedPose> slalom_frames(
-    const std::vector<LandmarkState>& landmarks,
-    const SlalomParams& slalom,
-    const gtsam::Point3& start);
-
-/// torpedo_opening_<name> per configured opening, +X through the board.
-std::vector<NamedPose> torpedo_frames(
-    const std::vector<LandmarkState>& landmarks,
-    const TorpedoParams& torpedo);
-
 }  // namespace vortex::landmark_server
 
 #endif  // LANDMARK_SERVER__TARGETS_HPP_

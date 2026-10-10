@@ -49,8 +49,6 @@ Perception publishes detections on `landmarks`. To use the map, read
 | `prior_<task>` | Where the prior map puts the task |
 | `start` | Where the run started |
 | `gate_middle`, `<panel>_entrance`, `<panel>_exit` | Gate |
-| `slalom_left_<n>`, `slalom_right_<n>` | Pass point of slalom row n |
-| `torpedo_opening_<name>` | Openings on the torpedo board |
 
 For target frames +X is the direction to drive or face.
 
@@ -149,12 +147,33 @@ Example: a point 1 m in front of the buoy.
      standoff_m: 1.0
    ```
 
-`torpedo_frames()` is a real example. Its offsets can be changed while
-running:
+`gate_frames()` is a real example.
 
-```bash
-ros2 param set /nautilus/landmark_server_node torpedo.openings.large_left "[-0.21, -0.064]"
-```
+## Target frames to write
+
+These are not written yet. Both have been tried and work.
+
+**Slalom gaps**: one frame per row on each side of the red pipe, e.g.
+`slalom_left_<n>` and `slalom_right_<n>`, with +X through the row.
+
+- Each red pipe is one row. The white pipes belong to the nearest red one.
+- The gap is between the red pipe and the white pipe on that side. Decide
+  what to publish when the white pipe has not been seen yet.
+- Number the rows so that a row found late does not rename the others.
+- The red and white pipes share a `group` in the config, so a pipe seen
+  with the wrong colour does not become a second landmark.
+
+**Torpedo openings**: one frame per opening on the board, with +X through
+the board.
+
+- Perception gives the board centre and its normal. The openings are fixed
+  offsets from the centre in the plane of the board.
+- The board's X axis points out of the front, towards the vehicle.
+- Keep the frames level, even if the board estimate is slightly tilted.
+- Put the offsets in the config. It helps a lot if they can be changed
+  while running with `ros2 param set`, so you can line them up against the
+  camera image.
+- Which opening is ours depends on the board version.
 
 ## Tuning
 

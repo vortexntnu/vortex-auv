@@ -46,32 +46,13 @@
     upkeep:
       merge_radius_m: 0.5   # same-class landmarks this close are merged
 
-    # Target frames, see "Target frames" in the README. An empty class name
-    # turns a block off.
+    # Gate target frames. Empty panel_classes turns them off.
     gate:
       panel_classes: ["gate_search_rescue", "gate_survey_repair"]
       min_separation_m: 0.2
       max_separation_m: 2.5
       approach_m: 1.0
       depth_below_panel_m: 0.5
-
-    slalom:
-      red_class: "slalom_pipe_red"
-      white_class: "slalom_pipe_white"
-      nominal_spacing_m: 1.52   # red to white pipe in a row
-      row_spacing_m: 2.0
-      min_spacing_m: 0.8        # a white pipe belongs to a row between
-      max_spacing_m: 2.3        # these distances from its red pipe
-
-    # [y, z] from the board centre seen from the front, y right, z down.
-    # Can be changed while running with ros2 param set.
-    torpedo:
-      board_class: "torpedo_board"
-      openings:
-        large_left: [-0.210, -0.064]
-        large_right: [0.214, 0.216]
-        small_top: [-0.003, -0.192]
-        small_bottom: [-0.006, 0.200]
 
     # type, subtype    vortex_msgs LandmarkType / LandmarkSubtype constants
     # symmetry_deg     0 none, 90 or 180 yaw known modulo this, 360 no yaw
