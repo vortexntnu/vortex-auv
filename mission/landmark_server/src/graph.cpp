@@ -53,7 +53,8 @@ gtsam::SharedNoiseModel LandmarkGraph::robust(
 
 void LandmarkGraph::reset(const Params& params,
                           const gtsam::Pose3& T_odom_base,
-                          double t) {
+                          double t,
+                          double start_yaw) {
     params_ = params;
     gtsam::ISAM2Params isam_params;
     isam_params.relinearizeThreshold = 0.01;
@@ -70,7 +71,7 @@ void LandmarkGraph::reset(const Params& params,
 
     // X(0) is the start, levelled, at the pressure depth.
     const gtsam::Vector3 rpy = T_odom_base.rotation().rpy();
-    const gtsam::Pose3 X0(gtsam::Rot3::Ypr(0.0, rpy(1), rpy(0)),
+    const gtsam::Pose3 X0(gtsam::Rot3::Ypr(start_yaw, rpy(1), rpy(0)),
                           gtsam::Point3(0.0, 0.0, T_odom_base.z()));
     new_factors_.emplace_shared<gtsam::PriorFactor<gtsam::Pose3>>(
         X(0), X0, Isotropic::Sigma(6, kAnchorSigma));

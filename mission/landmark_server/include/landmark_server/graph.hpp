@@ -58,7 +58,11 @@ struct LandmarkState {
 /// map frame is the levelled start pose: x along the start heading, z down.
 class LandmarkGraph {
    public:
-    void reset(const Params& params, const gtsam::Pose3& T_odom_base, double t);
+    /// start_yaw: the vehicle's heading in the new map [rad].
+    void reset(const Params& params,
+               const gtsam::Pose3& T_odom_base,
+               double t,
+               double start_yaw = 0.0);
     int add_keyframe(const gtsam::Pose3& T_odom_base, double t);
     void add_landmark(int id,
                       const ClassConfig& cls,

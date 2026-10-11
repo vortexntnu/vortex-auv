@@ -135,6 +135,11 @@ class LandmarkServerNode : public rclcpp::Node {
                                           "mission/wipe"),
             qos::reliable_profile(1),
             [this](std_msgs::msg::Empty::ConstSharedPtr) { on_wipe(); });
+        heading_sub_ = create_subscription<std_msgs::msg::Empty>(
+            get_parameter_or<std::string>("topics.mission_set_heading",
+                                          "mission/set_heading"),
+            qos::reliable_profile(1),
+            [this](std_msgs::msg::Empty::ConstSharedPtr) { on_set_heading(); });
 
         landmarks_pub_ = create_publisher<vortex_msgs::msg::LandmarkTrackArray>(
             "landmark_server/landmarks",
@@ -409,8 +414,13 @@ class LandmarkServerNode : public rclcpp::Node {
         }
     }
 
+    /// The map starts at the vehicle. Its X is the course heading if one is
+    /// set, otherwise the way the vehicle points now.
     void reset(const gtsam::Pose3& T_odom_base, double t) {
-        graph_.reset(cfg_.params, T_odom_base, t);
+        const double start_yaw =
+            course_yaw_ ? T_odom_base.rotation().yaw() - *course_yaw_ : 0.0;
+        graph_.reset(cfg_.params, T_odom_base, t,
+                     std::atan2(std::sin(start_yaw), std::cos(start_yaw)));
         candidates_.clear();
         pending_.clear();
         nis_.clear();
@@ -424,7 +434,27 @@ class LandmarkServerNode : public rclcpp::Node {
             return;
         }
         reset(odom_->T, odom_->t);
-        spdlog::info("landmark_server: new map at the vehicle (mission/wipe)");
+        if (course_yaw_) {
+            spdlog::info(
+                "landmark_server: new map at the vehicle, which is turned "
+                "{:.0f} deg from the course heading (mission/wipe)",
+                graph_.keyframe_pose(0).rotation().yaw() * 180.0 / M_PI);
+        } else {
+            spdlog::info(
+                "landmark_server: new map at the vehicle, facing the way it "
+                "points now (mission/wipe)");
+        }
+    }
+
+    void on_set_heading() {
+        if (!odom_) {
+            return;
+        }
+        course_yaw_ = odom_->T.rotation().yaw();
+        reset(odom_->T, odom_->t);
+        spdlog::info(
+            "landmark_server: course heading set to where the vehicle points "
+            "now, new map at the vehicle (mission/set_heading)");
     }
 
     void on_odom(const nav_msgs::msg::Odometry& msg) {
@@ -882,6 +912,8 @@ class LandmarkServerNode : public rclcpp::Node {
              std::deque<vortex_msgs::msg::LandmarkArray::ConstSharedPtr>>
         pending_;
     std::optional<OdomSample> odom_;
+    // Odometry yaw that points at the course, kept between wipes.
+    std::optional<double> course_yaw_;
     std::string odom_frame_;
     std::string map_frame_;
     std::string frame_prefix_;
@@ -898,6 +930,7 @@ class LandmarkServerNode : public rclcpp::Node {
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+    rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr heading_sub_;
     rclcpp::Subscription<vortex_msgs::msg::LandmarkArray>::SharedPtr
         detection_sub_;
     rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr wipe_sub_;
