@@ -23,11 +23,32 @@ ros2 launch landmark_server landmark_server.launch.py            # pool
 ros2 launch landmark_server landmark_server.launch.py env:=sim   # simulator
 ```
 
-Reset the map with the vehicle at the start, facing the course:
+### Starting a map
 
-```bash
-ros2 topic pub --once /nautilus/mission/wipe std_msgs/msg/Empty
-```
+The map starts where the vehicle is. Which way its X points is set apart
+from that, so the vehicle can be turned before the run (the coin flip):
+
+1. Put the vehicle at the start, pointing the way the reference points in
+   the prior map, and set the course heading:
+
+   ```bash
+   ros2 topic pub --once /nautilus/mission/set_heading std_msgs/msg/Empty
+   ```
+
+2. Turn or move the vehicle as the run needs.
+3. Start a new map where it is now. The heading from step 1 is kept:
+
+   ```bash
+   ros2 topic pub --once /nautilus/mission/wipe std_msgs/msg/Empty
+   ```
+
+The GUI has a button for each. After step 3 the vehicle's heading in the
+map is how far it is turned from the course, so a mission that turns to map
+heading 0 first faces the course again.
+
+The heading is kept as an odometry yaw. It holds for as long as the
+odometry is not restarted, and is forgotten when `landmark_server`
+restarts. Without step 1 a new map points the way the vehicle points.
 
 ## Topics
 
@@ -36,6 +57,7 @@ ros2 topic pub --once /nautilus/mission/wipe std_msgs/msg/Empty
 | `odom` | in | `nav_msgs/Odometry` |
 | `landmarks` | in | `vortex_msgs/LandmarkArray` |
 | `mission/wipe` | in | `std_msgs/Empty` |
+| `mission/set_heading` | in | `std_msgs/Empty` |
 | `landmark_server/landmarks` | out | `vortex_msgs/LandmarkTrackArray` |
 
 Perception publishes detections on `landmarks`. To use the map, read
@@ -70,14 +92,23 @@ Off by default.
 ## Prior map
 
 ```bash
-ros2 run landmark_server competition_map_gui.py --ros-args -r __ns:=/nautilus
+ros2 launch landmark_server competition_map_gui.launch.py   # drone:=nautilus
 ```
 
 1. Place the reference where the vehicle starts, pointing at the course.
 2. Place each task. The slider sets the radius its detections must be within.
 3. Send to Vehicle. It is saved to `config/premap.yaml`.
 
-Crosses show what the vehicle has found so far.
+While the vehicle runs the GUI also shows, relative to the reference:
+
+- crosses: what the vehicle has put in the map so far;
+- dots: where each detection of the last two seconds landed, also the ones
+  the map rejected;
+- the arrow: the vehicle and its heading in the map.
+
+All three are only in the right place on the drawing if the reference is
+where the vehicle was when the map started. The arrow and the dots need
+`map -> odom -> base_link` in TF, and the dots also the detection's frame.
 
 ## Adding an object
 

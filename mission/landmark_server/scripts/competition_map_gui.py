@@ -4,9 +4,10 @@
 Place the reference where the vehicle starts, facing the course, then the
 tasks. Poses are sent relative to the reference (x forward, y right, z down).
 
-    ros2 run landmark_server competition_map_gui.py --ros-args -r __ns:=/nautilus
+    ros2 launch landmark_server competition_map_gui.launch.py
 """
 
+import collections
 import math
 import signal
 import threading
@@ -18,13 +19,30 @@ import rclpy
 import yaml
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
-from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+from rclpy.qos import (
+    DurabilityPolicy,
+    QoSProfile,
+    ReliabilityPolicy,
+    qos_profile_sensor_data,
+)
 from rclpy.signals import SignalHandlerOptions
+from rclpy.time import Time
+from std_msgs.msg import Empty
 from std_srvs.srv import Trigger
-from vortex_msgs.msg import LandmarkTrackArray, LandmarkType, ObjectPose
+from tf2_ros import Buffer, TransformException, TransformListener
+from vortex_msgs.msg import (
+    LandmarkArray,
+    LandmarkTrackArray,
+    LandmarkType,
+    ObjectPose,
+)
 from vortex_msgs.srv import SetPremap
 
 SERVICE_TIMEOUT_S = 5.0
+# Raw detections stay on the map this long, sampled at this period.
+DETECTION_KEEP_S = 2.0
+DETECTION_PERIOD_S = 0.2
+LIVE_PERIOD_MS = 200
 
 
 def quaternion_from_yaw(yaw):
@@ -34,6 +52,20 @@ def quaternion_from_yaw(yaw):
 def yaw_from_quaternion(q):
     x, y, z, w = q
     return math.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
+
+
+def rotate(q, v):
+    """Rotate vector v by quaternion q (x, y, z, w)."""
+    x, y, z, w = q
+    vx, vy, vz = v
+    tx = 2.0 * (y * vz - z * vy)
+    ty = 2.0 * (z * vx - x * vz)
+    tz = 2.0 * (x * vy - y * vx)
+    return (
+        vx + w * tx + (y * tz - z * ty),
+        vy + w * ty + (z * tx - x * tz),
+        vz + w * tz + (x * ty - y * tx),
+    )
 
 
 def call(node, client, request):
@@ -148,6 +180,36 @@ class CompetitionMapGUI:
                 durability=DurabilityPolicy.TRANSIENT_LOCAL,
                 reliability=ReliabilityPolicy.RELIABLE,
             ),
+        )
+
+        self.heading_pub = node.create_publisher(
+            Empty,
+            node.declare_parameter("set_heading_topic", "mission/set_heading").value,
+            1,
+        )
+        self.wipe_pub = node.create_publisher(
+            Empty, node.declare_parameter("wipe_topic", "mission/wipe").value, 1
+        )
+
+        # The vehicle and the raw detections, placed in the map with TF.
+        prefix = str(
+            node.declare_parameter(
+                "frame_prefix", node.get_namespace().strip("/")
+            ).value
+        ).strip("/")
+        prefix = prefix + "/" if prefix else ""
+        self.map_frame = prefix + "map"
+        self.base_frame = prefix + "base_link"
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, node)
+        # (time, map x, map y, type)
+        self.detections = collections.deque(maxlen=2000)
+        self._last_detection_t = 0.0
+        node.create_subscription(
+            LandmarkArray,
+            node.declare_parameter("detections_topic", "landmarks").value,
+            self.on_detections,
+            qos_profile_sensor_data,
         )
 
         self.setup_ui()
@@ -269,10 +331,21 @@ class CompetitionMapGUI:
 
         tk.Checkbutton(
             left_frame,
-            text="Show live map (crosses)",
+            text="Show live map (crosses, detections, vehicle)",
             variable=self.show_live,
             command=lambda: self.draw_live_map(reschedule=False),
             justify=tk.LEFT,
+        ).pack(fill=tk.X, padx=10, pady=2)
+
+        tk.Button(
+            left_frame,
+            text="Vehicle faces the course",
+            command=self.set_course_heading,
+        ).pack(fill=tk.X, padx=10, pady=(8, 2))
+        tk.Button(
+            left_frame,
+            text="New map at the vehicle",
+            command=self.new_map,
         ).pack(fill=tk.X, padx=10, pady=2)
 
         self.status_label = tk.Label(left_frame, text="ROS: Checking...", fg="orange")
@@ -927,9 +1000,9 @@ class CompetitionMapGUI:
         return ref[0] + dx, ref[1] + dy
 
     def draw_live_map(self, reschedule=True):
-        """Every landmark the vehicle has mapped: a cross, task and detections."""
+        """Mapped landmarks as crosses, raw detections as dots, the vehicle."""
         if reschedule:
-            self.root.after(1000, self.draw_live_map)
+            self.root.after(LIVE_PERIOD_MS, self.draw_live_map)
         self.canvas.delete("live")
         live = self.live_map
         if (
@@ -958,6 +1031,109 @@ class CompetitionMapGUI:
                 font=("Arial", 7),
                 tags="live",
             )
+        self.draw_detections()
+        self.draw_vehicle()
+
+    def set_course_heading(self):
+        if messagebox.askokcancel(
+            "Course heading",
+            "Is the vehicle at the start, pointing the way the reference "
+            "points?\n\nThis heading is kept for every new map. The map "
+            "is cleared.",
+        ):
+            self.heading_pub.publish(Empty())
+
+    def new_map(self):
+        if messagebox.askokcancel(
+            "New map",
+            "Clear the map and start a new one where the vehicle is now?\n\n"
+            "The course heading is kept, so the vehicle may point any way.",
+        ):
+            self.wipe_pub.publish(Empty())
+
+    def lookup_in_map(self, frame):
+        """Latest (translation, quaternion) of a frame in the map, or None."""
+        try:
+            t = self.tf_buffer.lookup_transform(self.map_frame, frame, Time()).transform
+        except TransformException:
+            return None
+        return (
+            (t.translation.x, t.translation.y, t.translation.z),
+            (t.rotation.x, t.rotation.y, t.rotation.z, t.rotation.w),
+        )
+
+    def on_detections(self, msg):
+        """Keep where each detection lands in the map (ROS thread)."""
+        now = time.monotonic()
+        if now - self._last_detection_t < DETECTION_PERIOD_S:
+            return
+        tf = self.lookup_in_map(msg.header.frame_id)
+        if tf is None:
+            return
+        self._last_detection_t = now
+        origin, q = tf
+        for landmark in msg.landmarks:
+            p = landmark.pose.pose.position
+            x, y, _ = rotate(q, (p.x, p.y, p.z))
+            self.detections.append(
+                (now, origin[0] + x, origin[1] + y, landmark.type.value)
+            )
+
+    def draw_detections(self):
+        """A dot where each detection of the last seconds landed."""
+        now = time.monotonic()
+        while self.detections and now - self.detections[0][0] > DETECTION_KEEP_S:
+            self.detections.popleft()
+        for _, x, y, landmark_type in list(self.detections):
+            _, color = self.LIVE_TYPES.get(landmark_type, ("?", "black"))
+            px, py = self.meters_to_pixels(*self.map_to_canvas(x, y))
+            self.canvas.create_oval(
+                px - 2, py - 2, px + 2, py + 2, fill=color, outline="", tags="live"
+            )
+
+    def draw_vehicle(self):
+        """The vehicle as an arrow along its heading."""
+        tf = self.lookup_in_map(self.base_frame)
+        if tf is None:
+            return
+        (x, y, _), q = tf
+        fx, fy, _ = rotate(q, (1.0, 0.0, 0.0))
+        norm = math.hypot(fx, fy)
+        if norm < 1e-6:
+            return
+        fx, fy = fx / norm, fy / norm
+        length = max(1.0, 24.0 / self.scale)
+        tail = self.meters_to_pixels(*self.map_to_canvas(x, y))
+        tip = self.meters_to_pixels(
+            *self.map_to_canvas(x + length * fx, y + length * fy)
+        )
+        self.canvas.create_line(
+            *tail,
+            *tip,
+            fill="black",
+            width=3,
+            arrow=tk.LAST,
+            arrowshape=(12, 14, 5),
+            tags="live",
+        )
+        self.canvas.create_oval(
+            tail[0] - 4,
+            tail[1] - 4,
+            tail[0] + 4,
+            tail[1] + 4,
+            fill="yellow",
+            outline="black",
+            tags="live",
+        )
+        heading = math.degrees(math.atan2(fy, fx))
+        self.canvas.create_text(
+            tail[0] + 8,
+            tail[1] + 8,
+            text=f"vehicle {heading:.0f} deg",
+            anchor=tk.NW,
+            font=("Arial", 8, "bold"),
+            tags="live",
+        )
 
     def get_from_vehicle(self, quiet=False):
         """Load the vehicle's prior map; quiet: log instead of dialogs."""
