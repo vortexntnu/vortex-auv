@@ -21,7 +21,9 @@ def launch_setup(context, *args, **kwargs):
     filter_config = os.path.join(
         get_package_share_directory("reference_filter_dp_quat"),
         "config",
-        "reference_filter_params.yaml",
+        "reference_filter_params_sim.yaml"
+        if config_type == "sim"
+        else "reference_filter_params.yaml",
     )
 
     drone_params = os.path.join(

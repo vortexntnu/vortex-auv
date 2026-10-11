@@ -55,7 +55,7 @@ PANE_SIM=$(tmux list-panes -t "$SESSION:sim" -F '#{pane_id}')
 tmux send-keys -t "$PANE_SIM" "clear && $S && ros2 launch stonefish_sim vortex_sim_launch.py keyboard_joy:=$KEYBOARD_JOY scenario:=$SCENARIO" Enter
 
 PANE_P2=$(tmux split-window -h -t "$PANE_SIM" -P -F '#{pane_id}')
-tmux send-keys -t "$PANE_P2" "clear && $S && ros2 launch auv_setup dp_quat.launch.py" Enter
+tmux send-keys -t "$PANE_P2" "clear && $S && ros2 launch auv_setup dp_quat.launch.py config_type:=sim" Enter
 
 PANE_P3=$(tmux split-window -v -t "$PANE_SIM" -P -F '#{pane_id}')
 tmux send-keys -t "$PANE_P3" "clear && $S" Enter
