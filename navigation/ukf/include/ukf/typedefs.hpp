@@ -19,6 +19,7 @@ using Vector16d = Matrix<double, 16, 1>;
 using Matrix12d = Matrix<double, 12, 12>;
 using Matrix15d = Matrix<double, 15, 15>;
 using Matrix15x12d = Matrix<double, 15, 12>;
+using Matrix30d = Matrix<double, 30, 30>;
 }  // namespace Eigen
 
 /**

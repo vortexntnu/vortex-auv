@@ -5,8 +5,7 @@ DVLMeasurementModel::DVLMeasurementModel(const DVLConfig& config)
 
 DVLMeasurementModel::Point DVLMeasurementModel::h(const State& state,
                                                   const ImuInput& input) const {
-    // TODO: body-frame velocity
-    return Point::Zero();
+    return state.quat.conjugate() * state.vel;
 }
 
 Eigen::Matrix3d DVLMeasurementModel::R(const State& state,
@@ -34,8 +33,7 @@ MagnetometerMeasurementModel::MagnetometerMeasurementModel(
 MagnetometerMeasurementModel::Point MagnetometerMeasurementModel::h(
     const State& state,
     const ImuInput& input) const {
-    // TODO: reference field rotated into the body frame
-    return Point::Zero();
+    return state.quat.conjugate() * reference_field_;
 }
 
 Eigen::Matrix3d MagnetometerMeasurementModel::R(const State& state,
@@ -51,8 +49,7 @@ MagnetometerMeasurementModel::composition_plus(
 }
 
 Eigen::Vector3d MagnetometerMeasurementModel::composition_minus(
-    const Point& measurement_a,
-    const Point& measurement_b) const {
+    const Point& measurement_a, const Point& measurement_b) const {
     return measurement_a - measurement_b;
 }
 
@@ -61,26 +58,22 @@ DepthMeasurementModel::DepthMeasurementModel(const DepthConfig& config)
       lever_arm_(config.lever_arm) {}
 
 DepthMeasurementModel::Point DepthMeasurementModel::h(
-    const State& state,
-    const ImuInput& input) const {
-    // TODO: sensor depth, the lever arm makes it depend on attitude
-    return Point::Zero();
+    const State& state, const ImuInput& input) const {
+    return Point::Constant(state.pos.z() + (state.quat * lever_arm_).z());
 }
 
 Eigen::Matrix<double, 1, 1> DepthMeasurementModel::R(
-    const State& state,
-    const ImuInput& input) const {
+    const State& state, const ImuInput& input) const {
     return Eigen::Matrix<double, 1, 1>::Constant(depth_noise_variance_);
 }
 
 DepthMeasurementModel::Point DepthMeasurementModel::composition_plus(
-    const Point& measurement,
-    const Eigen::Matrix<double, 1, 1>& delta) const {
+    const Point& measurement, const Eigen::Matrix<double, 1, 1>& delta)
+    const {
     return measurement + delta;
 }
 
 Eigen::Matrix<double, 1, 1> DepthMeasurementModel::composition_minus(
-    const Point& measurement_a,
-    const Point& measurement_b) const {
+    const Point& measurement_a, const Point& measurement_b) const {
     return measurement_a - measurement_b;
 }

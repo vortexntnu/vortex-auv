@@ -15,6 +15,5 @@ StateGaussian UnscentedKalmanFilter::predict(const StateGaussian& current,
     const auto transform_output = unscented_transform_.transform(
         current, f, Q, motion_model_, motion_model_);
 
-    // the cross covariance is only needed by a smoother
     return transform_output.transformed;
 }
