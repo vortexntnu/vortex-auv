@@ -78,4 +78,10 @@ install(PROGRAMS scripts/competition_map_gui.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_landmark_server test/test_landmark_server.cpp)
+  target_link_libraries(test_landmark_server ${LIB_NAME})
+endif()
+
 ament_package()

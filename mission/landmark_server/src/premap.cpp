@@ -27,7 +27,7 @@ std::string backup_stamp(const std::string& created_at,
     tm.tm_isdst = -1;
     if (!created_at.empty() &&
         strptime(created_at.c_str(), "%Y-%m-%dT%H:%M:%S", &tm) != nullptr) {
-        return format_time(std::mktime(&tm), "%Y%m%d_%H%M");
+        return format_time(std::mktime(&tm), "%Y%m%d_%H%M%S");
     }
     const auto ftime = std::filesystem::last_write_time(path);
     const auto sys =
@@ -35,7 +35,7 @@ std::string backup_stamp(const std::string& created_at,
             ftime - std::filesystem::file_time_type::clock::now() +
             std::chrono::system_clock::now());
     return format_time(std::chrono::system_clock::to_time_t(sys),
-                       "%Y%m%d_%H%M");
+                       "%Y%m%d_%H%M%S");
 }
 
 }  // namespace
@@ -157,6 +157,14 @@ std::string save_premap(const std::string& path, const Premap& premap) {
     if (file.has_parent_path()) {
         fs::create_directories(file.parent_path());
     }
+    // Written first and renamed last, so a failed write keeps the old file.
+    const std::string tmp = target + ".tmp";
+    std::ofstream f(tmp);
+    f << premap_to_yaml(premap);
+    f.close();
+    if (!f) {
+        throw std::runtime_error(fmt::format("cannot write '{}'", tmp));
+    }
     std::string backup;
     if (fs::exists(file)) {
         std::string old_created;
@@ -173,11 +181,7 @@ std::string save_premap(const std::string& path, const Premap& premap) {
                      .string();
         fs::rename(file, backup);
     }
-    std::ofstream f(target);
-    if (!f) {
-        throw std::runtime_error(fmt::format("cannot write '{}'", target));
-    }
-    f << premap_to_yaml(premap);
+    fs::rename(tmp, file);
     return backup;
 }
 

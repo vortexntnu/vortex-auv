@@ -2,7 +2,8 @@
 # env:=sim loads sim.yaml on top. Write floats with a decimal point.
 /**:
   ros__parameters:
-    # A new keyframe is made after this distance or time.
+    # A new keyframe is made after this distance, or after this time when
+    # there are detections.
     keyframe_dist_m: 0.5
     keyframe_time_s: 1.0
     max_messages_per_keyframe: 5   # per source, newest first

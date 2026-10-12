@@ -23,6 +23,7 @@
 #include <std_msgs/msg/float64.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
+#include <vortex/utils/ros/landmark_names.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include <vortex_msgs/msg/landmark_track_array.hpp>
@@ -231,8 +232,10 @@ class LandmarkServerNode : public rclcpp::Node {
             std::string subtype;
             read(k + "type", type);
             read(k + "subtype", subtype);
-            const auto type_value = landmark_type(type);
-            const auto subtype_value = landmark_subtype(subtype);
+            const auto type_value =
+                vortex::utils::landmarks::landmark_type_from_string(type);
+            const auto subtype_value =
+                vortex::utils::landmarks::landmark_subtype_from_string(subtype);
             if (!type_value || !subtype_value) {
                 throw std::runtime_error(fmt::format(
                     "class '{}': type '{}' / subtype '{}': give the names of "
@@ -470,8 +473,10 @@ class LandmarkServerNode : public rclcpp::Node {
             const double dist =
                 (graph_.keyframe_odom(kf).translation() - T.translation())
                     .norm();
+            // No keyframes while still and blind, the graph only grows.
             if (dist >= cfg_.params.keyframe_dist_m ||
-                t - graph_.keyframe_time(kf) >= cfg_.params.keyframe_time_s) {
+                (!pending_.empty() &&
+                 t - graph_.keyframe_time(kf) >= cfg_.params.keyframe_time_s)) {
                 process_keyframe(T, t);
             }
         }

@@ -9,10 +9,6 @@
 
 namespace vortex::landmark_server {
 
-/// Value of the vortex_msgs constant with this name, e.g. "GATE".
-std::optional<std::uint16_t> landmark_type(const std::string& name);
-std::optional<std::uint16_t> landmark_subtype(const std::string& name);
-
 /// Real-size box drawn for a class in the debug markers.
 struct MarkerBox {
     std::array<double, 3> size{};    // x out of the front, y right, z down
