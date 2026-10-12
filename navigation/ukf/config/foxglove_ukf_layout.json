@@ -1,0 +1,509 @@
+{
+  "configById": {
+    "Plot!accel_est": {
+      "title": "Accel bias (estimate)",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/accel_bias.vector.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf x"
+        },
+        {
+          "value": "/nautilus/ukf/accel_bias.vector.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf y"
+        },
+        {
+          "value": "/nautilus/ukf/accel_bias.vector.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf z"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
+    },
+    "Plot!gyro_true": {
+      "title": "Gyro bias (true) - no sim topic yet",
+      "paths": [
+        {
+          "value": "/nautilus/sim/gyro_bias_true.vector.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "true x"
+        },
+        {
+          "value": "/nautilus/sim/gyro_bias_true.vector.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "true y"
+        },
+        {
+          "value": "/nautilus/sim/gyro_bias_true.vector.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "true z"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
+    },
+    "Plot!accel_true": {
+      "title": "Accel bias (true) - no sim topic yet",
+      "paths": [
+        {
+          "value": "/nautilus/sim/accel_bias_true.vector.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "true x"
+        },
+        {
+          "value": "/nautilus/sim/accel_bias_true.vector.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "true y"
+        },
+        {
+          "value": "/nautilus/sim/accel_bias_true.vector.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "true z"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
+    },
+    "Plot!nis_dvl": {
+      "title": "NIS DVL (chi2(3), 99.9% = 16.27)",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/nis_dvl.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf"
+        },
+        {
+          "value": "/nautilus/eskf/nis_dvl.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "eskf"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": 0,
+      "maxYValue": null
+    },
+    "Plot!nis_depth": {
+      "title": "NIS depth (chi2(1), 99.9% = 10.83)",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/nis_depth.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf"
+        },
+        {
+          "value": "/nautilus/eskf/nis_depth.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "eskf"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": 0,
+      "maxYValue": null
+    },
+    "Plot!nees_pos": {
+      "title": "NEES position (needs a nees topic)",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/nees_position.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf"
+        },
+        {
+          "value": "/nautilus/eskf/nees_position.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "eskf"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": 0,
+      "maxYValue": null
+    },
+    "Plot!nees_att": {
+      "title": "NEES attitude (needs a nees topic)",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/nees_attitude.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf"
+        },
+        {
+          "value": "/nautilus/eskf/nees_attitude.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "eskf"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": 0,
+      "maxYValue": null
+    },
+    "Plot!pos_xy": {
+      "title": "Position x, y",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/odom.pose.pose.position.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf x"
+        },
+        {
+          "value": "/nautilus/odom.pose.pose.position.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "true x"
+        },
+        {
+          "value": "/nautilus/ukf/odom.pose.pose.position.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf y"
+        },
+        {
+          "value": "/nautilus/odom.pose.pose.position.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "true y"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
+    },
+    "Plot!pos_z": {
+      "title": "Position z (depth)",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/odom.pose.pose.position.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf z"
+        },
+        {
+          "value": "/nautilus/odom.pose.pose.position.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "true z"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
+    },
+    "Plot!quat_w": {
+      "title": "Orientation w, x",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/odom.pose.pose.orientation.w",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf w"
+        },
+        {
+          "value": "/nautilus/odom.pose.pose.orientation.w",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "true w"
+        },
+        {
+          "value": "/nautilus/ukf/odom.pose.pose.orientation.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf x"
+        },
+        {
+          "value": "/nautilus/odom.pose.pose.orientation.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "true x"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
+    },
+    "Plot!quat_yz": {
+      "title": "Orientation y, z",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/odom.pose.pose.orientation.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf y"
+        },
+        {
+          "value": "/nautilus/odom.pose.pose.orientation.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "true y"
+        },
+        {
+          "value": "/nautilus/ukf/odom.pose.pose.orientation.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf z"
+        },
+        {
+          "value": "/nautilus/odom.pose.pose.orientation.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "true z"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
+    },
+    "3D!traj": {
+      "followTf": "nautilus/odom",
+      "layers": {},
+      "topics": {
+        "/nautilus/ukf/odom": {
+          "visible": true
+        },
+        "/nautilus/odom": {
+          "visible": true
+        }
+      },
+      "transforms": {},
+      "cameraState": {
+        "distance": 10,
+        "perspective": true,
+        "phi": 60,
+        "thetaOffset": 45,
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "scene": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      }
+    },
+    "Plot!gyro_est": {
+      "title": "Gyro bias (estimate)",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/gyro_bias.vector.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf x"
+        },
+        {
+          "value": "/nautilus/ukf/gyro_bias.vector.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf y"
+        },
+        {
+          "value": "/nautilus/ukf/gyro_bias.vector.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "ukf z"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
+    },
+    "Tab!main": {
+      "activeTabIdx": 0,
+      "tabs": [
+        {
+          "title": "Biases",
+          "layout": {
+            "direction": "row",
+            "first": {
+              "direction": "column",
+              "first": "Plot!gyro_est",
+              "second": "Plot!gyro_true",
+              "splitPercentage": 50
+            },
+            "second": {
+              "direction": "column",
+              "first": "Plot!accel_est",
+              "second": "Plot!accel_true",
+              "splitPercentage": 50
+            },
+            "splitPercentage": 50
+          }
+        },
+        {
+          "title": "NIS / NEES",
+          "layout": {
+            "direction": "row",
+            "first": {
+              "direction": "column",
+              "first": "Plot!nis_dvl",
+              "second": "Plot!nis_depth",
+              "splitPercentage": 50
+            },
+            "second": {
+              "direction": "column",
+              "first": "Plot!nees_pos",
+              "second": "Plot!nees_att",
+              "splitPercentage": 50
+            },
+            "splitPercentage": 50
+          }
+        },
+        {
+          "title": "Estimate vs truth",
+          "layout": {
+            "direction": "row",
+            "first": {
+              "direction": "column",
+              "first": "Plot!pos_xy",
+              "second": "Plot!pos_z",
+              "splitPercentage": 50
+            },
+            "second": {
+              "direction": "column",
+              "first": {
+                "direction": "row",
+                "first": "Plot!quat_w",
+                "second": "Plot!quat_yz",
+                "splitPercentage": 50
+              },
+              "second": "3D!traj",
+              "splitPercentage": 50
+            },
+            "splitPercentage": 50
+          }
+        }
+      ]
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": "Tab!main"
+}
