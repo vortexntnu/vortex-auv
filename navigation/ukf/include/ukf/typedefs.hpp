@@ -8,6 +8,8 @@
 
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <stdexcept>
+#include <vector>
 
 /**
  * @brief Fixed-size Eigen aliases for the dimensions used by the filter.
@@ -21,6 +23,24 @@ using Matrix15d = Matrix<double, 15, 15>;
 using Matrix15x12d = Matrix<double, 15, 12>;
 using Matrix30d = Matrix<double, 30, 30>;
 }  // namespace Eigen
+
+/**
+ * @brief Builds a diagonal matrix from a vector of diagonal entries, such as a
+ * ROS parameter.
+ * @tparam N The size of the matrix.
+ * @param diag The diagonal entries.
+ * @return The N x N diagonal matrix.
+ * @throws std::invalid_argument if diag does not have N entries.
+ */
+template <int N>
+Eigen::Matrix<double, N, N> create_diagonal_matrix(
+    const std::vector<double>& diag) {
+    if (diag.size() != N) {
+        throw std::invalid_argument("Invalid covariance diagonal size");
+    }
+    return Eigen::Map<const Eigen::Matrix<double, N, 1>>(diag.data())
+        .asDiagonal();
+}
 
 /**
  * @brief Index offsets into the 15-dimensional tangent space of the state.
