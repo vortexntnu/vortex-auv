@@ -46,7 +46,7 @@ def launch_setup(context, *args, **kwargs):
     defaults = {
         'imu_topic': f'/{namespace}/imu/data_raw' if use_sim else '',
         'pressure_topic': f'/{namespace}/pressure_sensor' if use_sim else '',
-        'dvl_topic': '',
+        'dvl_topic': f'/{namespace}/dvl/sim' if use_sim else '',
         'magnetometer_topic': '',
     }
     for argument, parameter in [
