@@ -1,3 +1,8 @@
+/**
+ * @file ukf.tpp
+ * @brief Template implementation of UnscentedKalmanFilter::update.
+ */
+
 template <SensorModel Sensor>
 UpdateOutput<Sensor::dimension> UnscentedKalmanFilter::update(
     const StateGaussian& predicted,

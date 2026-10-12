@@ -16,7 +16,7 @@ find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
 add_library(ukf_core
-  src/lie/so3.cpp
+  src/lie/SO3.cpp
   src/models/strapdown_ins.cpp
   src/models/measurement_models.cpp
   src/transforms/unscented_transform.cpp

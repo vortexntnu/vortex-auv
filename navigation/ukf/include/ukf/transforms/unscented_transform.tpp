@@ -1,3 +1,8 @@
+/**
+ * @file unscented_transform.tpp
+ * @brief Template implementation of UnscentedTransform::transform.
+ */
+
 #include <array>
 #include <cmath>
 

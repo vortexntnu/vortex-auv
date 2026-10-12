@@ -4,12 +4,6 @@ An unscented Kalman filter for the AUV, built to be compared against the
 [ESKF](../eskf/README.md). Same sensors, same state, same tuning layout, so the
 only thing that differs is how the uncertainty is propagated.
 
-The structure is taken from my masters project: models that know the manifold
-they live on, a generic unscented transform, and a stateless filter that is
-handed the estimate and returns a new one. Unlike the masters project the filter
-is not agnostic, the state is fixed and every size is known at compile time, in
-the same way as the ESKF typedefs.
-
 ## State
 
 The state is stored as a `State` struct, the same as `NominalState` in the ESKF.
@@ -31,7 +25,7 @@ ESKF, and navigation z is down.
 ```
 include/ukf/
   typedefs.hpp                    Eigen sizes, indices, State, ImuInput, filter structs
-  lie/so3.hpp                     Exp and Log on SO(3)
+  lie/SO3.hpp                     Exp and Log on SO(3)
   models/manifold.hpp             Manifold and SensorModel concepts
   models/strapdown_ins.hpp        3D strapdown INS, f, Q and the state manifold
   models/measurement_models.hpp   DVL, depth and magnetometer
@@ -50,29 +44,11 @@ A model is anything that satisfies the concepts in `models/manifold.hpp`: a
 sensor adds `h` and `R`. Adding a sensor means writing one class and calling
 `ukf.update(..., sensor)`, nothing else changes.
 
-[vortex-utils](https://github.com/vortexntnu/vortex-utils) is used where it has
-what is needed, e.g. `error_quaternion`, `get_skew_symmetric_matrix`,
-`eigen_to_pose_msg`, `ros_twist_to_twist` and `sensor_data_profile`. Exp and Log
-are not there (`quaternion_error` is only first order), so they get their own file.
-
-## Status
-
-- [x] Package, build and launch skeleton
-- [x] Unscented transform and UKF predict/update, ported from the masters project
-- [ ] `so3::exp`, `so3::log`
-- [ ] `StrapdownINS3D`: `f`, `Q`, `composition_plus`, `composition_minus`
-- [ ] `DVLMeasurementModel::h`, `DepthMeasurementModel::h`, `MagnetometerMeasurementModel::h`
-- [ ] ROS node: parameters, subscribers, callbacks, odometry
-- [ ] Sensor extrinsics from TF and lever arm compensation, as in the ESKF
-- [ ] NIS gating
-- [ ] Tests
-- [ ] Run alongside the ESKF and compare
-
 ## Build and launch
 
-Launch works the same way as for the ESKF, with the same arguments and the same
-`auv_setup` robot and environment configs. `use_sim` picks `ukf_params.yaml` for
-Stonefish or `ukf_params_real_world.yaml` for the vehicle:
+The ukf also introduces the flag, `use_sim` which picks `ukf_params.yaml`
+for running the drone in the Stonefish simulator or without flags
+to utilize the `ukf_params_real_world.yaml` config for the vehicle:
 
 ```sh
 colcon build --packages-up-to ukf

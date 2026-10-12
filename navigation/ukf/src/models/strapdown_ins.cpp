@@ -1,6 +1,6 @@
 #include "ukf/models/strapdown_ins.hpp"
 #include <vortex/utils/math.hpp>
-#include "ukf/lie/so3.hpp"
+#include "ukf/lie/SO3.hpp"
 
 StrapdownINS3D::StrapdownINS3D(const INS3DConfig& config) : config_(config) {}
 
