@@ -1,3 +1,8 @@
+/**
+ * @file ukf_ros.hpp
+ * @brief Contains the UKFNode class, the ROS 2 interface of the UKF.
+ */
+
 #ifndef UKF__ROS__UKF_ROS_HPP_
 #define UKF__ROS__UKF_ROS_HPP_
 
@@ -15,30 +20,71 @@
 #include "ukf/models/strapdown_ins.hpp"
 #include "ukf/typedefs.hpp"
 
+/**
+ * @brief ROS 2 node running the UKF, fusing IMU, DVL, pressure and
+ * magnetometer measurements into an odometry estimate.
+ */
 class UKFNode : public rclcpp::Node {
    public:
+    /**
+     * @brief Constructor for the UKFNode class.
+     * @param options The node options.
+     */
     explicit UKFNode(
         const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
    private:
+    /**
+     * @brief Declares the parameters and builds the models and the filter.
+     */
     void set_parameters();
 
+    /**
+     * @brief Creates the subscribers, publishers and the odometry timer.
+     */
     void set_subscribers_and_publishers();
 
+    /**
+     * @brief Callback for the IMU, runs the prediction step.
+     * @param msg The IMU message.
+     */
     void imu_callback(const sensor_msgs::msg::Imu::ConstSharedPtr msg);
 
+    /**
+     * @brief Callback for the DVL, runs the velocity update and publishes
+     * the NIS.
+     * @param msg The DVL twist message.
+     */
     void dvl_callback(
         const geometry_msgs::msg::TwistWithCovarianceStamped::ConstSharedPtr
             msg);
 
+    /**
+     * @brief Callback for the pressure sensor, runs the depth update and
+     * publishes the NIS.
+     * @param msg The fluid pressure message.
+     */
     void pressure_callback(
         const sensor_msgs::msg::FluidPressure::ConstSharedPtr msg);
 
+    /**
+     * @brief Callback for the magnetometer, runs the field update and
+     * publishes the NIS.
+     * @param msg The magnetic field message.
+     */
     void magnetometer_callback(
         const sensor_msgs::msg::MagneticField::ConstSharedPtr msg);
 
+    /**
+     * @brief Publishes the current estimate as odometry.
+     */
     void publish_odom();
 
+    /**
+     * @brief Prefixes a frame name with the frame prefix, if there is one.
+     * @param name The frame name.
+     * @return The prefixed frame name.
+     */
     std::string frame(const std::string& name) const {
         return frame_prefix_.empty() ? name : frame_prefix_ + "/" + name;
     }
