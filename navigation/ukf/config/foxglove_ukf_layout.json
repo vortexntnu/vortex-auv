@@ -1,25 +1,25 @@
 {
   "configById": {
     "Plot!accel_est": {
-      "title": "Accel bias (estimate)",
+      "title": "UKF estimate: accel bias [m/s\u00b2]",
       "paths": [
         {
           "value": "/nautilus/ukf/accel_bias.vector.x",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "ukf x"
+          "label": "UKF accel bias x"
         },
         {
           "value": "/nautilus/ukf/accel_bias.vector.y",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "ukf y"
+          "label": "UKF accel bias y"
         },
         {
           "value": "/nautilus/ukf/accel_bias.vector.z",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "ukf z"
+          "label": "UKF accel bias z"
         }
       ],
       "showXAxisLabels": true,
@@ -34,25 +34,25 @@
       "maxYValue": null
     },
     "Plot!gyro_true": {
-      "title": "Gyro bias (true) - no sim topic yet",
+      "title": "Ground truth: gyro bias [rad/s] (sim has no such topic yet)",
       "paths": [
         {
           "value": "/nautilus/sim/gyro_bias_true.vector.x",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "true x"
+          "label": "true gyro bias x"
         },
         {
           "value": "/nautilus/sim/gyro_bias_true.vector.y",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "true y"
+          "label": "true gyro bias y"
         },
         {
           "value": "/nautilus/sim/gyro_bias_true.vector.z",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "true z"
+          "label": "true gyro bias z"
         }
       ],
       "showXAxisLabels": true,
@@ -67,25 +67,25 @@
       "maxYValue": null
     },
     "Plot!accel_true": {
-      "title": "Accel bias (true) - no sim topic yet",
+      "title": "Ground truth: accel bias [m/s\u00b2] (sim has no such topic yet)",
       "paths": [
         {
           "value": "/nautilus/sim/accel_bias_true.vector.x",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "true x"
+          "label": "true accel bias x"
         },
         {
           "value": "/nautilus/sim/accel_bias_true.vector.y",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "true y"
+          "label": "true accel bias y"
         },
         {
           "value": "/nautilus/sim/accel_bias_true.vector.z",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "true z"
+          "label": "true accel bias z"
         }
       ],
       "showXAxisLabels": true,
@@ -100,19 +100,29 @@
       "maxYValue": null
     },
     "Plot!nis_dvl": {
-      "title": "NIS DVL (chi2(3), 99.9% = 16.27)",
+      "title": "UKF NIS: DVL velocity update, 3 dof (95% band: 0.22 to 9.35)",
       "paths": [
         {
           "value": "/nautilus/ukf/nis_dvl.data",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "ukf"
+          "label": "UKF"
         },
         {
-          "value": "/nautilus/eskf/nis_dvl.data",
+          "value": "/nautilus/ukf/bounds/chi2_95_lower_dof3.data",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "eskf"
+          "label": "95% lower bound (dof 3)",
+          "color": "#9aa0a6",
+          "lineSize": 1
+        },
+        {
+          "value": "/nautilus/ukf/bounds/chi2_95_upper_dof3.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "95% upper bound (dof 3)",
+          "color": "#9aa0a6",
+          "lineSize": 1
         }
       ],
       "showXAxisLabels": true,
@@ -127,19 +137,29 @@
       "maxYValue": null
     },
     "Plot!nis_depth": {
-      "title": "NIS depth (chi2(1), 99.9% = 10.83)",
+      "title": "UKF NIS: depth update, 1 dof (95% band: 0.001 to 5.02)",
       "paths": [
         {
           "value": "/nautilus/ukf/nis_depth.data",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "ukf"
+          "label": "UKF"
         },
         {
-          "value": "/nautilus/eskf/nis_depth.data",
+          "value": "/nautilus/ukf/bounds/chi2_95_lower_dof1.data",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "eskf"
+          "label": "95% lower bound (dof 1)",
+          "color": "#9aa0a6",
+          "lineSize": 1
+        },
+        {
+          "value": "/nautilus/ukf/bounds/chi2_95_upper_dof1.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "95% upper bound (dof 1)",
+          "color": "#9aa0a6",
+          "lineSize": 1
         }
       ],
       "showXAxisLabels": true,
@@ -154,19 +174,29 @@
       "maxYValue": null
     },
     "Plot!nees_pos": {
-      "title": "NEES position (needs a nees topic)",
+      "title": "UKF NEES: position vs truth, 3 dof (95% band: 0.22 to 9.35)",
       "paths": [
         {
           "value": "/nautilus/ukf/nees_position.data",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "ukf"
+          "label": "UKF"
         },
         {
-          "value": "/nautilus/eskf/nees_position.data",
+          "value": "/nautilus/ukf/bounds/chi2_95_lower_dof3.data",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "eskf"
+          "label": "95% lower bound (dof 3)",
+          "color": "#9aa0a6",
+          "lineSize": 1
+        },
+        {
+          "value": "/nautilus/ukf/bounds/chi2_95_upper_dof3.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "95% upper bound (dof 3)",
+          "color": "#9aa0a6",
+          "lineSize": 1
         }
       ],
       "showXAxisLabels": true,
@@ -181,19 +211,29 @@
       "maxYValue": null
     },
     "Plot!nees_att": {
-      "title": "NEES attitude (needs a nees topic)",
+      "title": "UKF NEES: attitude vs truth, 3 dof (95% band: 0.22 to 9.35)",
       "paths": [
         {
           "value": "/nautilus/ukf/nees_attitude.data",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "ukf"
+          "label": "UKF"
         },
         {
-          "value": "/nautilus/eskf/nees_attitude.data",
+          "value": "/nautilus/ukf/bounds/chi2_95_lower_dof3.data",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "eskf"
+          "label": "95% lower bound (dof 3)",
+          "color": "#9aa0a6",
+          "lineSize": 1
+        },
+        {
+          "value": "/nautilus/ukf/bounds/chi2_95_upper_dof3.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "95% upper bound (dof 3)",
+          "color": "#9aa0a6",
+          "lineSize": 1
         }
       ],
       "showXAxisLabels": true,
@@ -205,150 +245,6 @@
       "xAxisVal": "timestamp",
       "sidebarDimension": 240,
       "minYValue": 0,
-      "maxYValue": null
-    },
-    "Plot!pos_xy": {
-      "title": "Position x, y",
-      "paths": [
-        {
-          "value": "/nautilus/ukf/odom.pose.pose.position.x",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "ukf x"
-        },
-        {
-          "value": "/nautilus/odom.pose.pose.position.x",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "true x"
-        },
-        {
-          "value": "/nautilus/ukf/odom.pose.pose.position.y",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "ukf y"
-        },
-        {
-          "value": "/nautilus/odom.pose.pose.position.y",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "true y"
-        }
-      ],
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "showLegend": true,
-      "legendDisplay": "floating",
-      "showPlotValuesInLegend": true,
-      "isSynced": true,
-      "xAxisVal": "timestamp",
-      "sidebarDimension": 240,
-      "minYValue": null,
-      "maxYValue": null
-    },
-    "Plot!pos_z": {
-      "title": "Position z (depth)",
-      "paths": [
-        {
-          "value": "/nautilus/ukf/odom.pose.pose.position.z",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "ukf z"
-        },
-        {
-          "value": "/nautilus/odom.pose.pose.position.z",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "true z"
-        }
-      ],
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "showLegend": true,
-      "legendDisplay": "floating",
-      "showPlotValuesInLegend": true,
-      "isSynced": true,
-      "xAxisVal": "timestamp",
-      "sidebarDimension": 240,
-      "minYValue": null,
-      "maxYValue": null
-    },
-    "Plot!quat_w": {
-      "title": "Orientation w, x",
-      "paths": [
-        {
-          "value": "/nautilus/ukf/odom.pose.pose.orientation.w",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "ukf w"
-        },
-        {
-          "value": "/nautilus/odom.pose.pose.orientation.w",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "true w"
-        },
-        {
-          "value": "/nautilus/ukf/odom.pose.pose.orientation.x",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "ukf x"
-        },
-        {
-          "value": "/nautilus/odom.pose.pose.orientation.x",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "true x"
-        }
-      ],
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "showLegend": true,
-      "legendDisplay": "floating",
-      "showPlotValuesInLegend": true,
-      "isSynced": true,
-      "xAxisVal": "timestamp",
-      "sidebarDimension": 240,
-      "minYValue": null,
-      "maxYValue": null
-    },
-    "Plot!quat_yz": {
-      "title": "Orientation y, z",
-      "paths": [
-        {
-          "value": "/nautilus/ukf/odom.pose.pose.orientation.y",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "ukf y"
-        },
-        {
-          "value": "/nautilus/odom.pose.pose.orientation.y",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "true y"
-        },
-        {
-          "value": "/nautilus/ukf/odom.pose.pose.orientation.z",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "ukf z"
-        },
-        {
-          "value": "/nautilus/odom.pose.pose.orientation.z",
-          "enabled": true,
-          "timestampMethod": "receiveTime",
-          "label": "true z"
-        }
-      ],
-      "showXAxisLabels": true,
-      "showYAxisLabels": true,
-      "showLegend": true,
-      "legendDisplay": "floating",
-      "showPlotValuesInLegend": true,
-      "isSynced": true,
-      "xAxisVal": "timestamp",
-      "sidebarDimension": 240,
-      "minYValue": null,
       "maxYValue": null
     },
     "3D!traj": {
@@ -400,25 +296,25 @@
       }
     },
     "Plot!gyro_est": {
-      "title": "Gyro bias (estimate)",
+      "title": "UKF estimate: gyro bias [rad/s]",
       "paths": [
         {
           "value": "/nautilus/ukf/gyro_bias.vector.x",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "ukf x"
+          "label": "UKF gyro bias x"
         },
         {
           "value": "/nautilus/ukf/gyro_bias.vector.y",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "ukf y"
+          "label": "UKF gyro bias y"
         },
         {
           "value": "/nautilus/ukf/gyro_bias.vector.z",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "ukf z"
+          "label": "UKF gyro bias z"
         }
       ],
       "showXAxisLabels": true,
@@ -436,7 +332,7 @@
       "activeTabIdx": 0,
       "tabs": [
         {
-          "title": "Biases",
+          "title": "1. Bias estimates",
           "layout": {
             "direction": "row",
             "first": {
@@ -455,7 +351,7 @@
           }
         },
         {
-          "title": "NIS / NEES",
+          "title": "2. Filter consistency (NIS / NEES)",
           "layout": {
             "direction": "row",
             "first": {
@@ -474,30 +370,247 @@
           }
         },
         {
-          "title": "Estimate vs truth",
+          "title": "3. UKF vs ground truth",
           "layout": {
-            "direction": "row",
+            "direction": "column",
             "first": {
-              "direction": "column",
-              "first": "Plot!pos_xy",
-              "second": "Plot!pos_z",
-              "splitPercentage": 50
+              "direction": "row",
+              "first": "Plot!pos_x",
+              "second": {
+                "direction": "row",
+                "first": "Plot!pos_y",
+                "second": "Plot!pos_z",
+                "splitPercentage": 50.0
+              },
+              "splitPercentage": 33.333333333333336
             },
             "second": {
-              "direction": "column",
-              "first": {
+              "direction": "row",
+              "first": "Plot!quat_w",
+              "second": {
                 "direction": "row",
-                "first": "Plot!quat_w",
-                "second": "Plot!quat_yz",
-                "splitPercentage": 50
+                "first": "Plot!quat_x",
+                "second": {
+                  "direction": "row",
+                  "first": "Plot!quat_y",
+                  "second": "Plot!quat_z",
+                  "splitPercentage": 50.0
+                },
+                "splitPercentage": 33.333333333333336
               },
-              "second": "3D!traj",
-              "splitPercentage": 50
+              "splitPercentage": 25.0
             },
             "splitPercentage": 50
           }
+        },
+        {
+          "title": "4. Trajectory (3D)",
+          "layout": "3D!traj"
         }
       ]
+    },
+    "Plot!pos_x": {
+      "title": "UKF estimate vs ground truth: Position x [m]",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/odom.pose.pose.position.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "UKF estimate",
+          "color": "#4e9bff"
+        },
+        {
+          "value": "/nautilus/odom.pose.pose.position.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "Ground truth (sim)",
+          "color": "#ff7a45"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
+    },
+    "Plot!pos_y": {
+      "title": "UKF estimate vs ground truth: Position y [m]",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/odom.pose.pose.position.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "UKF estimate",
+          "color": "#4e9bff"
+        },
+        {
+          "value": "/nautilus/odom.pose.pose.position.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "Ground truth (sim)",
+          "color": "#ff7a45"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
+    },
+    "Plot!pos_z": {
+      "title": "UKF estimate vs ground truth: Position z, depth [m]",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/odom.pose.pose.position.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "UKF estimate",
+          "color": "#4e9bff"
+        },
+        {
+          "value": "/nautilus/odom.pose.pose.position.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "Ground truth (sim)",
+          "color": "#ff7a45"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
+    },
+    "Plot!quat_w": {
+      "title": "UKF estimate vs ground truth: Orientation quaternion w",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/odom.pose.pose.orientation.w",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "UKF estimate",
+          "color": "#4e9bff"
+        },
+        {
+          "value": "/nautilus/odom.pose.pose.orientation.w",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "Ground truth (sim)",
+          "color": "#ff7a45"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
+    },
+    "Plot!quat_x": {
+      "title": "UKF estimate vs ground truth: Orientation quaternion x",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/odom.pose.pose.orientation.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "UKF estimate",
+          "color": "#4e9bff"
+        },
+        {
+          "value": "/nautilus/odom.pose.pose.orientation.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "Ground truth (sim)",
+          "color": "#ff7a45"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
+    },
+    "Plot!quat_y": {
+      "title": "UKF estimate vs ground truth: Orientation quaternion y",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/odom.pose.pose.orientation.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "UKF estimate",
+          "color": "#4e9bff"
+        },
+        {
+          "value": "/nautilus/odom.pose.pose.orientation.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "Ground truth (sim)",
+          "color": "#ff7a45"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
+    },
+    "Plot!quat_z": {
+      "title": "UKF estimate vs ground truth: Orientation quaternion z",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/odom.pose.pose.orientation.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "UKF estimate",
+          "color": "#4e9bff"
+        },
+        {
+          "value": "/nautilus/odom.pose.pose.orientation.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "Ground truth (sim)",
+          "color": "#ff7a45"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": null,
+      "maxYValue": null
     }
   },
   "globalVariables": {},
