@@ -20,7 +20,8 @@ const LandmarkState* best_of(const std::vector<LandmarkState>& landmarks,
                              const std::string& cls);
 
 /// gate_middle and <panel>_entrance / <panel>_exit, +X through the gate away
-/// from the start. Empty until both panels are mapped.
+/// from the start. With one panel mapped: only that panel's two frames, +X
+/// along the line from the start to the panel.
 std::vector<NamedPose> gate_frames(const std::vector<LandmarkState>& landmarks,
                                    const GateParams& gate,
                                    const gtsam::Point3& start);

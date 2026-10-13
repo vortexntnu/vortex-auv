@@ -60,11 +60,8 @@
     # the landmark, solid: draw the object itself instead of an outline.
     markers:
       boxes:
-        gate_pole_edge: {size: [0.076, 0.076, 1.364], solid: true, color: [0.8, 0.1, 0.1]}
-        gate_pole_middle: {size: [0.051, 0.051, 0.61], solid: true, color: [1.0, 0.0, 0.0]}
         slalom_pipe_white: {size: [0.03, 0.03, 0.938], solid: true, color: [1.0, 1.0, 1.0]}
         slalom_pipe_red: {size: [0.03, 0.03, 0.938], solid: true, color: [1.0, 0.0, 0.0]}
-        gate: {size: [0.08, 3.18, 1.36]}
         torpedo_board: {size: [0.05, 0.61, 0.61]}
         bin_structure: {size: [1.40, 1.45, 0.69]}
         table: {size: [0.61, 1.12, 0.77], offset: [0.0, 0.0, 0.33]}
@@ -80,9 +77,6 @@
     classes:
       gate_search_rescue: {type: GATE, subtype: GATE_SEARCH_RESCUE, symmetry_deg: 0.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
       gate_survey_repair: {type: GATE, subtype: GATE_SURVEY_REPAIR, symmetry_deg: 0.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
-      gate: {type: GATE, subtype: GATE_WHOLE, symmetry_deg: 180.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
-      gate_pole_edge: {type: GATE, subtype: GATE_POLE_EDGE, symmetry_deg: 360.0, has_orientation: false, prior: "gate", prior_radius_m: 3.0, max_instances: 2}
-      gate_pole_middle: {type: GATE, subtype: GATE_POLE_MIDDLE, symmetry_deg: 360.0, has_orientation: false, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
       slalom_pipe_white: {type: SLALOM_PIPE, subtype: SLALOM_PIPE_WHITE, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 6, group: "slalom_pipe"}
       slalom_pipe_red: {type: SLALOM_PIPE, subtype: SLALOM_PIPE_RED, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 3, group: "slalom_pipe"}
       torpedo_board: {type: TORPEDO_BOARD, subtype: TORPEDO_BOARD_WHOLE, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "landmark_server/association.hpp"
+#include "landmark_server/targets.hpp"
 
 namespace vortex::landmark_server {
 
@@ -90,6 +91,47 @@ TEST(Graph, DuplicateLandmarkIsRetired) {
     EXPECT_EQ(retired, (std::vector<std::pair<int, int>>{{1, 2}}));
     ASSERT_EQ(g.landmarks().size(), 1u);
     EXPECT_EQ(g.landmarks()[0].id, 1);
+}
+
+LandmarkState panel(const std::string& name, double x, double y) {
+    LandmarkState l;
+    l.cls.name = name;
+    l.pose = gtsam::Pose3({}, gtsam::Point3(x, y, 1.0));
+    return l;
+}
+
+TEST(GateFrames, TwoPanelsGiveTheGateDirection) {
+    GateParams gate;
+    gate.panel_classes = {"left", "right"};
+    const auto frames = gate_frames(
+        {panel("left", 4.0, -0.8), panel("right", 4.0, 0.8)}, gate, {});
+    ASSERT_EQ(frames.size(), 5u);
+    EXPECT_EQ(frames[0].name, "gate_middle");
+    EXPECT_NEAR(frames[0].pose.rotation().yaw(), 0.0, 1e-9);
+    EXPECT_EQ(frames[1].name, "left_entrance");
+    EXPECT_NEAR(frames[1].pose.x(), 3.0, 1e-9);
+    EXPECT_NEAR(frames[1].pose.y(), -0.8, 1e-9);
+}
+
+TEST(GateFrames, OnePanelUsesTheLineFromTheStart) {
+    GateParams gate;
+    gate.panel_classes = {"left", "right"};
+    const auto frames = gate_frames({panel("right", 3.0, 3.0)}, gate, {});
+    ASSERT_EQ(frames.size(), 2u);
+    EXPECT_EQ(frames[0].name, "right_entrance");
+    EXPECT_NEAR(frames[0].pose.rotation().yaw(), M_PI / 4, 1e-9);
+    EXPECT_NEAR(frames[0].pose.x(), 3.0 - std::sqrt(0.5), 1e-9);
+    EXPECT_EQ(frames[1].name, "right_exit");
+    EXPECT_NEAR(frames[1].pose.z(), 1.0 + gate.depth_below_panel_m, 1e-9);
+}
+
+TEST(GateFrames, PanelsTooFarApartGiveNoGateMiddle) {
+    GateParams gate;
+    gate.panel_classes = {"left", "right"};
+    const auto frames = gate_frames(
+        {panel("left", 4.0, -3.0), panel("right", 4.0, 3.0)}, gate, {});
+    ASSERT_EQ(frames.size(), 4u);
+    EXPECT_EQ(frames[0].name, "left_entrance");
 }
 
 }  // namespace vortex::landmark_server

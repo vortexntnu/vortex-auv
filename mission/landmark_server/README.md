@@ -70,9 +70,13 @@ Perception publishes detections on `landmarks`. To use the map, read
 | `<class>` | The object, e.g. `torpedo_board` |
 | `prior_<task>` | Where the prior map puts the task |
 | `start` | Where the run started |
-| `gate_middle`, `<panel>_entrance`, `<panel>_exit` | Gate |
+| `gate_middle`, `<panel>_entrance`, `<panel>_exit` | Gate, from the two role panels |
 
 For target frames +X is the direction to drive or face.
+
+With only one gate panel in the map there is no `gate_middle`, and that
+panel's entrance and exit point along the line from `start` to the panel.
+That is only right when the run starts in front of the gate.
 
 ## Debug mode
 
@@ -231,7 +235,7 @@ A frame 1 m in front of a buoy, facing it.
 The mission can now use `GoToFrame frame="buoy_front"`.
 
 `gate_frames()` in `targets.cpp` is a real one: it builds five frames from
-the two gate panels.
+the two gate panels, or two frames when only one panel is mapped.
 
 ### To write
 
