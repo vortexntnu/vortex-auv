@@ -48,7 +48,7 @@
       publish_biases: true
       publish_nis: true
       pressure_is_gauge: true # Stonefish publishes gauge pressure
-      max_imu_dt: 0.1
+      max_imu_dt: 0.5 # sim IMU is 20 Hz and the sim stalls under load, one late message is not a fault
       max_estimate_age: 0.25
       max_aiding_skew: 0.05
       dvl_nis_threshold: 16.266

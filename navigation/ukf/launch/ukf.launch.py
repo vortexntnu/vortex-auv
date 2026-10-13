@@ -41,12 +41,14 @@ def launch_setup(context, *args, **kwargs):
     overrides = {
         'frame_prefix': namespace,
         'publish_debug': debug_output,
-        'use_sim_time': use_sim,
+        # stonefish does not publish /clock, it stamps messages with the wall clock,
+        # so a node on sim time would never get a time and drop every message
+        'use_sim_time': False,
     }
     defaults = {
         'imu_topic': f'/{namespace}/imu/data_raw' if use_sim else '',
         'pressure_topic': f'/{namespace}/pressure_sensor' if use_sim else '',
-        'dvl_topic': f'/{namespace}/dvl/sim' if use_sim else '',
+        'dvl_topic': '',
         'magnetometer_topic': '',
     }
     for argument, parameter in [
