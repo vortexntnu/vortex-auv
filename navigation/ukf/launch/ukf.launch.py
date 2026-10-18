@@ -49,7 +49,7 @@ def launch_setup(context, *args, **kwargs):
         'imu_topic': f'/{namespace}/imu/data_raw' if use_sim else '',
         'pressure_topic': f'/{namespace}/pressure_sensor' if use_sim else '',
         'dvl_topic': '',
-        'magnetometer_topic': '',
+        'magnetometer_topic': f'/{namespace}/nucleus/mag',
     }
     for argument, parameter in [
         ('imu_topic', 'topics.imu'),
