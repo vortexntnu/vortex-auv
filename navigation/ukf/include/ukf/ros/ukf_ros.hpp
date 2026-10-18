@@ -205,13 +205,15 @@ class UKFNode : public rclcpp::Node {
     bool faulted_ = false;
     double last_dvl_stamp_ = -1;
     double last_depth_stamp_ = -1;
+    double last_magnetometer_stamp_ = -1;
 
     std::string frame_prefix_{""};
     double max_imu_dt_ = 0.1;
     double max_estimate_age_ = 0.25;
     double max_aiding_skew_ = 0.05;
-    double dvl_nis_threshold_ = 16.266;
-    double depth_nis_threshold_ = 10.828;
+    double dvl_nis_threshold_;
+    double depth_nis_threshold_;
+    double magnetometer_nis_threshold_;
 
     bool publish_debug_{false};
     bool publish_nis_{false};
@@ -229,6 +231,10 @@ class UKFNode : public rclcpp::Node {
     Eigen::Vector3d dvl_measurement_noise_std_{0.1, 0.1, 0.1};
     Eigen::Matrix3d R_dvl_ukf_ = Eigen::Matrix3d::Identity();
     Eigen::Vector3d T_dvl_ukf_ = Eigen::Vector3d::Zero();
+
+    // the magnetometer is the one in the Nucleus, so it follows the dvl frame
+    bool magnetometer_use_tf_transform_{true};
+    Eigen::Matrix3d R_magnetometer_ukf_ = Eigen::Matrix3d::Identity();
 
     bool pressure_use_tf_transform_{true};
     bool pressure_use_msg_noise_{false};

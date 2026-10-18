@@ -73,7 +73,6 @@ class DVLMeasurementModel {
  */
 struct MagnetometerConfig {
     Eigen::Matrix3d field_noise = Eigen::Matrix3d::Identity();
-    // local earth field in the navigation frame
     Eigen::Vector3d reference_field = Eigen::Vector3d::UnitX();
 };
 
@@ -92,7 +91,8 @@ class MagnetometerMeasurementModel {
     explicit MagnetometerMeasurementModel(const MagnetometerConfig& config);
 
     /**
-     * @brief The measurement function, predicting the reference field rotated into the body frame.
+     * @brief The measurement function, predicting the reference field rotated
+     * into the body frame.
      * @param state The state.
      * @param input The IMU measurement.
      * @return The predicted measurement.
@@ -153,7 +153,8 @@ class DepthMeasurementModel {
     explicit DepthMeasurementModel(const DepthConfig& config);
 
     /**
-     * @brief The measurement function, predicting the depth of the sensor, which depends on attitude through the lever arm.
+     * @brief The measurement function, predicting the depth of the sensor,
+     * which depends on attitude through the lever arm.
      * @param state The state.
      * @param input The IMU measurement.
      * @return The predicted measurement.

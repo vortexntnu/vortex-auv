@@ -44,15 +44,68 @@ A model is anything that satisfies the concepts in `models/manifold.hpp`: a
 sensor adds `h` and `R`. Adding a sensor means writing one class and calling
 `ukf.update(..., sensor)`, nothing else changes.
 
+## Magnetometer
+
+The IMU, DVL and depth sensor cannot observe absolute yaw, so the UKF also
+uses the magnetometer in the Nortek Nucleus. It measures the earth's magnetic
+field in the sensor frame, in tesla. The Nucleus sits next to the DVL, so the
+field is rotated into `base_link` with the `dvl_link` transform.
+
+The model predicts the field as `h(x) = R^T * reference_field`, where `R` is
+the attitude of the state and `reference_field` is the earth field in the
+navigation frame (NED). The measurement is a plain vector, so the innovation is
+a plain difference. Updates are gated on NIS like the other sensors
+(`magnetometer_nis_threshold`) and the NIS is published on `ukf/nis_magnetometer`.
+
+Set `sensors.magnetometer` in the params file:
+
+| parameter                    | meaning                                                  |
+| ---------------------------- | -------------------------------------------------------- |
+| `reference_field`            | earth field for the site in NED [T]                      |
+| `measurement_noise_std_diag` | noise std per axis [T], keep it above the datasheet value |
+| `use_tf_transform`           | take the sensor rotation from TF instead of parameters   |
+
+A wrong `reference_field` (declination, inclination) or a constant offset from
+the vehicle (hard iron) that the filter does not model shows up as a yaw error.
+
+### In the simulator
+
+Stonefish has no magnetometer, so `stonefish_sim_interface` makes one from the
+true attitude. It rotates its own earth field into the sensor frame, adds a hard
+iron offset and Gaussian noise, and publishes `sensor_msgs/MagneticField` on
+`nucleus/mag` at the rate of the truth odometry (10 Hz). The values are in
+`stonefish_sim_interface/config/magnetometer.yaml`. They differ from the
+filter's on purpose, so the filter is tested against a mismatch like on the
+real vehicle. The noise seed is fixed so runs are repeatable.
+
 ## Build and launch
 
 The ukf also introduces the flag, `use_sim` which picks `ukf_params.yaml`
 for running the drone in the Stonefish simulator or without flags
 to utilize the `ukf_params_real_world.yaml` config for the vehicle:
 
+### Launch and build UKF package standalone:
+
 ```sh
 colcon build --packages-up-to ukf
 ros2 launch ukf ukf.launch.py drone:=nautilus use_sim:=true
+```
+
+### UKF Consistency testing shell script:
+
+1. Copy the .sh script into same level as your src/ directory
+   for example:
+
+```sh
+cp -r ukf/scripts/launch_ukf_sim.sh ~/ros2_ws/
+cd ~/ros2_ws/ && chmod +x launch_ukf_sim.sh
+```
+
+2. Run the shell script, make sure stonefish, foxglove and ukf packages work.
+   Advised to run the build simulator script beforehand.
+
+```sh
+cd ~/ros2_ws/ && ./launch_ukf_sim.sh
 ```
 
 The node reads the same IMU, DVL and pressure topics as the ESKF, plus a

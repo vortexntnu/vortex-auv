@@ -45,11 +45,14 @@ UKFNode::UKFNode(const rclcpp::NodeOptions& options)
         this->declare_parameter<bool>("sensors.dvl.use_msg_noise");
     pressure_use_tf_transform_ =
         this->declare_parameter<bool>("sensors.pressure.use_tf_transform");
+    magnetometer_use_tf_transform_ =
+        this->declare_parameter<bool>("sensors.magnetometer.use_tf_transform");
     pressure_use_msg_noise_ =
         this->declare_parameter<bool>("sensors.pressure.use_msg_noise");
 
     const bool any_use_tf = imu_use_tf_transform_ || dvl_use_tf_transform_ ||
-                            pressure_use_tf_transform_;
+                            pressure_use_tf_transform_ ||
+                            magnetometer_use_tf_transform_;
 
     if (any_use_tf) {
         tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
@@ -98,6 +101,17 @@ void UKFNode::set_parameters() {
         if (T_dvl.size() != 3)
             throw std::runtime_error("Invalid T_dvl transform size");
         T_dvl_ukf_ = Eigen::Map<Eigen::Vector3d>(T_dvl.data());
+    }
+
+    if (!magnetometer_use_tf_transform_) {
+        std::vector<double> R_magnetometer =
+            this->declare_parameter<std::vector<double>>(
+                "sensors.magnetometer.transform.r");
+        if (R_magnetometer.size() != 9)
+            throw std::runtime_error("Invalid R_magnetometer transform size");
+        R_magnetometer_ukf_ =
+            Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
+                R_magnetometer.data());
     }
 
     if (!pressure_use_tf_transform_) {
@@ -168,7 +182,7 @@ void UKFNode::set_parameters() {
         (dvl_measurement_noise_std_.array() <= 0).any())
         throw std::runtime_error(
             "Invalid timing or sensor noise configuration");
-    for (const auto& R : {R_imu_ukf_, R_dvl_ukf_}) {
+    for (const auto& R : {R_imu_ukf_, R_dvl_ukf_, R_magnetometer_ukf_}) {
         if (!R.allFinite() ||
             !(R.transpose() * R).isApprox(Eigen::Matrix3d::Identity(), 1e-6) ||
             std::abs(R.determinant() - 1) > 1e-6)
@@ -178,9 +192,11 @@ void UKFNode::set_parameters() {
         !T_depth_ukf_.allFinite())
         throw std::runtime_error("Invalid sensor translation");
 
-    dvl_nis_threshold_ = declare_parameter<double>("dvl_nis_threshold", 16.266);
+    dvl_nis_threshold_ = declare_parameter<double>("dvl_nis_threshold");
     depth_nis_threshold_ =
-        declare_parameter<double>("depth_nis_threshold", 10.828);
+        declare_parameter<double>("depth_nis_threshold");
+    magnetometer_nis_threshold_ =
+        declare_parameter<double>("magnetometer_nis_threshold");
 
     // the magnetometer noise and reference field are fixed, so it is built once
     const std::vector<double> magnetometer_noise_std =
@@ -346,6 +362,15 @@ void UKFNode::lookup_static_transforms() {
                     frame("base_link"), frame("pressure_sensor_link"),
                     tf2::TimePointZero));
             T_depth_ukf_ = Tf_base_depth.translation();
+        }
+
+        if (magnetometer_use_tf_transform_) {
+            // the magnetometer is the one in the Nucleus, next to the dvl
+            const Eigen::Isometry3d Tf_base_magnetometer =
+                tf2::transformToEigen(tf_buffer_->lookupTransform(
+                    frame("base_link"), frame("dvl_link"),
+                    tf2::TimePointZero));
+            R_magnetometer_ukf_ = Tf_base_magnetometer.rotation();
         }
 
         tf_timer_->cancel();
@@ -624,7 +649,33 @@ void UKFNode::pressure_callback(
 
 void UKFNode::magnetometer_callback(
     const sensor_msgs::msg::MagneticField::ConstSharedPtr msg) {
-    // TODO: field into base_link, update, nis
+    if (!accept_aiding_stamp(
+            rclcpp::Time(msg->header.stamp, get_clock()->get_clock_type()),
+            last_magnetometer_stamp_))
+        return;
+
+    // the message is in tesla, like the model, and in the sensor frame
+    const Eigen::Vector3d field =
+        R_magnetometer_ukf_ * Eigen::Vector3d(msg->magnetic_field.x,
+                                              msg->magnetic_field.y,
+                                              msg->magnetic_field.z);
+    if (!field.allFinite())
+        return;
+
+    double nis = std::numeric_limits<double>::quiet_NaN();
+    const bool accepted = apply_update(
+        ukf_->update(estimate_, field, latest_input_, *magnetometer_model_),
+        magnetometer_nis_threshold_, nis);
+    if (!accepted)
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                             "Magnetometer correction rejected (invalid "
+                             "covariance/data or innovation)");
+
+    if (publish_nis_) {
+        std_msgs::msg::Float64 nis_msg;
+        nis_msg.data = nis;
+        nis_magnetometer_pub_->publish(nis_msg);
+    }
 }
 
 void UKFNode::publish_odom() {
