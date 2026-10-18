@@ -37,14 +37,16 @@ x_{i+1} = x_i + \dot{x}_i * dt
 
 Each waypoint has a mode that determines which degrees of freedom are controlled by the reference filter. The mode also determines how convergence is measured.
 
-| Mode | Controlled DOFs | Errors checked |
+| Mode | Controlled DOFs | Convergence metric |
 |---|---|---|
-| `FULL_POSE` | All 6 DOF (position + orientation) | Position and angle errors |
-| `ONLY_POSITION` | x, y, z (orientation holds current value) | Position error |
-| `FORWARD_HEADING` | x, y, z + yaw toward target (roll/pitch = 0) | Position error and yaw error |
-| `ONLY_ORIENTATION` | roll, pitch, yaw (position holds current value) | Angle errors |
+| `FULL_POSE` | All 6 DOF (position + orientation) | Euclidean norm of position and angle errors |
+| `ONLY_POSITION` | x, y, z (orientation holds current value) | Euclidean norm of position error |
+| `FORWARD_HEADING` | x, y, z + yaw toward target (roll/pitch = 0) | Euclidean norm of position error and yaw error |
+| `ONLY_ORIENTATION` | roll, pitch, yaw (position holds current value) | Euclidean norm of angle errors |
 
-For all modes, convergence is reached when the position error is below the waypoint's `position_tolerance` [m] and the orientation error below its `orientation_tolerance` [rad]. A tolerance left at 0 uses the parameter `default_position_tolerance` / `default_orientation_tolerance`.
+For all modes, convergence is reached when the position error norm is below `position_tolerance` and the orientation error norm is below `orientation_tolerance` of the goal waypoint. A tolerance <= 0 is not checked, and a tolerance for a part the mode does not control (for example `orientation_tolerance` with `ONLY_POSITION`) has no effect, so a goal whose controlled tolerances are all <= 0 counts as converged immediately.
+
+The tolerances must hold continuously for the waypoint's `hold_time_sec` (default 0, converge at once) before the goal succeeds. A new goal sent while another is executing keeps the filter state and only changes the target and tolerances; the first goal after startup starts from the measured pose and twist.
 
 ## Action Server
 

@@ -83,21 +83,23 @@ The reset step keeps $\delta p$ and $\delta \phi$ near zero at all times, ensuri
 
 Each waypoint has a mode that determines which degrees of freedom are controlled by the reference filter. The mode also determines how convergence is measured.
 
-| Mode | Controlled DOFs | Errors checked |
+| Mode | Controlled DOFs | Convergence metric |
 |---|---|---|
-| `FULL_POSE` | All 6 DOF (position + orientation) | Position error and quaternion error |
-| `ONLY_POSITION` | x, y, z (orientation holds current value) | Position error |
-| `FORWARD_HEADING` | x, y, z + yaw toward target | Position error and yaw component of quaternion error |
-| `ONLY_ORIENTATION` | Orientation only (position holds current value) | Quaternion error |
+| `FULL_POSE` | All 6 DOF (position + orientation) | Position error norm + quaternion error norm |
+| `ONLY_POSITION` | x, y, z (orientation holds current value) | Position error norm |
+| `FORWARD_HEADING` | x, y, z + yaw toward target | Position error norm + yaw component of quaternion error |
+| `ONLY_ORIENTATION` | Orientation only (position holds current value) | Quaternion error norm |
 
-For all modes, convergence is reached when the position error is below the waypoint's `position_tolerance` [m] and the orientation error below its `orientation_tolerance` [rad]. A tolerance left at 0 uses the parameter `default_position_tolerance` / `default_orientation_tolerance`.
+For all modes, convergence is reached when the position error norm is below `position_tolerance` and the orientation error norm is below `orientation_tolerance` of the goal waypoint. A tolerance <= 0 is not checked, and a tolerance for a part the mode does not control (for example `orientation_tolerance` with `ONLY_POSITION`) has no effect, so a goal whose controlled tolerances are all <= 0 counts as converged immediately.
+
+The tolerances must hold continuously for the waypoint's `hold_time_sec` (default 0, converge at once) before the goal succeeds. A new goal sent while another is executing keeps the filter state and only changes the target and tolerances; the first goal after startup starts from the measured pose and twist.
 
 ### Action Server
 
 The action server handles goal requests and publishes guidance commands. The server always prioritizes new goal requests, aborting ongoing requests when a new one arrives.
 
 - Action name: `/reference_filter`
-- Goal type: Waypoint (pose + mode + convergence threshold)
+- Goal type: Waypoint (pose + mode + position and orientation tolerance)
 - Result type: bool
 - Guidance topic: `/dp/reference`
 

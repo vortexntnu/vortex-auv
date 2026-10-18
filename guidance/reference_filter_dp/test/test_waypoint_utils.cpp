@@ -166,6 +166,20 @@ TEST(HasConverged, ForwardHeadingUsesPositionAndYawOnly) {
                               WaypointMode::FORWARD_HEADING, {0.1, 0.1}));
 }
 
+TEST(HasConverged, SeparateTolerancesAreCheckedIndependently) {
+    Eigen::Vector6d measured = Eigen::Vector6d::Zero();
+    Eigen::Vector6d reference = Eigen::Vector6d::Zero();
+    reference(0) = 0.05;
+    reference(5) = 0.2;
+
+    EXPECT_FALSE(has_converged(measured, reference, WaypointMode::FULL_POSE,
+                               {0.1, 0.1}));
+    EXPECT_TRUE(has_converged(measured, reference, WaypointMode::FULL_POSE,
+                              {0.1, 0.3}));
+    EXPECT_TRUE(has_converged(measured, reference, WaypointMode::FULL_POSE,
+                              {0.1, 0.0}));
+}
+
 }  // namespace vortex::guidance
 
 int main(int argc, char** argv) {

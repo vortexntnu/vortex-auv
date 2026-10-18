@@ -137,13 +137,14 @@ class TestWaypointManagerService(unittest.TestCase):
         wp1.pose.position.x = 0.0
         wp1.pose.position.y = 0.0
         wp1.pose.position.z = 1.0
+        wp1.position_tolerance = 0.3
+        wp1.orientation_tolerance = 0.3
         wp2 = Waypoint()
         wp2.pose.position.x = 1.0
         wp2.pose.position.y = 1.0
         wp2.pose.position.z = 1.0
-        for w in (wp1, wp2):
-            w.position_tolerance = 0.3
-            w.orientation_tolerance = 0.3
+        wp2.position_tolerance = 0.3
+        wp2.orientation_tolerance = 0.3
 
         goal_msg.waypoints = [wp1, wp2]
         goal_msg.persistent = True
