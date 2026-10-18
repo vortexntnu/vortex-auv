@@ -90,7 +90,7 @@ def launch_setup(context, *args, **kwargs):
                         "ins_pub_topic": f"/{namespace}/nucleus/odom",
                         "dvl_pub_topic": f"/{namespace}/nucleus/dvl",
                         "pressure_pub_topic": f"/{namespace}/nucleus/pressure",
-                        "magnetometer_pub_topic": f"/{namespace}/imu/mag",
+                        "magnetometer_pub_topic": f"/{namespace}/nucleus/mag",
                         "ins_twist_pub_topic": f"/{namespace}/nucleus/ins/twist",
                         "ins_position_pub_topic": f"/{namespace}/nucleus/ins/position",
                         "ins_pose_pub_topic": f"/{namespace}/nucleus/ins/pose",
