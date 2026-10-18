@@ -24,7 +24,7 @@ TEST_F(WaypointFollowerTests, StartAndStepConverges) {
     wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(zero_pose(), zero_twist(), wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
 
     Eigen::Vector18d state = follower.step();
 
@@ -43,7 +43,7 @@ TEST_F(WaypointFollowerTests, StepDoesNotConvergeWhenFar) {
     wp.pose = PoseEuler{10.0, 10.0, 0.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(zero_pose(), zero_twist(), wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
 
     follower.step();
 
@@ -58,7 +58,7 @@ TEST_F(WaypointFollowerTests, SetReferenceUpdatesMidSequence) {
     wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(zero_pose(), zero_twist(), wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
 
     PoseEuler new_ref{5.0, 5.0, 0.0, 0.0, 0.0, 0.0};
     follower.set_reference(new_ref);
@@ -74,7 +74,7 @@ TEST_F(WaypointFollowerTests, SnapStateToReference) {
     wp.pose = PoseEuler{3.0, 4.0, 5.0, 0.1, 0.2, 0.3};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(zero_pose(), zero_twist(), wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
     follower.snap_state_to_reference();
 
     Eigen::Vector18d state = follower.state();
@@ -92,7 +92,7 @@ TEST_F(WaypointFollowerTests, StateEvolvesWithStep) {
     wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(zero_pose(), zero_twist(), wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
 
     // Run several steps — state should move toward reference
     for (int i = 0; i < 100; ++i) {

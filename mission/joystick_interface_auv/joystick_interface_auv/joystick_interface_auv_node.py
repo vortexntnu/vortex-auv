@@ -60,6 +60,9 @@ class JoystickInterface(Node):
         self._joystick_axes_map = []
         self._joystick_buttons_map = []
         self._last_button_press_time = 0
+        # last seen state of the action buttons, so that a held button only
+        # triggers once, on the press
+        self._previous_action_buttons = (0, 0, 0, 0)
 
         self.get_logger().info(start_message)
 
@@ -498,6 +501,27 @@ class JoystickInterface(Node):
         reference_mode_button = buttons.get("Y", 0)
 
         self.calculate_movement(axes, buttons)
+
+        # only react to the press, a button that is held (a key on the keyboard
+        # joy, for instance) would otherwise trigger again once the debounce
+        # time has passed
+        action_buttons = (
+            xbox_control_mode_button,
+            software_killswitch_button,
+            software_control_mode_button,
+            reference_mode_button,
+        )
+        pressed = [
+            bool(now) and not bool(before)
+            for now, before in zip(action_buttons, self._previous_action_buttons)
+        ]
+        self._previous_action_buttons = action_buttons
+        (
+            xbox_control_mode_button,
+            software_killswitch_button,
+            software_control_mode_button,
+            reference_mode_button,
+        ) = pressed
 
         if current_time - self._last_button_press_time < self._debounce_duration:
             software_control_mode_button = False
