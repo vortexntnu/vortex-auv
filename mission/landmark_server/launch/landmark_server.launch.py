@@ -84,7 +84,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "debug",
                 default_value="false",
-                description="Also publish markers and NIS",
+                description="Also publish markers, raw detections and NIS",
             ),
             OpaqueFunction(function=launch_setup),
         ]

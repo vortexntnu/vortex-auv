@@ -90,6 +90,7 @@ Also publishes:
 |---|---|
 | `landmark_server/markers` | The map for Foxglove: a cube or real-size box per landmark, its name, id and uncertainty, and an arrow along +X when the yaw is known. Grey when not seen lately |
 | `landmark_server/nis` | Should be near 1. Higher means the `detection` noise in the config is too low |
+| `landmark_server/raw_detections` | Every detection as it comes in, a small sphere in the colour of its type that lives 0.3 s. Missed detections show as flicker next to the steady map |
 
 Off by default.
 

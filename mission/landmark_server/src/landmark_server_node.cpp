@@ -153,6 +153,8 @@ class LandmarkServerNode : public rclcpp::Node {
                     qos::reliable_transient_local_profile(1));
             nis_pub_ = create_publisher<std_msgs::msg::Float64>(
                 "landmark_server/nis", qos::reliable_profile(10));
+            raw_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(
+                "landmark_server/raw_detections", qos::reliable_profile(10));
         }
 
         set_premap_srv_ = create_service<vortex_msgs::srv::SetPremap>(
@@ -488,6 +490,9 @@ class LandmarkServerNode : public rclcpp::Node {
         if (msg->landmarks.empty()) {
             return;
         }
+        if (debug_) {
+            publish_raw_detections(*msg);
+        }
         // Messages are queued per source until the next keyframe.
         std::string source = msg->header.frame_id;
         std::set<std::uint16_t> types;
@@ -503,6 +508,24 @@ class LandmarkServerNode : public rclcpp::Node {
                               cfg_.params.max_messages_per_keyframe)) {
             q.pop_front();
         }
+    }
+
+    /// Every detection as it came in, a small sphere that lives 0.3 s.
+    void publish_raw_detections(const vortex_msgs::msg::LandmarkArray& msg) {
+        visualization_msgs::msg::MarkerArray out;
+        for (const auto& l : msg.landmarks) {
+            visualization_msgs::msg::Marker m;
+            m.header = msg.header;
+            m.ns = msg.header.frame_id;  // one set of ids per source
+            m.id = static_cast<int>(out.markers.size());
+            m.type = visualization_msgs::msg::Marker::SPHERE;
+            m.pose = l.pose.pose;
+            m.scale.x = m.scale.y = m.scale.z = 0.12;
+            m.color = type_color(l.type.value);
+            m.lifetime = rclcpp::Duration::from_seconds(0.3);
+            out.markers.push_back(m);
+        }
+        raw_pub_->publish(out);
     }
 
     void process_keyframe(const gtsam::Pose3& T_odom_base, double t) {
@@ -944,6 +967,7 @@ class LandmarkServerNode : public rclcpp::Node {
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
         markers_pub_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr raw_pub_;
     bool debug_{false};
     rclcpp::Service<vortex_msgs::srv::SetPremap>::SharedPtr set_premap_srv_;
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr get_premap_srv_;

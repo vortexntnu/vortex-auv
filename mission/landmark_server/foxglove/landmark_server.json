@@ -43,11 +43,11 @@
         "/nautilus/landmark_server/markers": {
           "visible": true
         },
-        "/nautilus/test/truth": {
+        "/nautilus/landmark_server/raw_detections": {
           "visible": true
         },
-        "/nautilus/debug/raw_detections": {
-          "visible": false
+        "/nautilus/test/truth": {
+          "visible": true
         },
         "/nautilus/test/true_path": {
           "visible": true,
