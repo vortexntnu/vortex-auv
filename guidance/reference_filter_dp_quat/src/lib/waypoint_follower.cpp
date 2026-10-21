@@ -5,8 +5,6 @@
 
 namespace vortex::guidance {
 
-using vortex::utils::waypoints::ConvergenceTolerance;
-
 WaypointFollower::WaypointFollower(const ReferenceFilterParams& params,
                                    double dt_seconds)
     : filter_(params), dt_seconds_(dt_seconds) {}
@@ -26,7 +24,18 @@ void WaypointFollower::start(const Pose& pose,
     state_.segment<3>(9) = R * twist_vec.tail<3>();
 
     waypoint_mode_ = waypoint.mode;
-    set_tolerance(tolerance);
+    tolerance_ = tolerance;
+    inside_since_sec_.reset();
+    waypoint_goal_ = vortex::utils::waypoints::compute_waypoint_goal(
+        waypoint.pose, waypoint_mode_, nominal_pose_);
+}
+
+void WaypointFollower::retarget(const Waypoint& waypoint,
+                                const ConvergenceTolerance& tolerance) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    waypoint_mode_ = waypoint.mode;
+    tolerance_ = tolerance;
+    inside_since_sec_.reset();
     waypoint_goal_ = vortex::utils::waypoints::compute_waypoint_goal(
         waypoint.pose, waypoint_mode_, nominal_pose_);
 }
@@ -39,15 +48,6 @@ void WaypointFollower::step() {
         filter_.calculate_x_dot(state_, filter_reference);
     state_ += state_derivative * dt_seconds_;
     inject_and_reset();
-}
-
-void WaypointFollower::retarget(const Waypoint& waypoint,
-                                const ConvergenceTolerance& tolerance) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    waypoint_mode_ = waypoint.mode;
-    set_tolerance(tolerance);
-    waypoint_goal_ = vortex::utils::waypoints::compute_waypoint_goal(
-        waypoint.pose, waypoint_mode_, nominal_pose_);
 }
 
 Eigen::Vector6d WaypointFollower::update_reference() const {
@@ -69,9 +69,9 @@ void WaypointFollower::inject_and_reset() {
         Eigen::Quaterniond delta_quat(
             Eigen::AngleAxisd(angle, delta_orientation.normalized()));
         Eigen::Quaterniond q_new = nominal_pose_.ori_quaternion() * delta_quat;
-        /** Enforce positive hemisphere to prevent sign flips in the
-         * published reference quaternion that would cause the downstream
-         * controller to see large spurious orientation errors.
+        /** Enforce positive hemisphere to prevent sign flips in the published
+         * reference quaternion that would cause the downstream controller to
+         * see large spurious orientation errors.
          */
         if (q_new.w() < 0.0) {
             q_new.coeffs() = -q_new.coeffs();
@@ -79,11 +79,6 @@ void WaypointFollower::inject_and_reset() {
         nominal_pose_.set_ori(q_new);
         state_.segment<3>(3).setZero();
     }
-}
-
-void WaypointFollower::set_tolerance(const ConvergenceTolerance& tolerance) {
-    tolerance_ = tolerance;
-    inside_since_sec_.reset();
 }
 
 bool WaypointFollower::within_locked(const Pose& measured_pose) const {
@@ -96,25 +91,16 @@ bool WaypointFollower::within_convergance(const Pose& measured_pose) const {
     return within_locked(measured_pose);
 }
 
-bool WaypointFollower::within_convergance_ignore_z(
-    const Pose& measured_pose) const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    Pose adjusted = measured_pose;
-    adjusted.z = waypoint_goal_.z;
-    return within_locked(adjusted);
-}
-
 bool WaypointFollower::update_convergence(const Pose& measured_pose,
                                           double t_sec,
-                                          bool ignore_z,
-                                          double hold_time_sec) {
+                                          double hold_time_sec,
+                                          bool ignore_z) {
     std::lock_guard<std::mutex> lock(mutex_);
-    Pose adjusted = measured_pose;
+    Pose pose = measured_pose;
     if (ignore_z) {
-        adjusted.z = waypoint_goal_.z;
+        pose.z = waypoint_goal_.z;
     }
-
-    if (!within_locked(adjusted)) {
+    if (!within_locked(pose)) {
         inside_since_sec_.reset();
         return false;
     }

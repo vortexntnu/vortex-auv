@@ -14,6 +14,7 @@ using vortex::utils::types::Pose;
 using vortex::utils::types::Twist;
 using vortex::utils::types::Waypoint;
 using vortex::utils::types::WaypointMode;
+using vortex::utils::waypoints::ConvergenceTolerance;
 
 /**
  * @brief Manages reference filter state and waypoint following logic.
@@ -34,12 +35,22 @@ class WaypointFollower {
      * @param pose Current vehicle pose.
      * @param twist Current vehicle twist (body frame).
      * @param waypoint Target waypoint with mode.
-     * @param tolerance Position [m] and orientation [rad] tolerance.
+     * @param tolerance Position and orientation tolerances to consider target
+     * reached.
      */
     void start(const Pose& pose,
                const Twist& twist,
                const Waypoint& waypoint,
-               const vortex::utils::waypoints::ConvergenceTolerance& tolerance);
+               const ConvergenceTolerance& tolerance);
+
+    /**
+     * @brief Change the target and tolerances while keeping the filter state.
+     * @param waypoint New target waypoint with mode.
+     * @param tolerance Position and orientation tolerances to consider target
+     * reached.
+     */
+    void retarget(const Waypoint& waypoint,
+                  const ConvergenceTolerance& tolerance);
 
     /**
      * @brief Advance the filter by one time step.
@@ -50,62 +61,44 @@ class WaypointFollower {
     void step();
 
     /**
-     * @brief Update the waypoint target without resetting filter state.
-     *
-     * Preserves all filter dynamical state (the equivalent of nominal_pose_
-     * plus the velocity and acceleration slots of the state vector) so the
-     * third-order filter continues evolving from its current state. Use
-     * this on preemption; use start() only for cold-start (first goal after
-     * node init).
-     */
-    void retarget(
-        const Waypoint& waypoint,
-        const vortex::utils::waypoints::ConvergenceTolerance& tolerance);
-
-    /**
      * @brief Check if the measured pose has converged to the waypoint goal.
      * @param measured_pose Current measured pose.
-     * @return True if the errors are within the tolerance.
+     * @return True if the error norm is within the tolerances.
      */
     bool within_convergance(const Pose& measured_pose) const;
 
     /**
-     * @brief Convergence check that excludes z from the position error.
+     * @brief Check convergence, requiring the tolerances to hold continuously.
      *
-     * Use this during altitude-hold mode: the z goal tracks a noisy altitude
-     * measurement, so including it in the convergence criterion would prevent
-     * the action from ever succeeding.
+     * The hold timer resets whenever the pose leaves the tolerances, and on
+     * start() and retarget().
      * @param measured_pose Current measured pose.
-     * @return True if x/y/orientation errors are within the tolerance.
-     */
-    bool within_convergance_ignore_z(const Pose& measured_pose) const;
-
-    /**
-     * @brief Convergence check that must hold for @p hold_time_sec.
-     * @param measured_pose Current measured pose.
-     * @param t_sec Time [s] of this measurement.
-     * @param ignore_z Exclude z from the position error (altitude hold).
-     * @param hold_time_sec Required time inside the tolerance.
+     * @param t_sec Current time in seconds.
+     * @param hold_time_sec Time the tolerances must hold; <= 0 converges on
+     * the first sample within the tolerances.
+     * @param ignore_z Leave z out of the position error, for altitude hold
+     * where the z goal follows a noisy altitude measurement.
+     * @return True if the tolerances have held for hold_time_sec.
      */
     bool update_convergence(const Pose& measured_pose,
                             double t_sec,
-                            bool ignore_z,
-                            double hold_time_sec);
+                            double hold_time_sec,
+                            bool ignore_z = false);
+
+    /**
+     * @brief Update only the z component of the waypoint goal.
+     *
+     * Used in altitude hold to track the distance to the seafloor without
+     * disturbing the x, y and orientation targets.
+     * @param target_ned_z The desired NED z coordinate for the AUV.
+     */
+    void update_z_goal(double target_ned_z);
 
     /**
      * @brief Update the reference goal pose mid-sequence.
      * @param reference_goal_pose The new reference pose.
      */
     void set_reference(const Pose& reference_goal_pose);
-
-    /**
-     * @brief Update only the z component of the waypoint goal.
-     *
-     * Used during altitude-hold mode to continuously track seafloor distance
-     * without disturbing the x/y/orientation targets.
-     * @param target_ned_z The desired NED z coordinate for the AUV.
-     */
-    void update_z_goal(double target_ned_z);
 
     /**
      * @brief Snap the nominal pose to the waypoint goal and zero
@@ -131,6 +124,9 @@ class WaypointFollower {
     Pose waypoint_goal() const;
 
    private:
+    /// @brief Convergence check for callers that already hold the mutex.
+    bool within_locked(const Pose& measured_pose) const;
+
     /**
      * @brief Compute error-state reference based on the current nominal pose
      * and waypoint goal.
@@ -143,13 +139,6 @@ class WaypointFollower {
      */
     void inject_and_reset();
 
-    // Caller must hold mutex_.
-    bool within_locked(const Pose& measured_pose) const;
-
-    // Caller must hold mutex_.
-    void set_tolerance(
-        const vortex::utils::waypoints::ConvergenceTolerance& tolerance);
-
     mutable std::mutex mutex_;
     ReferenceFilter filter_;
     double dt_seconds_{0.01};
@@ -157,7 +146,7 @@ class WaypointFollower {
     Eigen::Vector18d state_ = Eigen::Vector18d::Zero();
     Pose waypoint_goal_;
     WaypointMode waypoint_mode_{WaypointMode::FULL_POSE};
-    vortex::utils::waypoints::ConvergenceTolerance tolerance_{0.1, 0.1};
+    ConvergenceTolerance tolerance_{};
     std::optional<double> inside_since_sec_;
 };
 

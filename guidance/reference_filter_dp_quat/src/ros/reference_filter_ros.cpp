@@ -280,12 +280,14 @@ void ReferenceFilterNode::handle_accepted(
         rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
         goal_handle) {
     std::lock_guard<std::mutex> lock(execute_mutex_);
+    // Keep the filter state if a goal is still executing, else cold start.
     const bool retarget = executing_.load();
     preempted_ = true;
     if (execute_thread_.joinable()) {
         execute_thread_.join();
     }
     preempted_ = false;
+    executing_ = true;
 
     execute_thread_ = std::thread(
         [this, goal_handle, retarget]() { execute(goal_handle, retarget); });
@@ -295,8 +297,6 @@ void ReferenceFilterNode::execute(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::GuidanceWaypoint>> goal_handle,
     bool retarget) {
-    executing_ = true;
-
     auto wp = vortex::utils::waypoints::waypoint_from_ros(
         goal_handle->get_goal()->waypoint);
 
@@ -386,18 +386,18 @@ void ReferenceFilterNode::execute(
 
     while (rclcpp::ok()) {
         if (preempted_.load()) {
-            executing_ = false;
             waypoint_goal_pub_->publish(vortex_msgs::msg::WaypointDebug{});
             result->success = false;
+            executing_ = false;
             goal_handle->abort(result);
             spdlog::info("Goal preempted by newer goal");
             return;
         }
 
         if (goal_handle->is_canceling()) {
-            executing_ = false;
             waypoint_goal_pub_->publish(vortex_msgs::msg::WaypointDebug{});
             result->success = false;
+            executing_ = false;
             goal_handle->canceled(result);
             spdlog::info("Goal canceled");
             return;
@@ -430,9 +430,8 @@ void ReferenceFilterNode::execute(
         }();
 
         const bool converged = follower_->update_convergence(
-            current_pose, this->get_clock()->now().seconds(),
-            keep_altitude && !wp.require_altitude_convergence,
-            wp.hold_time_sec);
+            current_pose, this->get_clock()->now().seconds(), wp.hold_time_sec,
+            keep_altitude && !wp.require_altitude_convergence);
 
         if (converged) {
             follower_->snap_state_to_reference();
@@ -444,9 +443,9 @@ void ReferenceFilterNode::execute(
                     follower_->pose(), follower_->velocity()));
             }
 
-            executing_ = false;
             waypoint_goal_pub_->publish(vortex_msgs::msg::WaypointDebug{});
             result->success = true;
+            executing_ = false;
             goal_handle->succeed(result);
             spdlog::info("Goal reached");
             return;
@@ -454,9 +453,8 @@ void ReferenceFilterNode::execute(
 
         loop_rate.sleep();
     }
-
+    executing_ = false;
     if (!rclcpp::ok() && goal_handle->is_active()) {
-        executing_ = false;
         result->success = false;
         try {
             goal_handle->abort(result);

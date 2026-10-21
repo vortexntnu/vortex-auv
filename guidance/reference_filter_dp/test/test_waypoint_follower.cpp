@@ -103,6 +103,108 @@ TEST_F(WaypointFollowerTests, StateEvolvesWithStep) {
     EXPECT_GT(follower.state()(0), 0.0);
 }
 
+TEST_F(WaypointFollowerTests, HoldTimeRequiresToleranceToHold) {
+    WaypointFollower follower(get_params(), 0.01);
+    Waypoint wp;
+    wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
+    Eigen::Vector6d at_goal = Eigen::Vector6d::Zero();
+    at_goal(0) = 1.0;
+    constexpr double hold_time_sec = 1.0;
+
+    EXPECT_FALSE(follower.update_convergence(at_goal, 0.0, hold_time_sec));
+    EXPECT_FALSE(follower.update_convergence(at_goal, 0.5, hold_time_sec));
+    EXPECT_TRUE(follower.update_convergence(at_goal, 1.0, hold_time_sec));
+}
+
+TEST_F(WaypointFollowerTests, HoldTimeResetsWhenLeavingTolerance) {
+    WaypointFollower follower(get_params(), 0.01);
+    Waypoint wp;
+    wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
+    Eigen::Vector6d at_goal = Eigen::Vector6d::Zero();
+    at_goal(0) = 1.0;
+    const Eigen::Vector6d away = Eigen::Vector6d::Zero();
+    constexpr double hold_time_sec = 1.0;
+
+    EXPECT_FALSE(follower.update_convergence(at_goal, 0.0, hold_time_sec));
+    EXPECT_FALSE(follower.update_convergence(away, 0.5, hold_time_sec));
+    EXPECT_FALSE(follower.update_convergence(at_goal, 0.6, hold_time_sec));
+    EXPECT_FALSE(follower.update_convergence(at_goal, 1.2, hold_time_sec));
+    EXPECT_TRUE(follower.update_convergence(at_goal, 1.6, hold_time_sec));
+}
+
+TEST_F(WaypointFollowerTests, ZeroHoldTimeConvergesOnFirstSample) {
+    WaypointFollower follower(get_params(), 0.01);
+    Waypoint wp;
+    wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
+    Eigen::Vector6d at_goal = Eigen::Vector6d::Zero();
+    at_goal(0) = 1.0;
+    const Eigen::Vector6d away = Eigen::Vector6d::Zero();
+
+    EXPECT_FALSE(follower.update_convergence(away, 0.0, 0.0));
+    EXPECT_TRUE(follower.update_convergence(at_goal, 1.0, 0.0));
+}
+
+TEST_F(WaypointFollowerTests, RetargetKeepsFilterStateAndChangesTarget) {
+    WaypointFollower follower(get_params(), 0.01);
+    Waypoint wp;
+    wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
+    for (int i = 0; i < 100; ++i) {
+        follower.step();
+    }
+    const Eigen::Vector18d state_before = follower.state();
+
+    Waypoint new_wp;
+    new_wp.pose = PoseEuler{3.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    follower.retarget(new_wp, {0.5, 0.5});
+
+    EXPECT_TRUE(follower.state().isApprox(state_before));
+    Eigen::Vector6d at_new_goal = Eigen::Vector6d::Zero();
+    at_new_goal(0) = 3.0;
+    Eigen::Vector6d at_old_goal = Eigen::Vector6d::Zero();
+    at_old_goal(0) = 1.0;
+    EXPECT_TRUE(follower.within_convergance(at_new_goal));
+    EXPECT_FALSE(follower.within_convergance(at_old_goal));
+}
+
+TEST_F(WaypointFollowerTests, StartResetsFilterState) {
+    WaypointFollower follower(get_params(), 0.01);
+    Waypoint wp;
+    wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
+    for (int i = 0; i < 100; ++i) {
+        follower.step();
+    }
+
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
+
+    EXPECT_TRUE(follower.state().isApprox(Eigen::Vector18d::Zero()));
+}
+
+TEST_F(WaypointFollowerTests, StartAndRetargetRestartHoldTimer) {
+    WaypointFollower follower(get_params(), 0.01);
+    Waypoint wp;
+    wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    Eigen::Vector6d at_goal = Eigen::Vector6d::Zero();
+    at_goal(0) = 1.0;
+    constexpr double hold_time_sec = 1.0;
+
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
+    EXPECT_FALSE(follower.update_convergence(at_goal, 0.0, hold_time_sec));
+    follower.retarget(wp, {0.1, 0.1});
+    EXPECT_FALSE(follower.update_convergence(at_goal, 0.5, hold_time_sec));
+    EXPECT_FALSE(follower.update_convergence(at_goal, 1.2, hold_time_sec));
+    EXPECT_TRUE(follower.update_convergence(at_goal, 1.5, hold_time_sec));
+
+    follower.start(zero_pose(), zero_twist(), wp, {0.1, 0.1});
+    EXPECT_FALSE(follower.update_convergence(at_goal, 2.0, hold_time_sec));
+    EXPECT_FALSE(follower.update_convergence(at_goal, 2.5, hold_time_sec));
+    EXPECT_TRUE(follower.update_convergence(at_goal, 3.0, hold_time_sec));
+}
+
 }  // namespace vortex::guidance
 
 int main(int argc, char** argv) {

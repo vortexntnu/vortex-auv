@@ -2,8 +2,8 @@
 #define REFERENCE_FILTER_DP__LIB__WAYPOINT_FOLLOWER_HPP_
 
 #include <mutex>
+#include <optional>
 #include <vortex/utils/types.hpp>
-#include <vortex/utils/waypoint_utils.hpp>
 #include "reference_filter_dp/lib/eigen_typedefs.hpp"
 #include "reference_filter_dp/lib/reference_filter.hpp"
 #include "reference_filter_dp/lib/waypoint_types.hpp"
@@ -27,12 +27,22 @@ class WaypointFollower {
      * @param pose Current vehicle pose.
      * @param twist Current vehicle twist (body frame).
      * @param waypoint Target waypoint with mode.
-     * @param tolerance Position [m] and orientation [rad] tolerance.
+     * @param tolerance Position and orientation tolerances to consider target
+     * reached.
      */
     void start(const PoseEuler& pose,
                const Twist& twist,
                const Waypoint& waypoint,
-               const vortex::utils::waypoints::ConvergenceTolerance& tolerance);
+               const ConvergenceTolerance& tolerance);
+
+    /**
+     * @brief Change the target and tolerances while keeping the filter state.
+     * @param waypoint New target waypoint with mode.
+     * @param tolerance Position and orientation tolerances to consider target
+     * reached.
+     */
+    void retarget(const Waypoint& waypoint,
+                  const ConvergenceTolerance& tolerance);
 
     /**
      * @brief Advance the filter by one time step.
@@ -41,41 +51,35 @@ class WaypointFollower {
     Eigen::Vector18d step();
 
     /**
-     * @brief Update the waypoint target without resetting filter state.
-     *
-     * Preserves all filter dynamical state (state_.segment<6>(6) for velocity
-     * and state_.segment<6>(12) for acceleration) so the third-order filter
-     * continues evolving from its current state. Use this on preemption; use
-     * start() only for cold-start (first goal after node init).
-     *
-     * Thread-safe.
-     */
-    void retarget(
-        const Waypoint& waypoint,
-        const vortex::utils::waypoints::ConvergenceTolerance& tolerance);
-
-    /**
      * @brief Check if the measured pose has converged to the reference goal.
      * @param measured_pose Current measured pose.
-     * @return True if the errors are within the tolerance.
+     * @return True if the error norm is within the tolerances.
      */
     bool within_convergance(const Eigen::Vector6d& measured_pose) const;
 
     /**
-     * @brief Convergence check that excludes z from the position error.
+     * @brief Check convergence, requiring the tolerances to hold continuously.
      *
-     * Use during altitude-hold mode: the z goal tracks a noisy altitude
-     * measurement, so including it in the convergence criterion would prevent
-     * the action from ever succeeding.
+     * The hold timer resets whenever the pose leaves the tolerances, and on
+     * start() and retarget().
+     * @param measured_pose Current measured pose.
+     * @param t_sec Current time in seconds.
+     * @param hold_time_sec Time the tolerances must hold; <= 0 converges on
+     * the first sample within the tolerances.
+     * @param ignore_z Leave z out of the position error, for altitude hold
+     * where the z goal follows a noisy altitude measurement.
+     * @return True if the tolerances have held for hold_time_sec.
      */
-    bool within_convergance_ignore_z(
-        const Eigen::Vector6d& measured_pose) const;
+    bool update_convergence(const Eigen::Vector6d& measured_pose,
+                            double t_sec,
+                            double hold_time_sec,
+                            bool ignore_z = false);
 
     /**
      * @brief Update only the z component of the reference goal.
      *
-     * Used during altitude-hold mode to continuously track seafloor distance
-     * without disturbing x/y/orientation targets.
+     * Used in altitude hold to track the distance to the seafloor without
+     * disturbing the x, y and orientation targets.
      * @param target_ned_z The desired NED z coordinate for the AUV.
      */
     void update_z_goal(double target_ned_z);
@@ -100,6 +104,9 @@ class WaypointFollower {
     Eigen::Vector6d reference() const;
 
    private:
+    /// @brief Convergence check for callers that already hold the mutex.
+    bool within_locked(const Eigen::Vector6d& measured_pose) const;
+
     Eigen::Vector18d compute_initial_state(const PoseEuler& pose,
                                            const Twist& twist);
 
@@ -109,7 +116,8 @@ class WaypointFollower {
     Eigen::Vector18d state_ = Eigen::Vector18d::Zero();
     Eigen::Vector6d reference_goal_ = Eigen::Vector6d::Zero();
     WaypointMode waypoint_mode_{WaypointMode::FULL_POSE};
-    vortex::utils::waypoints::ConvergenceTolerance tolerance_{0.1, 0.1};
+    ConvergenceTolerance tolerance_{};
+    std::optional<double> inside_since_sec_;
 };
 
 }  // namespace vortex::guidance

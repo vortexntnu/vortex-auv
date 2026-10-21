@@ -137,6 +137,8 @@ class TestWaypointManagerService(unittest.TestCase):
         wp1.pose.position.x = 0.0
         wp1.pose.position.y = 0.0
         wp1.pose.position.z = 1.0
+        wp1.position_tolerance = 0.3
+        wp1.orientation_tolerance = 0.3
         wp2 = Waypoint()
         wp2.pose.position.x = 1.0
         wp2.pose.position.y = 1.0

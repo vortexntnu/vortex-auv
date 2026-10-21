@@ -44,7 +44,9 @@ Each waypoint has a mode that determines which degrees of freedom are controlled
 | `FORWARD_HEADING` | x, y, z + yaw toward target (roll/pitch = 0) | Position error and yaw error |
 | `ONLY_ORIENTATION` | roll, pitch, yaw (position holds current value) | Angle errors |
 
-For all modes, convergence is reached when the position error is below the waypoint's `position_tolerance` [m] and the orientation error below its `orientation_tolerance` [rad]. A tolerance left at 0 uses the parameter `default_position_tolerance` / `default_orientation_tolerance`.
+For all modes, convergence is reached when the position error norm is below the waypoint's `position_tolerance` [m] and the orientation error norm below its `orientation_tolerance` [rad]. A tolerance left at 0 uses the parameter `default_position_tolerance` / `default_orientation_tolerance`. A tolerance for a part the mode does not control (for example `orientation_tolerance` with `ONLY_POSITION`) has no effect.
+
+The tolerances must hold continuously for the waypoint's `hold_time_sec` (default 0, converge at once) before the goal succeeds. A new goal sent while another is executing keeps the filter state and only changes the target and tolerances; the first goal after startup starts from the measured pose and twist.
 
 ## Action Server
 

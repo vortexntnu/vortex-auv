@@ -3,10 +3,13 @@
 
 #include <cstdint>
 #include <vortex/utils/types.hpp>
+#include <vortex/utils/waypoint_utils.hpp>
 
 namespace vortex::guidance {
 
 using vortex::utils::types::PoseEuler;
+using vortex::utils::waypoints::ControlledError;
+using vortex::utils::waypoints::ConvergenceTolerance;
 
 /**
  * @brief Determines which degrees of freedom the reference filter controls.
@@ -21,11 +24,7 @@ enum class WaypointMode : uint8_t {
     ONLY_ORIENTATION = 3,  ///< Control roll, pitch, yaw; hold current position.
     POSITION_AND_YAW = 4,  ///< Control x, y, z and yaw; force roll=pitch=0.
     XY_AND_YAW = 5,  ///< Control x, y and yaw; hold z, force roll=pitch=0.
-    XY_FORWARD_DIR =
-        6,  ///< Control x, y; hold z; yaw auto-computed toward target.
-    LEVEL_ORIENTATION =
-        7,       ///< Hold current position and yaw; drive roll=pitch=0.
-    ONLY_Z = 8,  ///< Hold current x, y, orientation; control z only.
+    ONLY_Z = 8,      ///< Hold current x, y, orientation; control z only.
 };
 
 /**

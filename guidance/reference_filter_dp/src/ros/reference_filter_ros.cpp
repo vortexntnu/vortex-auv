@@ -174,8 +174,13 @@ void ReferenceFilterNode::set_refererence_filter() {
 
 rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
     const rclcpp_action::GoalUUID& /*uuid*/,
-    std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal>
-    /*goal*/) {
+    std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal> goal) {
+    try {
+        waypoint_mode_from_ros(goal->waypoint.waypoint_mode);
+    } catch (const std::invalid_argument& e) {
+        spdlog::warn("ReferenceFilter: rejected goal: {}", e.what());
+        return rclcpp_action::GoalResponse::REJECT;
+    }
     spdlog::info("Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
@@ -192,12 +197,14 @@ void ReferenceFilterNode::handle_accepted(
         rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
         goal_handle) {
     std::lock_guard<std::mutex> lock(execute_mutex_);
+    // Keep the filter state if a goal is still executing, else cold start.
     const bool retarget = executing_.load();
     preempted_ = true;
     if (execute_thread_.joinable()) {
         execute_thread_.join();
     }
     preempted_ = false;
+    executing_ = true;
 
     execute_thread_ = std::thread(
         [this, goal_handle, retarget]() { execute(goal_handle, retarget); });
@@ -207,25 +214,23 @@ void ReferenceFilterNode::execute(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::GuidanceWaypoint>> goal_handle,
     bool retarget) {
-    executing_ = true;
+    const auto& waypoint_msg = goal_handle->get_goal()->waypoint;
+    // A tolerance the waypoint does not set (<= 0) uses the default
+    const ConvergenceTolerance tolerance{
+        waypoint_msg.position_tolerance > 0.0 ? waypoint_msg.position_tolerance
+                                              : default_tolerance_.position,
+        waypoint_msg.orientation_tolerance > 0.0
+            ? waypoint_msg.orientation_tolerance
+            : default_tolerance_.orientation};
 
-    const auto& wp_msg = goal_handle->get_goal()->waypoint;
-    const vortex::utils::waypoints::ConvergenceTolerance tolerance{
-        .position = wp_msg.position_tolerance > 0.0
-                        ? wp_msg.position_tolerance
-                        : default_tolerance_.position,
-        .orientation = wp_msg.orientation_tolerance > 0.0
-                           ? wp_msg.orientation_tolerance
-                           : default_tolerance_.orientation};
+    auto result =
+        std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
 
-    auto wp = waypoint_from_ros(goal_handle->get_goal()->waypoint);
-
-    if (wp.keep_altitude && altitude_control_enabled_ &&
-        wp.desired_altitude <= 0.0) {
-        executing_ = false;
-        auto result =
-            std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
+    auto wp = waypoint_from_ros(waypoint_msg);
+    const bool keep_altitude = wp.keep_altitude && altitude_control_enabled_;
+    if (keep_altitude && wp.desired_altitude <= 0.0) {
         result->success = false;
+        executing_ = false;
         goal_handle->abort(result);
         spdlog::error(
             "ReferenceFilter: desired_altitude must be > 0, got {:.3f}",
@@ -233,57 +238,46 @@ void ReferenceFilterNode::execute(
         return;
     }
 
-    if (wp.keep_altitude && altitude_control_enabled_) {
-        const auto [pose, current_alt, alt_valid] = [this] {
-            std::lock_guard lock(sensor_mutex_);
-            return std::tuple{current_pose_, current_altitude_,
-                              altitude_valid_};
-        }();
-        if (!alt_valid) {
+    const auto [pose, twist, altitude, altitude_valid] = [this] {
+        std::lock_guard lock(sensor_mutex_);
+        return std::tuple{current_pose_, current_twist_, current_altitude_,
+                          altitude_valid_};
+    }();
+
+    if (keep_altitude) {
+        if (altitude_valid) {
+            wp.pose.z = pose.z + altitude - wp.desired_altitude;
+        } else {
             spdlog::warn(
                 "ReferenceFilter: keep_altitude requested but no DVL altitude "
-                "received yet; proceeding with waypoint z as-is");
-        } else {
-            wp.pose.z = pose.z + current_alt - wp.desired_altitude;
+                "received yet; using the waypoint z");
         }
-        spdlog::info(
-            "Altitude-hold mode: desired_altitude={:.2f} m, initial "
-            "z_goal={:.3f}",
-            wp.desired_altitude, wp.pose.z);
+        spdlog::info("Altitude hold: desired_altitude={:.2f} m, z_goal={:.3f}",
+                     wp.desired_altitude, wp.pose.z);
     }
 
     if (retarget) {
         follower_->retarget(wp, tolerance);
-        spdlog::info("Executing goal (filter state preserved)");
+        spdlog::info("Executing goal (filter state kept)");
     } else {
-        const auto [pose, twist] = [this] {
-            std::lock_guard lock(sensor_mutex_);
-            return std::pair{current_pose_, current_twist_};
-        }();
         follower_->start(pose, twist, wp, tolerance);
         spdlog::info("Executing goal (cold start)");
     }
-
-    const bool keep_altitude = wp.keep_altitude && altitude_control_enabled_;
-    const double desired_altitude = wp.desired_altitude;
-
-    auto result =
-        std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
 
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
 
     while (rclcpp::ok()) {
         if (preempted_.load()) {
-            executing_ = false;
             result->success = false;
+            executing_ = false;
             goal_handle->abort(result);
             spdlog::info("Goal preempted by newer goal");
             return;
         }
 
         if (goal_handle->is_canceling()) {
-            executing_ = false;
             result->success = false;
+            executing_ = false;
             goal_handle->canceled(result);
             spdlog::info("Goal canceled");
             return;
@@ -292,12 +286,12 @@ void ReferenceFilterNode::execute(
         Eigen::Vector18d filter_state = follower_->step();
 
         if (keep_altitude) {
-            const auto [current_z, current_alt] = [this] {
+            const auto [current_z, current_altitude] = [this] {
                 std::lock_guard lock(sensor_mutex_);
                 return std::pair{current_pose_.z, current_altitude_};
             }();
-            follower_->update_z_goal(current_z + current_alt -
-                                     desired_altitude);
+            follower_->update_z_goal(current_z + current_altitude -
+                                     wp.desired_altitude);
         }
 
         reference_pub_->publish(fill_reference_msg(filter_state));
@@ -307,18 +301,17 @@ void ReferenceFilterNode::execute(
             return current_pose_.to_vector();
         }();
 
-        const bool converged =
-            keep_altitude
-                ? follower_->within_convergance_ignore_z(current_pose_vector)
-                : follower_->within_convergance(current_pose_vector);
+        // In altitude hold the z goal follows a noisy measurement: leave z out
+        const bool target_reached = follower_->update_convergence(
+            current_pose_vector, this->get_clock()->now().seconds(),
+            waypoint_msg.hold_time_sec, keep_altitude);
 
-        if (converged) {
+        if (target_reached) {
             follower_->snap_state_to_reference();
-
             reference_pub_->publish(fill_reference_msg(follower_->state()));
 
-            executing_ = false;
             result->success = true;
+            executing_ = false;
             goal_handle->succeed(result);
             spdlog::info("Goal reached");
             return;
@@ -327,8 +320,8 @@ void ReferenceFilterNode::execute(
         loop_rate.sleep();
     }
 
+    executing_ = false;
     if (!rclcpp::ok() && goal_handle->is_active()) {
-        executing_ = false;
         result->success = false;
         try {
             goal_handle->abort(result);

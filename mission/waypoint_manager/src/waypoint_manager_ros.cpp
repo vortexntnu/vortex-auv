@@ -263,6 +263,17 @@ std::string WaypointManagerNode::validate_and_resolve_goal(
             return "waypoint " + std::to_string(i) +
                    " has NaN or inf in its pose";
         }
+        // XY_FORWARD_DIR, LEVEL_ORIENTATION and POS_Z_LEVEL_ORIENTATION are
+        // not supported: FORWARD_HEADING, ONLY_ORIENTATION and ONLY_Z cover
+        // them
+        const auto mode = goal.waypoints[i].waypoint_mode.mode;
+        if (mode == vortex_msgs::msg::WaypointMode::XY_FORWARD_DIR ||
+            mode == vortex_msgs::msg::WaypointMode::LEVEL_ORIENTATION ||
+            mode == vortex_msgs::msg::WaypointMode::POS_Z_LEVEL_ORIENTATION ||
+            mode > vortex_msgs::msg::WaypointMode::POS_Z_LEVEL_ORIENTATION) {
+            return "waypoint " + std::to_string(i) +
+                   " has an unsupported waypoint mode " + std::to_string(mode);
+        }
     }
 
     GoalFrame frame = GoalFrame::WORLD;
