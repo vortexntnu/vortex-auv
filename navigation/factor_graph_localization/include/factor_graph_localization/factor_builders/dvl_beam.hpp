@@ -26,8 +26,6 @@ struct DvlBeamGeometry {
  * IMU_origin_vel: Vector3 state at the STIM300 origin, in STIM300 axes,
  * relative to the stationary bottom [m/s].
  * angular_vel: bias-corrected gyro in STIM300 axes [rad/s].
- *
- * Mounting and gyro uncertainty are not propagated.
  */
 gtsam::ExpressionFactor<double> build_dvl_beam_factor(
     const gtsam::Key IMU_origin_vel,
