@@ -46,7 +46,8 @@ class ReferenceFilterQuatWaypointClient(Node):
         goal_msg.waypoint.pose.orientation.z = quat[2]
         goal_msg.waypoint.pose.orientation.w = quat[3]
 
-        goal_msg.convergence_threshold = 0.1
+        goal_msg.waypoint.position_tolerance = 0.1
+        goal_msg.waypoint.orientation_tolerance = 0.1
 
         # Write goal pose to temp file
         file_path = "goal_pose.yaml"

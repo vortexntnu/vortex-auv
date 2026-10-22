@@ -24,18 +24,20 @@ Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& r_in,
 /**
  * @brief Check whether the measured pose has converged to the reference.
  *
- * Only the DOFs relevant to the waypoint mode are included in the error norm.
+ * Only the DOFs relevant to the waypoint mode are included in the position
+ * and orientation error norms. A tolerance <= 0 is not checked.
  *
  * @param measured_pose The current measured pose (6D).
  * @param reference The reference goal pose (6D).
  * @param mode The waypoint mode.
- * @param convergence_threshold The maximum allowed error norm.
- * @return True if the error is below the threshold.
+ * @param tolerance The maximum allowed position [m] and orientation [rad]
+ * error norms.
+ * @return True if both errors are below their tolerances.
  */
 bool has_converged(const Eigen::Vector6d& measured_pose,
                    const Eigen::Vector6d& reference,
                    WaypointMode mode,
-                   double convergence_threshold);
+                   const ConvergenceTolerance& tolerance);
 
 }  // namespace vortex::guidance
 

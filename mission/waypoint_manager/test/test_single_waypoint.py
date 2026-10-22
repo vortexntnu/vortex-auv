@@ -136,10 +136,11 @@ class TestWaypointManagerAcceptsGoal(unittest.TestCase):
         wp.pose.position.y = 0.0
         wp.pose.position.z = 1.0
         wp.pose.orientation.w = 1.0  # valid quaternion
+        wp.position_tolerance = 0.3
+        wp.orientation_tolerance = 0.3
 
         goal_msg.waypoints = [wp]
         goal_msg.persistent = False
-        goal_msg.convergence_threshold = 0.3
 
         send_fut = client.send_goal_async(goal_msg)
         rclpy.spin_until_future_complete(

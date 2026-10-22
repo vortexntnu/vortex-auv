@@ -25,7 +25,7 @@ The **Waypoint Manager** node coordinates mission-level navigation by managing w
 
 * Each waypoint is executed sequentially.
 * Pose feedback from the reference filter is forwarded to the mission planner.
-* `convergence_threshold` determines when a waypoint is reached.
+* A waypoint is reached when its `position_tolerance` [m] and `orientation_tolerance` [rad] hold (the reference filter's defaults when unset).
 * If `persistent = true`, the action does not end even when waypoints run out.
 
 ### **Mission End**
@@ -40,6 +40,17 @@ Allowed only during **persistent** missions:
 * `overwrite = true` → clears old queue and restarts from new waypoints
 * `overwrite = false` → appends waypoints to queue
 * `priority = true` → turn on priority mode. In this mode additional service requests with `priority = false` are ignored. Priority mode is set to false again when there are no more waypoints in queue.
+
+---
+
+### Frames, outcome and retargeting
+
+* `frame` in the goal: `WORLD` (default, odom poses), `BODY_RELATIVE` (offsets in the vehicle frame at goal start) or `WORLD_RELATIVE` (offsets along the odom axes from the pose at goal start). Every waypoint of a goal is relative to the start pose.
+* A new goal replaces the running one without stopping the vehicle: the reference filter retargets. The replaced goal ends with `PREEMPTED`.
+* Result: `outcome` (`SUCCEEDED`, `PREEMPTED`, `CANCELED`, `INVALID_GOAL`, `REFERENCE_FILTER_ABORTED`), `message`, `reached_index` (-1 if none). Feedback: `current_waypoint`, `current_index`.
+* `INVALID_GOAL`: NaN or inf in a pose, an unknown frame, or a relative frame before a pose was received. A running goal is not affected.
+* Per waypoint, read by the reference filter: `position_tolerance` [m], `orientation_tolerance` [rad] (0 = `default_position_tolerance` / `default_orientation_tolerance` of the filter) and `hold_time_sec`.
+* Parameters: `action_servers.reference_filter`, `topics.pose`.
 
 ---
 
@@ -62,10 +73,11 @@ ros2 action send_goal /orca/waypoint_manager vortex_msgs/action/WaypointManager 
         position: {x: 5.0, y: 0.0, z: 0.0},
         orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
       },
-      mode: 1
+      mode: 1,
+      position_tolerance: 0.1,
+      orientation_tolerance: 0.1
     }
   ],
-  convergence_threshold: 0.1,
   persistent: false
 }" --feedback
 
