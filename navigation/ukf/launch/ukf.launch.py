@@ -27,7 +27,7 @@ def launch_setup(context, *args, **kwargs):
     drone_params = os.path.join(
         get_package_share_directory('auv_setup'), 'config', 'robots', f'{drone}.yaml'
     )
-    ukf_params = os.path.join(
+    ukf_params = LaunchConfiguration('params_file').perform(context) or os.path.join(
         get_package_share_directory('ukf'),
         'config',
         'ukf_params.yaml' if use_sim else 'ukf_params_real_world.yaml',
@@ -86,6 +86,11 @@ def generate_launch_description():
             DeclareLaunchArgument('dvl_topic', default_value=''),
             DeclareLaunchArgument('pressure_topic', default_value=''),
             DeclareLaunchArgument('magnetometer_topic', default_value=''),
+            DeclareLaunchArgument(
+                'params_file',
+                default_value='',
+                description='Absolute path of a UKF params file, replaces the use_sim default.',
+            ),
             DeclareLaunchArgument(
                 'use_sim',
                 default_value='false',

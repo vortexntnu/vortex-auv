@@ -1,0 +1,61 @@
+/**:
+  ukf_node:
+    ros__parameters:
+      # Calibrated against the Stonefish noise model in nautilus_no_visual.scn, for consistency
+      # testing. Stonefish adds white noise per sample, the filter wants a continuous density:
+      #   sigma_c = sigma_sample * sqrt(dt), dt = 1 / 20 Hz.
+      # The sim has no gyro or accel bias, so the bias random walks are only kept above zero
+      # to keep the covariance positive definite.
+      # accel: 0.1 * sqrt(0.05), gyro: 0.05 * sqrt(0.05), gyro-bias RW, accel-bias RW.
+      diag_Q_std: [0.02236, 0.02236, 0.02236, 0.01118, 0.01118, 0.01118, 1.0e-6, 1.0e-6, 1.0e-6, 1.0e-6, 1.0e-6, 1.0e-6]
+      # Variances: position, velocity, local rotation, gyro bias, accel bias.
+      diag_p_init: [1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+      unscented_transform:
+        alpha: 1.0
+        beta: 2.0
+        kappa: 0.0
+      sensors:
+        imu:
+          use_tf_transform: true
+          transform:
+            r: [ -1.0,  0.0,  0.0,
+                  0.0,  1.0,  0.0,
+                  0.0,  0.0, -1.0 ]
+            t: [ 0.0, 0.0, 0.0 ]
+
+        dvl:
+          use_tf_transform: true
+          use_msg_noise: true
+          measurement_noise_std_diag: [0.1, 0.1, 0.1] # [m/s]
+          transform:
+            r: [ 0.0, -1.0,  0.0,
+                  1.0,  0.0,  0.0,
+                  0.0,  0.0,  1.0 ]
+            t: [ 0.4, 0.0, 0.2 ]
+
+        magnetometer: # Nortek Nucleus 1000, mounted with the dvl so it follows the dvl frame
+          use_tf_transform: true
+          measurement_noise_std_diag: [5.0e-8, 5.0e-8, 5.0e-8] # [T] equal to stonefish_sim_interface magnetometer.noise_std
+          # equal to stonefish_sim_interface magnetometer.earth_field_ned
+          reference_field: [1.427e-5, 8.7e-7, 4.96e-5] # [T]
+
+        pressure:
+          use_tf_transform: true
+          use_msg_noise: true # Stonefish provides variance from its noise model
+          measurement_noise: 40000.0 # [Pa^2] pressure variance
+          transform:
+            t: [ 0.0, 0.0, 0.0 ]
+
+      publish_tf: true
+      publish_pose: true
+      publish_twist: true
+      publish_rate_ms: 5
+      publish_biases: true
+      publish_nis: true
+      pressure_is_gauge: true # Stonefish publishes gauge pressure
+      max_imu_dt: 0.5 # sim IMU is 20 Hz and the sim stalls under load, one late message is not a fault
+      max_estimate_age: 0.25
+      max_aiding_skew: 0.05
+      dvl_nis_threshold: 16.266
+      depth_nis_threshold: 10.828
+      magnetometer_nis_threshold: 16.266
