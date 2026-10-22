@@ -12,7 +12,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Function to terminate processes safely on error
 cleanup() {
     echo "Error detected. Cleaning up..."
-    kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$AUTOPILOT_PID" -"$OP_MODE_PID" || true
+    kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$AUTOPILOT_PID" || true
     exit 1
 }
 trap cleanup ERR
@@ -95,6 +95,6 @@ else
 fi
 
 # Terminate processes
-kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$AUTOPILOT_PID" -"$BAG_PID" -"$OP_MODE_PID"
+kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$AUTOPILOT_PID" -"$BAG_PID"
 
 echo "Test completed successfully."

@@ -22,10 +22,10 @@ def launch_setup(context, *args, **kwargs):
         "param_velocity_controller_lqr.yaml",
     )
 
-    los_config = os.path.join(
-        get_package_share_directory("los_guidance"),
-        "config",
-        "guidance_params.yaml",
+    los_config_yaml = os.path.join(
+        get_package_share_directory('los_guidance'),
+        'config',
+        'guidance_params.yaml',
     )
 
     drone_params = os.path.join(
@@ -40,7 +40,12 @@ def launch_setup(context, *args, **kwargs):
         executable="los_guidance_node",
         name="los_guidance_node",
         namespace=namespace,
-        parameters=[drone_params, los_config],
+        parameters=[
+            drone_params,
+            {
+                'los_config_file_path': los_config_yaml,
+            },
+        ],
         output="screen",
     )
 
