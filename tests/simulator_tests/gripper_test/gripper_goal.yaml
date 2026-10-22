@@ -1,0 +1,5 @@
+action_name: /vortex/gripper/reference_filter
+mode: 0
+roll: 1.57
+pinch: -0.1
+convergence_threshold: 0.05
