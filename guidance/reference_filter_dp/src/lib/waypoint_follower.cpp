@@ -12,11 +12,22 @@ WaypointFollower::WaypointFollower(const ReferenceFilterParams& params,
 void WaypointFollower::start(const PoseEuler& pose,
                              const Twist& twist,
                              const Waypoint& waypoint,
-                             double convergence_threshold) {
+                             const ConvergenceTolerance& tolerance) {
     std::lock_guard<std::mutex> lock(mutex_);
     state_ = compute_initial_state(pose, twist);
     waypoint_mode_ = waypoint.mode;
-    convergence_threshold_ = convergence_threshold;
+    tolerance_ = tolerance;
+    inside_since_sec_.reset();
+    reference_goal_ = apply_mode_logic(waypoint.pose.to_vector(),
+                                       waypoint_mode_, state_.head<6>());
+}
+
+void WaypointFollower::retarget(const Waypoint& waypoint,
+                                const ConvergenceTolerance& tolerance) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    waypoint_mode_ = waypoint.mode;
+    tolerance_ = tolerance;
+    inside_since_sec_.reset();
     reference_goal_ = apply_mode_logic(waypoint.pose.to_vector(),
                                        waypoint_mode_, state_.head<6>());
 }
@@ -42,11 +53,40 @@ Eigen::Vector18d WaypointFollower::step() {
     return state_;
 }
 
+bool WaypointFollower::within_locked(
+    const Eigen::Vector6d& measured_pose) const {
+    return has_converged(measured_pose, reference_goal_, waypoint_mode_,
+                         tolerance_);
+}
+
 bool WaypointFollower::within_convergance(
     const Eigen::Vector6d& measured_pose) const {
     std::lock_guard<std::mutex> lock(mutex_);
-    return has_converged(measured_pose, reference_goal_, waypoint_mode_,
-                         convergence_threshold_);
+    return within_locked(measured_pose);
+}
+
+bool WaypointFollower::update_convergence(const Eigen::Vector6d& measured_pose,
+                                          double t_sec,
+                                          double hold_time_sec,
+                                          bool ignore_z) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    Eigen::Vector6d pose = measured_pose;
+    if (ignore_z) {
+        pose(2) = reference_goal_(2);
+    }
+    if (!within_locked(pose)) {
+        inside_since_sec_.reset();
+        return false;
+    }
+    if (!inside_since_sec_) {
+        inside_since_sec_ = t_sec;
+    }
+    return t_sec - *inside_since_sec_ >= hold_time_sec;
+}
+
+void WaypointFollower::update_z_goal(double target_ned_z) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    reference_goal_(2) = target_ned_z;
 }
 
 void WaypointFollower::set_reference(const PoseEuler& reference_goal_pose) {

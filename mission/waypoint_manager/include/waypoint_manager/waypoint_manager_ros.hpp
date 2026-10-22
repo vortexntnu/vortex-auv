@@ -1,11 +1,17 @@
 #ifndef WAYPOINT_MANAGER__WAYPOINT_MANAGER_ROS_HPP_
 #define WAYPOINT_MANAGER__WAYPOINT_MANAGER_ROS_HPP_
 
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <memory>
+#include <mutex>
+#include <optional>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <string>
 
+#include <std_msgs/msg/empty.hpp>
 #include <vector>
+#include <vortex/utils/types.hpp>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/action/waypoint_manager.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
@@ -34,11 +40,20 @@ class WaypointManagerNode : public rclcpp::Node {
     // @brief Create the action server for WaypointManager.
     void set_waypoint_action_server();
 
+    // @brief Subscribe to the vehicle pose.
+    void set_pose_subscription();
+
     // @brief Create the action client for ReferenceFilterWaypoint.
     void set_reference_action_client();
 
     // @brief Create the service servers for SendWaypoints.
     void set_waypoint_service_server();
+
+    // @brief Subscribe to the system-wide reset topic.
+    void setup_reset_subscription();
+
+    // @brief Abort any active goal and clear state on reset.
+    void on_system_reset(std_msgs::msg::Empty::ConstSharedPtr msg);
 
     // @brief Create the debug waypoint publisher and optional timer.
     void setup_debug_publisher();
@@ -48,10 +63,20 @@ class WaypointManagerNode : public rclcpp::Node {
     void publish_current_waypoint();
 
     // @brief Construct the result message for the WaypointManager action
-    // @param success Whether the action was successful
+    // @param outcome WaypointManager::Result outcome
+    // @param message Explanation
     // @return The constructed result message
     std::shared_ptr<vortex_msgs::action::WaypointManager_Result>
-    construct_result(bool success) const;
+    construct_result(uint8_t outcome, const std::string& message) const;
+
+    // @brief Finish the active goal with the given outcome.
+    void finish_active_goal(uint8_t outcome, const std::string& message);
+
+    // @brief Validate a goal and resolve its waypoints to odom.
+    // @return Empty if valid, else the reason
+    std::string validate_and_resolve_goal(
+        const vortex_msgs::action::WaypointManager::Goal& goal,
+        std::vector<vortex_msgs::msg::Waypoint>& resolved) const;
 
     // @brief Clean up the mission state after completion or cancellation of a
     // waypoint action. Cancel active goals and reset internal variables. Make
@@ -106,6 +131,15 @@ class WaypointManagerNode : public rclcpp::Node {
     rclcpp::Service<vortex_msgs::srv::SendWaypoints>::SharedPtr
         waypoint_service_server_;
 
+    rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr reset_sub_;
+
+    rclcpp::Subscription<
+        geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
+    mutable std::mutex pose_mutex_;
+    std::optional<vortex::utils::types::Pose> current_pose_;
+
+    rclcpp::TimerBase::SharedPtr cancel_timer_;
+
     rclcpp::Publisher<vortex_msgs::msg::Waypoint>::SharedPtr
         debug_waypoint_pub_;
     rclcpp::TimerBase::SharedPtr debug_timer_;
@@ -113,7 +147,6 @@ class WaypointManagerNode : public rclcpp::Node {
 
     std::vector<vortex_msgs::msg::Waypoint> waypoints_{};
     std::size_t current_index_{0};
-    double convergence_threshold_{0.1};
 
     bool persistent_action_mode_active_{false};
     bool priority_mode_active_{false};

@@ -8,8 +8,11 @@
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <std_msgs/msg/empty.hpp>
 #include <vortex/utils/types.hpp>
+#include <vortex/utils/waypoint_utils.hpp>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
+#include <vortex_msgs/msg/dvl_altitude.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
 #include "reference_filter_dp/lib/waypoint_follower.hpp"
@@ -24,27 +27,50 @@ class ReferenceFilterNode : public rclcpp::Node {
     ~ReferenceFilterNode();
 
    private:
-    // @brief Set the subscribers and publishers
+    /**
+     * @brief Set the subscribers and publishers.
+     */
     void set_subscribers_and_publisher();
 
-    // @brief Set the action server
+    /**
+     * @brief Set the action server.
+     */
     void set_action_server();
 
-    // @brief Initializes the reference filter with ROS parameters.
+    /**
+     * @brief Initializes the reference filter with ROS parameters.
+     */
     void set_refererence_filter();
 
-    /// @brief Accept all incoming goals unconditionally.
+    /**
+     * @brief Subscribe to the mission wipe topic that triggers a system reset.
+     */
+    void setup_reset_subscription();
+
+    /**
+     * @brief Preempt and join the running goal so the next goal cold starts.
+     * @param msg The reset message (unused).
+     */
+    void on_system_reset(std_msgs::msg::Empty::ConstSharedPtr msg);
+
+    /**
+     * @brief Accept incoming goals with a supported waypoint mode.
+     */
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID& uuid,
         std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal>
             goal);
 
-    /// @brief Accept all cancel requests.
+    /**
+     * @brief Accept all cancel requests.
+     */
     rclcpp_action::CancelResponse handle_cancel(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::GuidanceWaypoint>> goal_handle);
 
-    /// @brief Join the old execution thread and spawn a new one for the goal.
+    /**
+     * @brief Join the old execution thread and spawn a new one for the goal.
+     */
     void handle_accepted(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::GuidanceWaypoint>> goal_handle);
@@ -53,12 +79,17 @@ class ReferenceFilterNode : public rclcpp::Node {
      * @brief Execute the action goal in a loop until convergence or
      * preemption.
      * @param goal_handle The goal handle.
+     * @param retarget If true, keep the filter state from the preempted goal
+     * and only change the target, else start from the measured state.
      */
     void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-                     vortex_msgs::action::GuidanceWaypoint>> goal_handle);
+                     vortex_msgs::action::GuidanceWaypoint>> goal_handle,
+                 bool retarget);
 
     rclcpp_action::Server<vortex_msgs::action::GuidanceWaypoint>::SharedPtr
         action_server_;
+
+    rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr reset_sub_;
 
     ReferenceFilterParams filter_params_;
 
@@ -76,7 +107,8 @@ class ReferenceFilterNode : public rclcpp::Node {
     rclcpp::Subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
 
-    rclcpp::TimerBase::SharedPtr reference_pub_timer_;
+    rclcpp::Subscription<vortex_msgs::msg::DVLAltitude>::SharedPtr
+        altitude_sub_;
 
     std::chrono::milliseconds time_step_{};
 
@@ -84,9 +116,16 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     vortex::utils::types::Twist current_twist_;
 
+    bool altitude_control_enabled_{false};
+    vortex::utils::waypoints::ConvergenceTolerance default_tolerance_{0.1, 0.1};
+    double current_altitude_{0.0};
+    bool altitude_valid_{false};
+    double altitude_lp_alpha_{0.9};
+
     std::mutex sensor_mutex_;
 
     std::atomic<bool> preempted_{false};
+    std::atomic<bool> executing_{false};
     std::mutex execute_mutex_;
     std::thread execute_thread_;
 };
