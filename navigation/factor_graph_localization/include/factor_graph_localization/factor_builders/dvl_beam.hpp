@@ -17,7 +17,7 @@ struct DvlBeamMeasurement {
 struct DvlBeamGeometry {
     /// Outward beam direction in DVL axes, configured in sensors.yaml.
     gtsam::Unit3 beam_direction;
-    /// DVL -> STIM300 transform using Nucleus's virtual origin 
+    /// DVL -> STIM300 transform using Nucleus's virtual origin
     /// STIM300 -> DVL origin, in STIM300 axes [m].
     gtsam::Pose3 IMU_P_DVL;
 };
