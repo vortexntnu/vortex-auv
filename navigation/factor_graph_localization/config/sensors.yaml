@@ -1,0 +1,17 @@
+dvl:
+  # STIM300 origin -> Nucleus virtual origin, in STIM300 axes [m].
+  position:
+    x: null
+    y: null
+    z: null
+
+  # Nucleus -> STIM300; Rz(yaw) * Ry(pitch) * Rx(roll) [deg].
+  orientation:
+    roll: null
+    pitch: null
+    yaw: null
+
+  # Outward [x, y, z] in Nucleus XYZ; BottomTrackData beam order.
+  beam_1_direction_dvl: [null, null, null]
+  beam_2_direction_dvl: [null, null, null]
+  beam_3_direction_dvl: [null, null, null]
