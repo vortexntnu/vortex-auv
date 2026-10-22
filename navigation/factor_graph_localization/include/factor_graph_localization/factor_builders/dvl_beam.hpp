@@ -28,7 +28,6 @@ struct DvlBeamGeometry {
  * angular_vel: bias-corrected gyro in STIM300 axes [rad/s].
  *
  * Mounting and gyro uncertainty are not propagated.
- * Inputs must be valid and aligned to the beam's measurement time.
  */
 gtsam::ExpressionFactor<double> build_dvl_beam_factor(
     const gtsam::Key IMU_origin_vel,
