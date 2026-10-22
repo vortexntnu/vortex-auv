@@ -80,10 +80,10 @@
       slalom_pipe_white: {type: SLALOM_PIPE, subtype: SLALOM_PIPE_WHITE, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 6, group: "slalom_pipe"}
       slalom_pipe_red: {type: SLALOM_PIPE, subtype: SLALOM_PIPE_RED, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 3, group: "slalom_pipe"}
       torpedo_board: {type: TORPEDO_BOARD, subtype: TORPEDO_BOARD_WHOLE, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
-      torpedo_icon_fire: {type: TORPEDO_BOARD, subtype: TORPEDO_ICON_FIRE, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
-      torpedo_icon_blood: {type: TORPEDO_BOARD, subtype: TORPEDO_ICON_BLOOD, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
-      torpedo_icon_firetruck: {type: TORPEDO_BOARD, subtype: TORPEDO_ICON_FIRETRUCK, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
-      torpedo_icon_ambulance: {type: TORPEDO_BOARD, subtype: TORPEDO_ICON_AMBULANCE, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_opening_large_left: {type: TORPEDO_BOARD, subtype: TORPEDO_OPENING_LARGE_LEFT, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_opening_large_right: {type: TORPEDO_BOARD, subtype: TORPEDO_OPENING_LARGE_RIGHT, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_opening_small_top: {type: TORPEDO_BOARD, subtype: TORPEDO_OPENING_SMALL_TOP, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_opening_small_bottom: {type: TORPEDO_BOARD, subtype: TORPEDO_OPENING_SMALL_BOTTOM, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
       bin_search_rescue: {type: BIN, subtype: BIN_SEARCH_RESCUE, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 2}
       bin_survey_repair: {type: BIN, subtype: BIN_SURVEY_REPAIR, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 2}
       bin_structure: {type: BIN, subtype: BIN_STRUCTURE, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 1}
