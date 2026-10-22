@@ -9,7 +9,8 @@
 
 namespace vortex::navigation {
 
-/** Localization node with fixed STIM300/Nucleus calibration loaded at startup. */
+/** Localization node with fixed STIM300/Nucleus calibration loaded at startup.
+ */
 class NavigationNode : public rclcpp::Node {
    public:
     explicit NavigationNode(

@@ -11,24 +11,26 @@ namespace {
 
 gtsam::Vector3 read_vector3(const YAML::Node& node, const std::string& name) {
     if (!node.IsSequence() || node.size() != 3) {
-        throw std::invalid_argument(name + " must contain three finite numbers");
+        throw std::invalid_argument(name +
+                                    " must contain three finite numbers");
     }
 
     try {
         const gtsam::Vector3 value{node[0].as<double>(), node[1].as<double>(),
-                                  node[2].as<double>()};
+                                   node[2].as<double>()};
         if (!value.allFinite()) {
             throw std::invalid_argument(name +
                                         " must contain three finite numbers");
         }
         return value;
     } catch (const YAML::Exception&) {
-        throw std::invalid_argument(name + " must contain three finite numbers");
+        throw std::invalid_argument(name +
+                                    " must contain three finite numbers");
     }
 }
 
 gtsam::Unit3 read_beam_direction(const YAML::Node& dvl,
-                                const std::string& field) {
+                                 const std::string& field) {
     const std::string name = "dvl." + field;
     const gtsam::Vector3 beam_direction = read_vector3(dvl[field], name);
     const double norm = beam_direction.stableNorm();
@@ -53,11 +55,12 @@ std::array<DvlBeamGeometry, 3> load_dvl_beam_geometries(
                 "dvl pose must contain finite position and orientation values");
         }
         const gtsam::Pose3 IMU_P_DVL{gtsam::Rot3{mounting.ori_quaternion()},
-                                    mounting.pos_vector()};
+                                     mounting.pos_vector()};
 
-        return {{{read_beam_direction(dvl, "beam_1_direction_dvl"), IMU_P_DVL},
-                 {read_beam_direction(dvl, "beam_2_direction_dvl"), IMU_P_DVL},
-                 {read_beam_direction(dvl, "beam_3_direction_dvl"), IMU_P_DVL}}};
+        return {
+            {{read_beam_direction(dvl, "beam_1_direction_dvl"), IMU_P_DVL},
+             {read_beam_direction(dvl, "beam_2_direction_dvl"), IMU_P_DVL},
+             {read_beam_direction(dvl, "beam_3_direction_dvl"), IMU_P_DVL}}};
     } catch (const std::runtime_error& error) {
         throw std::invalid_argument("Invalid calibration file '" + config_path +
                                     "': " + error.what());

@@ -14,8 +14,8 @@ std::array<DvlBeamGeometry, 3> load_calibration(rclcpp::Node& node) {
     descriptor.description =
         "Path to the STIM300/Nucleus calibration YAML, loaded at startup.";
     descriptor.read_only = true;
-    const auto config_path = node.declare_parameter<std::string>(
-        "sensors_config_file", descriptor);
+    const auto config_path =
+        node.declare_parameter<std::string>("sensors_config_file", descriptor);
     if (config_path.empty()) {
         throw std::invalid_argument("sensors_config_file must be a file path");
     }

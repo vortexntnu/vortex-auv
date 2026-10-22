@@ -26,14 +26,14 @@ inline gtsam::Expression<double> predict_dvl_beam_vel(
     const auto& r = IMU_P_DVL.translation();
 
     const gtsam::Vector3 v_lever_arm = omega.cross(r);
-    
-    const gtsam::Vector3_ v_DVL_in_IMU =
-        v_IMU + gtsam::Vector3_(v_lever_arm);
-    
+
+    const gtsam::Vector3_ v_DVL_in_IMU = v_IMU + gtsam::Vector3_(v_lever_arm);
+
     const auto v_DVL_in_DVL =
         gtsam::unrotate(gtsam::Rot3_(IMU_R_DVL), v_DVL_in_IMU);
 
-    return gtsam::dot(gtsam::Vector3_(beam_direction.unitVector()), v_DVL_in_DVL);
+    return gtsam::dot(gtsam::Vector3_(beam_direction.unitVector()),
+                      v_DVL_in_DVL);
 }
 
 }  // namespace vortex::navigation
