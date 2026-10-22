@@ -30,32 +30,81 @@ class ReferenceFilterNode : public rclcpp::Node {
     ~ReferenceFilterNode();
 
    private:
+    /**
+     * @brief Set the subscribers and publishers.
+     */
     void set_subscribers_and_publisher();
+
+    /**
+     * @brief Set the action server.
+     */
     void set_action_server();
+
+    /**
+     * @brief Initializes the reference filter with ROS parameters.
+     */
     void set_refererence_filter();
 
+    /**
+     * @brief Subscribe to the mission wipe topic that triggers a system reset.
+     */
     void setup_reset_subscription();
+
+    /**
+     * @brief Set up the debug goal publisher according to the
+     * debug.goal_publish_mode parameter.
+     */
     void setup_debug_publisher();
+
+    /**
+     * @brief Publish the current waypoint goal on the debug topic.
+     */
     void publish_debug_goal();
+
+    /**
+     * @brief Publish the active waypoint and its tolerances for debugging.
+     * @param wp The waypoint being executed.
+     * @param tolerance The convergence tolerance of the waypoint.
+     */
     void publish_waypoint_goal(
         const vortex::utils::types::Waypoint& wp,
         const vortex::utils::waypoints::ConvergenceTolerance& tolerance);
 
+    /**
+     * @brief Preempt and join the running goal so the next goal cold starts.
+     * @param msg The reset message (unused).
+     */
     void on_system_reset(std_msgs::msg::Empty::ConstSharedPtr msg);
 
+    /**
+     * @brief Accept all incoming goals unconditionally.
+     */
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID& uuid,
         std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal>
             goal);
 
+    /**
+     * @brief Accept all cancel requests.
+     */
     rclcpp_action::CancelResponse handle_cancel(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::GuidanceWaypoint>> goal_handle);
 
+    /**
+     * @brief Join the old execution thread and spawn a new one for the goal.
+     */
     void handle_accepted(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::GuidanceWaypoint>> goal_handle);
 
+    /**
+     * @brief Execute the action goal in a loop until convergence or
+     * preemption.
+     * @param goal_handle The goal handle.
+     * @param retarget If true, keep the filter state from the preempted goal
+     * and only change the target, else start from the measured state.
+     */
     void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
                      vortex_msgs::action::GuidanceWaypoint>> goal_handle,
                  bool retarget);

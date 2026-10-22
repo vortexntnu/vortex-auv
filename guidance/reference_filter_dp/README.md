@@ -37,7 +37,7 @@ x_{i+1} = x_i + \dot{x}_i * dt
 
 Each waypoint has a mode that determines which degrees of freedom are controlled by the reference filter. The mode also determines how convergence is measured.
 
-| Mode | Controlled DOFs | Errors checked |
+| Mode | Controlled DOFs | Convergence metric |
 |---|---|---|
 | `FULL_POSE` | All 6 DOF (position + orientation) | Position and angle errors |
 | `ONLY_POSITION` | x, y, z (orientation holds current value) | Position error |

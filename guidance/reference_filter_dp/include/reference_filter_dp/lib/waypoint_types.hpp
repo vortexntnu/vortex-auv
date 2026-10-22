@@ -16,6 +16,11 @@ using vortex::utils::waypoints::ConvergenceTolerance;
  *
  * The mode affects both the reference goal computation (via apply_mode_logic)
  * and the convergence check (via has_converged).
+ *
+ * The values match the constants in vortex_msgs/WaypointMode so a mode reads
+ * the same in logs and messages. XY_FORWARD_DIR (6), LEVEL_ORIENTATION (7)
+ * and POS_Z_LEVEL_ORIENTATION (9) are not supported by this filter, since
+ * FORWARD_HEADING, ONLY_ORIENTATION and ONLY_Z cover them.
  */
 enum class WaypointMode : uint8_t {
     FULL_POSE = 0,         ///< Control all 6 DOF.
