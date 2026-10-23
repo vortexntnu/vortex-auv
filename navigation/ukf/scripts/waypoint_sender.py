@@ -103,6 +103,27 @@ class WaypointSender(Node):
                     return False
         return True
 
+    def send_figure_eight(self, size, depth, loops, points=16, threshold=0.3):
+        """Fly a figure 8 forever, or for a number of loops.
+
+        The path is x = size * sin(t), y = size / 2 * sin(2t), a lemniscate of
+        Gerono that starts at the origin and is sampled at evenly spaced t. Each
+        sample is a waypoint, so the looser threshold keeps the vehicle moving.
+        """
+        loop = 0
+        while loops == 0 or loop < loops:
+            loop += 1
+            for index in range(1, points + 1):
+                t = 2.0 * math.pi * index / points
+                x = size * math.sin(t)
+                y = 0.5 * size * math.sin(2.0 * t)
+                self.get_logger().info(f'Loop {loop}, point {index}/{points}')
+                if not self.send_goal(
+                    x, y, depth, 0.0, 0.0, 0.0, threshold=threshold, wait_s=60.0
+                ):
+                    return False
+        return True
+
     def send_goal(self, x, y, z, roll_deg, pitch_deg, yaw_deg,
                   mode=WaypointMode.FULL_POSE, threshold=0.1, wait_s=5.0):
         if not self.wait_for(
@@ -182,15 +203,25 @@ def parse_args():
         '--square', type=float, metavar='SIDE',
         help='Fly a square with this side length [m] forever, instead of a single waypoint'
     )
-    parser.add_argument('--depth', type=float, default=2.0, help='Depth of the square [m] (default: 2)')
-    parser.add_argument('--loops', type=int, default=0, help='Number of square loops, 0 is forever (default: 0)')
+    parser.add_argument(
+        '--figure8', type=float, metavar='SIZE',
+        help='Fly a figure 8 with this half width [m] forever, instead of a single waypoint'
+    )
+    parser.add_argument('--depth', type=float, default=2.0, help='Depth of the pattern [m] (default: 2)')
+    parser.add_argument('--loops', type=int, default=0, help='Number of pattern loops, 0 is forever (default: 0)')
     parser.add_argument(
         '--arm', action='store_true',
-        help='Switch to autonomous mode and turn the killswitch off first (always done for --square)'
+        help='Switch to autonomous mode and turn the killswitch off first (always done for --square and --figure8)'
     )
     args = parser.parse_args()
-    if args.square is None and None in (args.x, args.y, args.z):
-        parser.error('x, y and z are required unless --square is given')
+    if args.square is not None and args.figure8 is not None:
+        parser.error('--square and --figure8 cannot be combined')
+    if (
+        args.square is None
+        and args.figure8 is None
+        and None in (args.x, args.y, args.z)
+    ):
+        parser.error('x, y and z are required unless --square or --figure8 is given')
     return args
 
 
@@ -200,12 +231,14 @@ def main():
     sender = WaypointSender()
 
     try:
-        if args.square is not None or args.arm:
+        if args.square is not None or args.figure8 is not None or args.arm:
             if not sender.arm():
                 return
 
         if args.square is not None:
             sender.send_square(args.square, args.depth, args.loops)
+        elif args.figure8 is not None:
+            sender.send_figure_eight(args.figure8, args.depth, args.loops)
         else:
             sender.send_goal(
                 args.x, args.y, args.z,

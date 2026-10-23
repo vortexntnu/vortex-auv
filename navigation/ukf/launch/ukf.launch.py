@@ -27,10 +27,19 @@ def launch_setup(context, *args, **kwargs):
     drone_params = os.path.join(
         get_package_share_directory('auv_setup'), 'config', 'robots', f'{drone}.yaml'
     )
+    calibrated = (
+        LaunchConfiguration('calibrated').perform(context).lower() == 'true'
+    )
+    if calibrated and not use_sim:
+        raise RuntimeError('calibrated:=true only exists for the simulator (use_sim:=true)')
+    if not use_sim:
+        default_params = 'ukf_params_real_world.yaml'
+    elif calibrated:
+        default_params = 'ukf_params_calibrated_sim.yaml'
+    else:
+        default_params = 'ukf_params.yaml'
     ukf_params = LaunchConfiguration('params_file').perform(context) or os.path.join(
-        get_package_share_directory('ukf'),
-        'config',
-        'ukf_params.yaml' if use_sim else 'ukf_params_real_world.yaml',
+        get_package_share_directory('ukf'), 'config', default_params
     )
     env_params = os.path.join(
         get_package_share_directory('auv_setup'),
@@ -86,6 +95,12 @@ def generate_launch_description():
             DeclareLaunchArgument('dvl_topic', default_value=''),
             DeclareLaunchArgument('pressure_topic', default_value=''),
             DeclareLaunchArgument('magnetometer_topic', default_value=''),
+            DeclareLaunchArgument(
+                'calibrated',
+                default_value='false',
+                description='With use_sim:=true, load the params that exactly match the '
+                'simulator noise instead of the tuned ones.',
+            ),
             DeclareLaunchArgument(
                 'params_file',
                 default_value='',

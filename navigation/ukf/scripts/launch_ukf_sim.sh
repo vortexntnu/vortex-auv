@@ -1,14 +1,23 @@
 #!/bin/bash
 # Launch the drone simulation stack with the UKF and its NEES monitor in a tmux session
-# Usage: ./launch_ukf_sim.sh [--gui] [--no_foxglove] [--no_square] [--side M] [--depth M]
-#   --gui           run the simulator with rendering, the default is headless
-#   --no_foxglove   do not start Foxglove Studio and the Foxglove bridge
-#   --no_square     do not fly the repeating square test
-#   --side M        side length of the square test in meters (default 5)
-#   --depth M       depth of the square test in meters (default 2)
+# Usage: ./launch_ukf_sim.sh [--scenario NAME] [--gui] [--pattern square|figure8]
+#                            [--calibrated] [--no_foxglove] [--no_pattern] [--side M] [--depth M]
+#   --scenario, -s NAME  Stonefish scenario to load (default: nautilus_no_gpu, headless)
+#                        GPU:    default, docking, pipeline, structure, orca_demo,
+#                                freya_demo, orca_freya_demo, tacc, robosub
+#                        No-GPU: nautilus_no_gpu, orca_no_gpu, freya_no_gpu
+#                        GPU scenarios render at low quality.
+#   --gui                shorthand for --scenario default
+#   --pattern TYPE       square: four corner test, figure8: figure 8 (default: square)
+#   --calibrated         use the filter params that exactly match the simulator noise
+#                        (ukf_params_calibrated_sim.yaml), default is the tuned ukf_params.yaml
+#   --no_foxglove        do not start Foxglove Studio and the Foxglove bridge
+#   --no_pattern         do not fly the test pattern (--no_square is kept as an alias)
+#   --side M             side of the square, or half width of the figure 8, in meters (default 5)
+#   --depth M            depth of the pattern in meters (default 2)
 #
-# Unless --no_square is given, waypoint_sender.py switches the drone to
-# autonomous mode, turns the killswitch off and flies a four corner square forever.
+# Unless --no_pattern is given, waypoint_sender.py switches the drone to
+# autonomous mode, turns the killswitch off and flies the pattern forever.
 #
 # The drone is controlled with the quaternion stack: dp_quat.launch.py starts the
 # quaternion reference filter together with the quaternion adaptive controller,
@@ -30,22 +39,37 @@ S="source \"${VXO_ROS_WS:-$HOME/code/ros2_ws}/install/setup.bash\""
 # =============================================
 FOXGLOVE=true
 SQUARE=true
+PATTERN="square"
+CALIBRATED=false
+SCENARIO="nautilus_no_gpu"
 SIDE=5
 DEPTH=2
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SIM_ARGS="scenario:=nautilus_no_gpu rendering:=false"
+USAGE="Usage: $0 [--scenario NAME] [--gui] [--pattern square|figure8] [--calibrated] [--no_foxglove] [--no_pattern] [--side M] [--depth M]"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+  --scenario | -s)
+    SCENARIO="$2"
+    shift 2
+    ;;
   --gui)
-    SIM_ARGS=""
+    SCENARIO="default"
+    shift
+    ;;
+  --pattern)
+    PATTERN="$2"
+    shift 2
+    ;;
+  --calibrated)
+    CALIBRATED=true
     shift
     ;;
   --no_foxglove)
     FOXGLOVE=false
     shift
     ;;
-  --no_square)
+  --no_pattern | --no_square)
     SQUARE=false
     shift
     ;;
@@ -59,11 +83,27 @@ while [[ $# -gt 0 ]]; do
     ;;
   *)
     echo "Unknown argument: $1"
-    echo "Usage: $0 [--gui] [--no_foxglove] [--no_square] [--side M] [--depth M]"
+    echo "$USAGE"
     exit 1
     ;;
   esac
 done
+
+if [[ "$PATTERN" != "square" && "$PATTERN" != "figure8" ]]; then
+  echo "Error: pattern must be 'square' or 'figure8' (got: $PATTERN)"
+  exit 1
+fi
+
+if [[ ! -f "${VXO_ROS_WS:-$HOME/code/ros2_ws}/src/vortex-stonefish-sim/stonefish_sim/scenarios/$SCENARIO.scn" ]]; then
+  echo "Error: unknown scenario '$SCENARIO', see stonefish_sim/scenarios/"
+  exit 1
+fi
+
+# The no-GPU scenarios cannot render
+SIM_ARGS="rendering_quality:=low"
+if [[ "$SCENARIO" == *_no_gpu ]]; then
+  SIM_ARGS="rendering:=false"
+fi
 
 # Kill existing session if it exists
 tmux kill-session -t "$SESSION" 2>/dev/null
@@ -83,7 +123,7 @@ tmux new-session -d -s "$SESSION" -n "sim"
 PANE_SIM=$(tmux list-panes -t "$SESSION:sim" -F '#{pane_id}')
 
 # Stonefish simulation (top-left)
-tmux send-keys -t "$PANE_SIM" "clear && $S && ros2 launch stonefish_sim simulation.launch.py drone:=nautilus $SIM_ARGS" Enter
+tmux send-keys -t "$PANE_SIM" "clear && $S && ros2 launch stonefish_sim vortex_sim_launch.py scenario:=$SCENARIO drone:=nautilus $SIM_ARGS" Enter
 
 # Split right -> Keyboard joy (top-right)
 PANE_JOY=$(tmux split-window -h -t "$PANE_SIM" -P -F '#{pane_id}')
@@ -107,7 +147,7 @@ tmux select-layout -t "$SESSION:sim" tiled
 tmux new-window -t "$SESSION" -n "ukf"
 
 PANE_UKF=$(tmux list-panes -t "$SESSION:ukf" -F '#{pane_id}')
-tmux send-keys -t "$PANE_UKF" "clear && $S && ros2 launch ukf ukf.launch.py drone:=nautilus use_sim:=true" Enter
+tmux send-keys -t "$PANE_UKF" "clear && $S && ros2 launch ukf ukf.launch.py drone:=nautilus use_sim:=true calibrated:=$CALIBRATED" Enter
 
 # Split right -> NEES monitor
 PANE_NEES=$(tmux split-window -h -t "$PANE_UKF" -P -F '#{pane_id}')
@@ -125,7 +165,7 @@ fi
 if [[ "$SQUARE" == true ]]; then
   tmux new-window -t "$SESSION" -n "square"
   PANE_SQUARE=$(tmux list-panes -t "$SESSION:square" -F '#{pane_id}')
-  tmux send-keys -t "$PANE_SQUARE" "clear && $S && python3 \"$SCRIPT_DIR/waypoint_sender.py\" --square $SIDE --depth $DEPTH" Enter
+  tmux send-keys -t "$PANE_SQUARE" "clear && $S && python3 \"$SCRIPT_DIR/waypoint_sender.py\" --$PATTERN $SIDE --depth $DEPTH" Enter
 fi
 
 # =============================================
