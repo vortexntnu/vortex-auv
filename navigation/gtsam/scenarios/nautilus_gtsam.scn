@@ -1,0 +1,302 @@
+<?xml version='1.0' encoding='utf-8'?>
+<scenario>
+  <environment>
+    <ned latitude="63.446827" longitude="10.421906" />
+    <ocean>
+      <water density="1031.0" jerlov="0.20" />
+      <waves height="0.0" />
+    </ocean>
+    <atmosphere>
+      <sun azimuth="-88.0" elevation="20.0" />
+    </atmosphere>
+  </environment>
+  <include file="$(find stonefish_sim)/metadata/materials.scn" />
+  <include file="$(find stonefish_sim)/metadata/looks.scn" />
+  <static name="pool_floor" type="box">
+    <dimensions xyz="40.0 40.0 1.0" />
+    <material name="Neutral" />
+    <look name="Grey" />
+    <world_transform xyz="0.0 0.0 10.5" rpy="0.0 0.0 0.0" />
+  </static>
+  <robot name="nautilus" fixed="false" self_collisions="false">
+    <base_link name="Base" type="model" physics="submerged">
+      <physical>
+        <mesh filename="nautilus/nautilus_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+      </physical>
+      <visual>
+        <mesh filename="nautilus/nautilus_visual.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+      </visual>
+      <material name="Neutral" />
+      <look name="Grey" />
+      <mass value="53.7" />
+      <inertia xyz="11.06 23.11 26.24" />
+      <hydrodynamics viscous_drag="0.01 0.10 0.10" quadratic_drag="0.04 0.10 0.10" />
+      <cg xyz="0.0 0.0 0.01" rpy="0.0 0.0 0.0" />
+    </base_link>
+    <link name="shoulder" type="model" physics="surface" buoyancy="false">
+      <physical>
+        <mesh filename="nautilus/gripper_shoulder_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+        <inertia xyz="0.0 0.0 0.0" />
+        <cg xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <hydrodynamics viscous_drag="0.0 0.0 0.0" quadratic_drag="0.0 0.0 0.0" />
+      </physical>
+      <visual>
+        <mesh filename="nautilus/gripper_shoulder_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+      </visual>
+      <material name="Neutral" />
+      <look name="Grey" />
+      <mass value="0.000001" />
+    </link>
+    <joint name="shoulder_joint" type="fixed">
+      <parent name="Base" />
+      <child name="shoulder" />
+      <origin rpy="0.0 0.0 0.0" xyz="0.282589 0.028 0.115803" />
+    </joint>
+    <link name="arm" type="model" physics="surface" buoyancy="false">
+      <physical>
+        <mesh filename="nautilus/gripper_arm_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+        <inertia xyz="0.0 0.0 0.0" />
+        <cg xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <hydrodynamics viscous_drag="0.0 0.0 0.0" quadratic_drag="0.0 0.0 0.0" />
+      </physical>
+      <visual>
+        <mesh filename="nautilus/gripper_arm_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+      </visual>
+      <material name="Neutral" />
+      <look name="Grey" />
+      <mass value="0.000001" />
+    </link>
+    <joint name="arm_joint" type="revolute">
+      <parent name="shoulder" />
+      <child name="arm" />
+      <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+      <axis xyz="1.0 0.0 0.0" />
+    </joint>
+    <actuator name="arm_servo" type="servo">
+      <controller position_gain="1.2" velocity_gain="1.0" max_torque="10.0" />
+      <joint name="arm_joint" />
+    </actuator>
+    <link name="finger1" type="model" physics="surface" buoyancy="false">
+      <physical>
+        <mesh filename="nautilus/gripper_finger_left_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+        <inertia xyz="0.0 0.0 0.0" />
+        <cg xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <hydrodynamics viscous_drag="0.0 0.0 0.0" quadratic_drag="0.0 0.0 0.0" />
+      </physical>
+      <visual>
+        <mesh filename="nautilus/gripper_finger_left_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+      </visual>
+      <material name="Neutral" />
+      <look name="White" />
+      <mass value="0.000001" />
+    </link>
+    <joint name="finger_joint1" type="prismatic">
+      <parent name="arm" />
+      <child name="finger1" />
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <axis xyz="0.70711 0.70711 0.0" />
+      <limits min="-0.033" max="0.0" />
+    </joint>
+    <actuator name="finger_servo1" type="servo">
+      <controller position_gain="0.2" velocity_gain="1.0" max_torque="1.0" />
+      <joint name="finger_joint1" />
+    </actuator>
+    <link name="finger2" type="model" physics="surface" buoyancy="false">
+      <physical>
+        <mesh filename="nautilus/gripper_finger_right_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+        <inertia xyz="0.0 0.0 0.0" />
+        <cg xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <hydrodynamics viscous_drag="0.0 0.0 0.0" quadratic_drag="0.0 0.0 0.0" />
+      </physical>
+      <visual>
+        <mesh filename="nautilus/gripper_finger_right_collision.obj" scale="1.0" />
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
+      </visual>
+      <material name="Neutral" />
+      <look name="White" />
+      <mass value="0.000001" />
+    </link>
+    <joint name="finger_joint2" type="prismatic">
+      <parent name="arm" />
+      <child name="finger2" />
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <axis xyz="0.70711 -0.70711 0.0" />
+      <limits min="-0.033" max="0.0" />
+    </joint>
+    <actuator name="finger_servo2" type="servo">
+      <controller position_gain="0.2" velocity_gain="1.0" max_torque="1.0" />
+      <joint name="finger_joint2" />
+    </actuator>
+    <actuator name="Thruster1" type="thruster">
+      <link name="Base" />
+      <origin xyz="0.4139 0.3130 0.0217" rpy="0 0 -0.7853981634" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <actuator name="Thruster2" type="thruster">
+      <link name="Base" />
+      <origin xyz="0.140 0.313 0.0217" rpy="0 -1.570796327 0" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <actuator name="Thruster3" type="thruster">
+      <link name="Base" />
+      <origin xyz="-0.1639 0.313 0.0217" rpy="0 -1.570796327 0" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <actuator name="Thruster4" type="thruster">
+      <link name="Base" />
+      <origin xyz="-0.4139 0.313 0.0217" rpy="0 0 -2.356194490" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <actuator name="Thruster5" type="thruster">
+      <link name="Base" />
+      <origin xyz="-0.4139 -0.313 0.0217" rpy="0 0 2.356194490" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <actuator name="Thruster6" type="thruster">
+      <link name="Base" />
+      <origin xyz="-0.1639 -0.313 0.0217" rpy="0 -1.570796327 0" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <actuator name="Thruster7" type="thruster">
+      <link name="Base" />
+      <origin xyz="0.140 -0.313 0.0217" rpy="0 -1.570796327 0" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <actuator name="Thruster8" type="thruster">
+      <link name="Base" />
+      <origin xyz="0.4139 -0.313 0.0217" rpy="0 0 0.7853981634" />
+      <specs max_setpoint="100.0" inverted_setpoint="false" normalized_setpoint="false" />
+      <propeller diameter="0.075" right="true">
+        <mesh filename="orca/bluerov2_propccw.obj" scale="1.0" />
+        <material name="robot_material" />
+        <look name="Grey" />
+      </propeller>
+      <rotor_dynamics type="first_order">
+        <time_constant value="0.05" />
+      </rotor_dynamics>
+      <thrust_model type="linear_interpolation">
+        <input value="-100.0 -50.0 0.0 50.0 100.0" />
+        <output value="-100.0 -50.0 0.0 50.0 100.0" />
+      </thrust_model>
+    </actuator>
+    <sensor name="odom" type="odometry" rate="1000.0">
+      <link name="Base" />
+      <origin rpy="0.0 0.0 0.0" xyz="-0.1 -0.001 0.085" />
+      <ros_publisher topic="/nautilus/stonefish/truth" />
+    </sensor>
+    <sensor name="imu_link" rate="1000.0" type="imu">
+      <range angular_velocity="10.0 10.0 5.0" linear_acceleration="98.1" />
+      <noise angle="0.0 0.0 0.0" angular_velocity="0.0" yaw_drift="0.0" linear_acceleration="0.0" />
+      <history samples="1" />
+      <origin xyz="-0.1 -0.001 0.085" rpy="0.0 0.0 0.0" />
+      <link name="Base" />
+      <ros_publisher topic="/nautilus/stonefish/imu" />
+    </sensor>
+    <sensor name="dvl_link" rate="8.0" type="dvl">
+      <specs beam_angle="30.0" beam_positive_z="true" />
+      <range velocity="10.0 10.0 5.0" altitude_min="0.1" altitude_max="15.0" />
+      <noise velocity_percent="0.0" velocity="0.0" altitude="0.0" water_velocity_percent="0.0" water_velocity="0.0" />
+      <history samples="1" />
+      <origin rpy="0.0 0.0 3.14159" xyz="-0.130 0.003 0.2414" />
+      <link name="Base" />
+      <ros_publisher topic="/nautilus/dvl/sim" />
+    </sensor>
+    <world_transform xyz="0.0 0.0 9.55" rpy="0.0 0.0 0.0" />
+    <ros_subscriber thrusters="/nautilus/stonefish/thrusters" servos="/nautilus/stonefish/servos" />
+    <ros_publisher thrusters="/nautilus/thruster_state" servos="/nautilus/servo_state" />
+    <ros_base_link_transform publish="false" />
+  </robot>
+</scenario>

@@ -15,7 +15,7 @@ from auv_setup.launch_arg_common import (
 
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
-    config_type = resolve_config_type(context)
+    config_type = "sim"
 
     adapt_params = os.path.join(
         get_package_share_directory("dp_adapt_backs_controller_quat"),
