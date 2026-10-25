@@ -110,7 +110,7 @@ install(TARGETS test_sim_repeat DESTINATION lib/${PROJECT_NAME})
 
 # Install launch and config directories
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)
-install(DIRECTORY ../config/ DESTINATION share/${PROJECT_NAME}/config/)
+install(DIRECTORY ../../config/ DESTINATION share/${PROJECT_NAME}/config/)
 
 # finally define this as the package
 ament_package()
