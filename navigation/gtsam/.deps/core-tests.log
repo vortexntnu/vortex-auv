@@ -1,0 +1,45 @@
+Running main() from /opt/ros/humble/src/gtest_vendor/src/gtest_main.cc
+[==========] Running 11 tests from 5 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from DvlFactor
+[ RUN      ] DvlFactor.JacobiansIncludeRotationAndGyroBiasLeverArm
+[       OK ] DvlFactor.JacobiansIncludeRotationAndGyroBiasLeverArm (0 ms)
+[----------] 1 test from DvlFactor (0 ms total)
+
+[----------] 1 test from Initialization
+[ RUN      ] Initialization.StationaryTiltBiasAndMovingWindow
+[       OK ] Initialization.StationaryTiltBiasAndMovingWindow (1 ms)
+[----------] 1 test from Initialization (2 ms total)
+
+[----------] 6 tests from Estimator
+[ RUN      ] Estimator.StationaryAndBoundedHistory
+[       OK ] Estimator.StationaryAndBoundedHistory (1028 ms)
+[ RUN      ] Estimator.InvalidDataAndGapFailClosed
+[       OK ] Estimator.InvalidDataAndGapFailClosed (2 ms)
+[ RUN      ] Estimator.ReorderingAndExactDvlBoundaries
+[       OK ] Estimator.ReorderingAndExactDvlBoundaries (93 ms)
+[ RUN      ] Estimator.AccelerationTurningAndDvlDropoutRecovery
+[       OK ] Estimator.AccelerationTurningAndDvlDropoutRecovery (36 ms)
+[ RUN      ] Estimator.DvlOutlierRejectedWithoutCorruptingState
+[       OK ] Estimator.DvlOutlierRejectedWithoutCorruptingState (3 ms)
+[ RUN      ] Estimator.SeededStim300ProfilesWithInternalBiasAndDropout
+STIM300 density=0.00116667: position RMSE=0.0170838 m, velocity RMSE=0.00529183 m/s, final attitude error=0.0013947 rad, accel bias error=0.00411493 m/s^2, gyro bias error=5.28483e-05 rad/s
+STIM300 density=0.0035: position RMSE=0.0176328 m, velocity RMSE=0.00724792 m/s, final attitude error=0.00135823 rad, accel bias error=0.00290188 m/s^2, gyro bias error=4.62803e-05 rad/s
+[       OK ] Estimator.SeededStim300ProfilesWithInternalBiasAndDropout (588 ms)
+[----------] 6 tests from Estimator (1750 ms total)
+
+[----------] 2 tests from Covariance
+[ RUN      ] Covariance.GrowsWithoutDvlAndShrinksAfterRecovery
+[       OK ] Covariance.GrowsWithoutDvlAndShrinksAfterRecovery (29 ms)
+[ RUN      ] Covariance.RosMappingsMatchNumericalJacobians
+[       OK ] Covariance.RosMappingsMatchNumericalJacobians (0 ms)
+[----------] 2 tests from Covariance (29 ms total)
+
+[----------] 1 test from Smoother
+[ RUN      ] Smoother.MarginalizationMatchesShortBatchReference
+[       OK ] Smoother.MarginalizationMatchesShortBatchReference (1 ms)
+[----------] 1 test from Smoother (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 5 test suites ran. (1782 ms total)
+[  PASSED  ] 11 tests.

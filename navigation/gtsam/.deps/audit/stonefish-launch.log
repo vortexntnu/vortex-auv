@@ -1,0 +1,275 @@
+[INFO] [launch]: All log files can be found below /home/vortex/.ros/log/2026-09-28-00-17-05-213655-vortex-168327
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [stonefish_simulator-1]: process started with pid [168329]
+[INFO] [robot_state_publisher-2]: process started with pid [168331]
+[INFO] [operation_mode_manager_cpp-3]: process started with pid [168333]
+[INFO] [joystick_interface_auv_node.py-4]: process started with pid [168335]
+[INFO] [dp_adapt_backs_controller_quat_node-5]: process started with pid [168337]
+[INFO] [thrust_allocator_auv_node-6]: process started with pid [168339]
+[INFO] [stonefish_sim_interface-7]: process started with pid [168341]
+[INFO] [stonefish_sensors.py-8]: process started with pid [168343]
+[INFO] [gtsam_navigation_node-9]: process started with pid [168345]
+[INFO] [stonefish_control.py-10]: process started with pid [168347]
+[INFO] [stonefish_evaluation.py-11]: process started with pid [168349]
+[INFO] [foxglove_bridge-12]: process started with pid [168351]
+[operation_mode_manager_cpp-3] [2026-09-28 00:17:05.330] [info] Operation Mode Manager Node started. Initial mode: manual mode, Killswitch: true
+[thrust_allocator_auv_node-6] [2026-09-28 00:17:05.332] [info] Successfully formulated as QP standardform
+[thrust_allocator_auv_node-6] [2026-09-28 00:17:05.332] [info] Successfully formulated into valid CasADi formulation
+[thrust_allocator_auv_node-6] [2026-09-28 00:17:05.336] [info] 
+[thrust_allocator_auv_node-6]   _____ _                    _        _    _ _                 _
+[thrust_allocator_auv_node-6]  |_   _| |__  _ __ _   _ ___| |_     / \  | | | ___   ___ __ _| |_ ___  _ __
+[thrust_allocator_auv_node-6]    | | | '_ \| '__| | | / __| __|   / _ \ | | |/ _ \ / __/ _` | __/ _ \| '__|
+[thrust_allocator_auv_node-6]    | | | | | | |  | |_| \__ \ |_   / ___ \| | | (_) | (_| (_| | || (_) | |
+[thrust_allocator_auv_node-6]    |_| |_| |_|_|   \__,_|___/\__| /_/   \_\_|_|\___/ \___\__,_|\__\___/|_|
+[thrust_allocator_auv_node-6] 
+[thrust_allocator_auv_node-6] 
+[robot_state_publisher-2] [INFO] [1790547425.341466512] [nautilus.robot_state_publisher]: got segment arm
+[robot_state_publisher-2] [INFO] [1790547425.341525504] [nautilus.robot_state_publisher]: got segment base_link
+[robot_state_publisher-2] [INFO] [1790547425.341530050] [nautilus.robot_state_publisher]: got segment downwards_camera_lens
+[robot_state_publisher-2] [INFO] [1790547425.341533337] [nautilus.robot_state_publisher]: got segment downwards_camera_link
+[robot_state_publisher-2] [INFO] [1790547425.341537185] [nautilus.robot_state_publisher]: got segment downwards_camera_optical
+[robot_state_publisher-2] [INFO] [1790547425.341540709] [nautilus.robot_state_publisher]: got segment dvl_link
+[robot_state_publisher-2] [INFO] [1790547425.341544301] [nautilus.robot_state_publisher]: got segment finger1
+[robot_state_publisher-2] [INFO] [1790547425.341548058] [nautilus.robot_state_publisher]: got segment finger2
+[robot_state_publisher-2] [INFO] [1790547425.341552207] [nautilus.robot_state_publisher]: got segment front_camera_color
+[robot_state_publisher-2] [INFO] [1790547425.341554825] [nautilus.robot_state_publisher]: got segment front_camera_color_optical
+[robot_state_publisher-2] [INFO] [1790547425.341557266] [nautilus.robot_state_publisher]: got segment front_camera_depth
+[robot_state_publisher-2] [INFO] [1790547425.341559517] [nautilus.robot_state_publisher]: got segment front_camera_depth_optical
+[robot_state_publisher-2] [INFO] [1790547425.341561855] [nautilus.robot_state_publisher]: got segment front_camera_infra1
+[robot_state_publisher-2] [INFO] [1790547425.341564189] [nautilus.robot_state_publisher]: got segment front_camera_infra1_optical
+[robot_state_publisher-2] [INFO] [1790547425.341566525] [nautilus.robot_state_publisher]: got segment front_camera_infra2
+[robot_state_publisher-2] [INFO] [1790547425.341568776] [nautilus.robot_state_publisher]: got segment front_camera_infra2_optical
+[robot_state_publisher-2] [INFO] [1790547425.341571025] [nautilus.robot_state_publisher]: got segment front_camera_link
+[robot_state_publisher-2] [INFO] [1790547425.341573336] [nautilus.robot_state_publisher]: got segment imu_link
+[robot_state_publisher-2] [INFO] [1790547425.341575634] [nautilus.robot_state_publisher]: got segment pressure_sensor_link
+[robot_state_publisher-2] [INFO] [1790547425.341578021] [nautilus.robot_state_publisher]: got segment shoulder
+[robot_state_publisher-2] [INFO] [1790547425.341580319] [nautilus.robot_state_publisher]: got segment sonar_link
+[dp_adapt_backs_controller_quat_node-5] [2026-09-28 00:17:05.353] [info] 
+[dp_adapt_backs_controller_quat_node-5]  ██████╗ ██╗   ██╗ █████╗ ████████╗███████╗██████╗ ███╗   ██╗██╗ ██████╗ ███╗   ██╗    ██████╗ ██████╗
+[dp_adapt_backs_controller_quat_node-5] ██╔═══██╗██║   ██║██╔══██╗╚══██╔══╝██╔════╝██╔══██╗████╗  ██║██║██╔═══██╗████╗  ██║    ██╔══██╗██╔══██╗
+[dp_adapt_backs_controller_quat_node-5] ██║   ██║██║   ██║███████║   ██║   █████╗  ██████╔╝██╔██╗ ██║██║██║   ██║██╔██╗ ██║    ██║  ██║██████╔╝
+[dp_adapt_backs_controller_quat_node-5] ██║▄▄ ██║██║   ██║██╔══██║   ██║   ██╔══╝  ██╔══██╗██║╚██╗██║██║██║   ██║██║╚██╗██║    ██║  ██║██╔═══╝
+[dp_adapt_backs_controller_quat_node-5] ╚██████╔╝╚██████╔╝██║  ██║   ██║   ███████╗██║  ██║██║ ╚████║██║╚██████╔╝██║ ╚████║    ██████╔╝██║
+[dp_adapt_backs_controller_quat_node-5]  ╚══▀▀═╝  ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝ ╚═════╝ ╚═╝  ╚═══╝    ╚═════╝ ╚═╝
+[dp_adapt_backs_controller_quat_node-5] 
+[dp_adapt_backs_controller_quat_node-5] [2026-09-28 00:17:05.353] [info] Initial operation mode: manual mode | Killswitch status: on
+[gtsam_navigation_node-9] [INFO] [1790547425.360618267] [nautilus.gtsam_navigation]: Waiting for fixed Nautilus sensor transforms; bias states remain internal
+[foxglove_bridge-12] [INFO] [1790547425.363136290] [foxglove_bridge]: Starting foxglove_bridge (humble, 3.4.3@)
+[foxglove_bridge-12] [2026-09-27T22:17:05Z INFO  foxglove::websocket::server] Started server on 0.0.0.0:8766
+[foxglove_bridge-12] [INFO] [1790547425.365273395] [foxglove_bridge]: Server listening on port 8766
+[foxglove_bridge-12] [INFO] [1790547425.368191952] [foxglove_bridge]: Advertising new channel 2 for topic "/tf_static"
+[foxglove_bridge-12] [INFO] [1790547425.368233385] [foxglove_bridge]: Advertising new channel 3 for topic "/tf"
+[foxglove_bridge-12] [INFO] [1790547425.368726537] [foxglove_bridge]: Advertising new channel 4 for topic "/nautilus/wrench_input"
+[foxglove_bridge-12] [INFO] [1790547425.369470381] [foxglove_bridge]: Advertising new channel 5 for topic "/nautilus/twist"
+[foxglove_bridge-12] [INFO] [1790547425.369513143] [foxglove_bridge]: Advertising new channel 6 for topic "/nautilus/stonefish/unused_twist"
+[foxglove_bridge-12] [INFO] [1790547425.372658168] [foxglove_bridge]: Advertising new channel 7 for topic "/nautilus/stonefish/unused_pose"
+[foxglove_bridge-12] [INFO] [1790547425.372938875] [foxglove_bridge]: Advertising new channel 8 for topic "/nautilus/stonefish/unused_odom"
+[foxglove_bridge-12] [INFO] [1790547425.372952017] [foxglove_bridge]: Advertising new channel 9 for topic "/nautilus/stonefish/truth"
+[foxglove_bridge-12] [INFO] [1790547425.373621836] [foxglove_bridge]: Advertising new channel 10 for topic "/nautilus/stonefish/thrusters"
+[foxglove_bridge-12] [INFO] [1790547425.373640634] [foxglove_bridge]: Advertising new channel 11 for topic "/nautilus/pose"
+[foxglove_bridge-12] [INFO] [1790547425.373855388] [foxglove_bridge]: Advertising new channel 12 for topic "/nautilus/robot_description"
+[foxglove_bridge-12] [INFO] [1790547425.374077059] [foxglove_bridge]: Advertising new channel 13 for topic "/nautilus/operation_mode"
+[foxglove_bridge-12] [INFO] [1790547425.374345214] [foxglove_bridge]: Advertising new channel 14 for topic "/rosout"
+[foxglove_bridge-12] [INFO] [1790547425.374561601] [foxglove_bridge]: Advertising new channel 15 for topic "/nautilus/killswitch"
+[foxglove_bridge-12] [INFO] [1790547425.374812085] [foxglove_bridge]: Advertising new channel 16 for topic "/nautilus/imu/data_raw"
+[foxglove_bridge-12] [INFO] [1790547425.375051534] [foxglove_bridge]: Advertising new channel 17 for topic "/nautilus/guidance/dp_quat"
+[foxglove_bridge-12] [INFO] [1790547425.376052526] [foxglove_bridge]: Advertising new channel 18 for topic "/nautilus/thruster_forces"
+[foxglove_bridge-12] [INFO] [1790547425.376080483] [foxglove_bridge]: Advertising new channel 19 for topic "/nautilus/gtsam/truth"
+[foxglove_bridge-12] [INFO] [1790547425.376691221] [foxglove_bridge]: Advertising new channel 20 for topic "/nautilus/gtsam/status"
+[foxglove_bridge-12] [INFO] [1790547425.376709100] [foxglove_bridge]: Advertising new channel 21 for topic "/nautilus/gtsam/odom"
+[foxglove_bridge-12] [INFO] [1790547425.376717501] [foxglove_bridge]: Advertising new channel 22 for topic "/nautilus/gtsam/command/mode"
+[foxglove_bridge-12] [INFO] [1790547425.376725962] [foxglove_bridge]: Advertising new channel 23 for topic "/nautilus/stonefish/unused_dvl"
+[foxglove_bridge-12] [INFO] [1790547425.376961730] [foxglove_bridge]: Advertising new channel 24 for topic "/nautilus/servo_state"
+[foxglove_bridge-12] [INFO] [1790547425.376972046] [foxglove_bridge]: Advertising new channel 25 for topic "/nautilus/gtsam/command/dp"
+[foxglove_bridge-12] [INFO] [1790547425.377179826] [foxglove_bridge]: Advertising new channel 26 for topic "/nautilus/fls_image/stonefish_sonar_info"
+[foxglove_bridge-12] [INFO] [1790547425.377191937] [foxglove_bridge]: Advertising new channel 27 for topic "/nautilus/gripper_servos"
+[foxglove_bridge-12] [INFO] [1790547425.377422688] [foxglove_bridge]: Advertising new channel 28 for topic "/nautilus/fls/sonar_info"
+[foxglove_bridge-12] [INFO] [1790547425.377437154] [foxglove_bridge]: Advertising new channel 29 for topic "/nautilus/dvl/twist"
+[foxglove_bridge-12] [INFO] [1790547425.378814941] [foxglove_bridge]: Advertising new channel 30 for topic "/parameter_events"
+[foxglove_bridge-12] [INFO] [1790547425.378843844] [foxglove_bridge]: Advertising new channel 31 for topic "/nautilus/stonefish/servos"
+[foxglove_bridge-12] [INFO] [1790547425.379078673] [foxglove_bridge]: Advertising new channel 32 for topic "/nautilus/joy"
+[foxglove_bridge-12] [INFO] [1790547425.379714693] [foxglove_bridge]: Advertising new channel 33 for topic "/nautilus/dvl/sim"
+[foxglove_bridge-12] [INFO] [1790547425.379730331] [foxglove_bridge]: Advertising new channel 34 for topic "/nautilus/dvl/bottom_lock"
+[foxglove_bridge-12] [INFO] [1790547425.379939301] [foxglove_bridge]: Advertising new channel 35 for topic "/nautilus/dvl/altitude"
+[gtsam_navigation_node-9] [INFO] [1790547425.460765326] [nautilus.gtsam_navigation]: Fixed sensor transforms loaded; collecting stationary IMU samples
+[joystick_interface_auv_node.py-4] [INFO] [1790547425.803157590] [nautilus.joystick_interface_auv]: 
+[joystick_interface_auv_node.py-4]       _                 _   _      _      ___       _             __
+[joystick_interface_auv_node.py-4]      | | ___  _   _ ___| |_(_) ___| | __ |_ _|_ __ | |_ ___ _ __ / _| __ _  ___ ___
+[joystick_interface_auv_node.py-4]   _  | |/ _ \| | | / __| __| |/ __| |/ /  | || '_ \| __/ _ \ '__| |_ / _` |/ __/ _ \
+[joystick_interface_auv_node.py-4]  | |_| | (_) | |_| \__ \ |_| | (__|   <   | || | | | ||  __/ |  |  _| (_| | (_|  __/
+[joystick_interface_auv_node.py-4]   \___/ \___/ \__, |___/\__|_|\___|_|\_\ |___|_| |_|\__\___|_|  |_|  \__,_|\___\___|
+[joystick_interface_auv_node.py-4]               |___/
+[joystick_interface_auv_node.py-4] 
+[joystick_interface_auv_node.py-4] [INFO] [1790547425.803959601] [nautilus.joystick_interface_auv]: Initial operation mode: vortex_msgs.msg.OperationMode(operation_mode=2) | Initial killswitch status: on
+[foxglove_bridge-12] [INFO] [1790547425.960571156] [foxglove_bridge]: Advertising new channel 36 for topic "/nautilus/stonefish/imu"
+[foxglove_bridge-12] [INFO] [1790547425.960649639] [foxglove_bridge]: Advertising new channel 37 for topic "/nautilus/gtsam/command/manual"
+[foxglove_bridge-12] [INFO] [1790547425.962976179] [foxglove_bridge]: Advertising new channel 38 for topic "/nautilus/gtsam/vehicles"
+[stonefish_simulator-1] [INFO] Welcome to Stonefish 1.5.
+[stonefish_simulator-1] [INFO] Window created. OpenGL 4.3 contexts created.
+[stonefish_simulator-1] [INFO] Checking GPU capabilities...
+[stonefish_simulator-1] [INFO] Number of texture units available: 192
+[stonefish_simulator-1] [INFO] Maximum texture size: 32768
+[stonefish_simulator-1] [INFO] Maximum number of texture layers: 2048
+[stonefish_simulator-1] [INFO] Maximum number of fragment shader uniforms: 4096
+[stonefish_simulator-1] [INFO] Setting up OpenGL...
+[stonefish_simulator-1] [INFO] Loaded texture from: /usr/local/share/Stonefish/shaders/logo_64.png
+[stonefish_simulator-1] [INFO] Joystick Xbox 360 Controller connected (6 axes, 1 hats, 11 buttons)
+[stonefish_simulator-1] [INFO] Initializing rendering pipeline:
+[stonefish_simulator-1] [INFO] Loading GUI...
+[stonefish_simulator-1] [INFO] Loaded texture from: /usr/local/share/Stonefish/shaders/logo_gray_64.png
+[stonefish_simulator-1] [INFO] Loaded texture from: /usr/local/share/Stonefish/shaders/gui.png
+[stonefish_simulator-1] [INFO] Initialising OpenGL rendering pipeline...
+[stonefish_simulator-1] [INFO] Loading shaders...
+[stonefish_simulator-1] [INFO] Loaded texture from: /usr/local/share/Stonefish/shaders/flake.png
+[stonefish_simulator-1] [INFO] Initializing simulation:
+[stonefish_simulator-1] [INFO] Building scenario...
+[stonefish_simulator-1] [INFO] Loaded precomputed atmosphere model (20 wavelengths, 5 scattering orders)
+[stonefish_simulator-1] [INFO] Scenario parser: Loading scenario from '/home/vortex/ros2_ws/install/gtsam_navigation/share/gtsam_navigation/scenarios/nautilus_gtsam.scn'.
+[stonefish_simulator-1] [INFO] Scenario parser: Including file '/home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/metadata/materials.scn'
+[stonefish_simulator-1] [INFO] Scenario parser: Including file '/home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/metadata/looks.scn'
+[stonefish_simulator-1] [INFO] Generating ocean waves...
+[stonefish_simulator-1] [INFO] Material Aluminium (0) created.
+[stonefish_simulator-1] [INFO] Material Steel (1) created.
+[stonefish_simulator-1] [INFO] Material robot_material (2) created.
+[stonefish_simulator-1] [INFO] Material ma1_material (3) created.
+[stonefish_simulator-1] [INFO] Material Neutral (4) created.
+[stonefish_simulator-1] [INFO] Material Rough (5) created.
+[stonefish_simulator-1] [WARN] Texture has 4 channels while expected 3 channels!
+[stonefish_simulator-1] [INFO] Loaded texture from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/aruco_tags/aruco-marker-ID=33.png
+[stonefish_simulator-1] [INFO] Loaded texture from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/aruco_tags/aruco-19.png
+[stonefish_simulator-1] [INFO] Loaded texture from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/aruco_tags/aruco-28.png
+[stonefish_simulator-1] [INFO] Loaded texture from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/aruco_tags/aruco-7.png
+[stonefish_simulator-1] [INFO] Loaded texture from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/aruco_tags/aruco-96.png
+[stonefish_simulator-1] [INFO] Loaded texture from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/object_files/Buoy1.png
+[stonefish_simulator-1] [WARN] Texture has 4 channels while expected 3 channels!
+[stonefish_simulator-1] [INFO] Loaded texture from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/object_files/tacc_seafloor/rocks.png
+[stonefish_simulator-1] [WARN] Texture has 4 channels while expected 3 channels!
+[stonefish_simulator-1] [INFO] Loaded texture from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/object_files/pipe2.png
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/nautilus_visual.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 65551 faces in 2173 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/nautilus_collision.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 284 faces in 0 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_shoulder_collision.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 12 faces in 0 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_shoulder_collision.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 12 faces in 0 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_arm_collision.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 236 faces in 0 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_arm_collision.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 236 faces in 0 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_finger_left_collision.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 28 faces in 0 ms.
+[foxglove_bridge-12] [INFO] [1790547429.249711150] [foxglove_bridge]: Advertising new channel 39 for topic "/nautilus/thruster_state"
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_finger_left_collision.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 28 faces in 0 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_finger_right_collision.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 28 faces in 0 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_finger_right_collision.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 28 faces in 0 ms.
+[stonefish_simulator-1] [INFO] Built multibody link nautilus/Base (mass[kg]: 53.700; inertia[kgm2]: 11.060, 23.110, 26.240; volume[cm3]: 50148.5)
+[stonefish_simulator-1] [INFO] Building kinematic tree of robot 'nautilus', consisting of 5 links and 4 joints.
+[stonefish_simulator-1] [INFO] Joint 1: nautilus/Base<-->nautilus/shoulder
+[stonefish_simulator-1] [INFO] Joint 2: nautilus/shoulder<-->nautilus/arm
+[stonefish_simulator-1] [INFO] Joint 3: nautilus/arm<-->nautilus/finger2
+[stonefish_simulator-1] [INFO] Joint 4: nautilus/arm<-->nautilus/finger1
+[stonefish_simulator-1] [INFO] Built multibody link nautilus/shoulder (mass[kg]: 0.000; inertia[kgm2]: 0.000, 0.000, 0.000; volume[cm3]: 2622.5)
+[stonefish_simulator-1] [INFO] Built multibody link nautilus/arm (mass[kg]: 0.000; inertia[kgm2]: 0.000, 0.000, 0.000; volume[cm3]: 274.7)
+[stonefish_simulator-1] [INFO] Built multibody link nautilus/finger2 (mass[kg]: 0.000; inertia[kgm2]: 0.000, 0.000, 0.000; volume[cm3]: 85.3)
+[stonefish_simulator-1] [INFO] Built multibody link nautilus/finger1 (mass[kg]: 0.000; inertia[kgm2]: 0.000, 0.000, 0.000; volume[cm3]: 85.3)
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 6359 faces in 4 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 6359 faces in 4 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 6359 faces in 4 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 6359 faces in 4 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 6359 faces in 4 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 6359 faces in 4 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 6359 faces in 4 ms.
+[stonefish_simulator-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator-1] [INFO] Loaded mesh with 6359 faces in 4 ms.
+[stonefish_simulator-1] [INFO] Scenario parser: Log saved to file '/home/vortex/.ros/log/stonefish_ros2_parser.log'.
+[stonefish_simulator-1] [INFO] Finalizing OpenGL rendering pipeline...
+[stonefish_simulator-1] [INFO] Synchronizing motion states...
+[stonefish_simulator-1] [INFO] Simulation initialized -> using Bullet Physics 3.17.
+[stonefish_simulator-1] [INFO] Ready for running...
+[stonefish_simulator-1] [INFO] IC problem solved with 1 iterations in 0.000111 s.
+[foxglove_bridge-12] [2026-09-27T22:17:12Z INFO  foxglove::websocket::server] Registered client 127.0.0.1:58130
+[foxglove_bridge-12] [2026-09-27T22:17:12Z ERROR foxglove::websocket::connected_client::poller] Error sending message to client 127.0.0.1:58130: IO error: Broken pipe (os error 32)
+[foxglove_bridge-12] [2026-09-27T22:17:12Z ERROR foxglove::websocket::connected_client::poller] Error sending message to client 127.0.0.1:58130: IO error: Broken pipe (os error 32)
+[foxglove_bridge-12] [2026-09-27T22:17:12Z ERROR foxglove::websocket::connected_client::poller] Error receiving from client 127.0.0.1:58130: WebSocket protocol error: Connection reset without closing handshake
+[foxglove_bridge-12] [2026-09-27T22:17:12Z INFO  foxglove::websocket::connected_client::poller] Connection closed by client 127.0.0.1:58130
+[foxglove_bridge-12] [2026-09-27T22:17:12Z INFO  foxglove::websocket::server] Unregistered client 127.0.0.1:58130
+[operation_mode_manager_cpp-3] [2026-09-28 00:17:15.069] [info] Killswitch set to false
+[dp_adapt_backs_controller_quat_node-5] [2026-09-28 00:17:15.070] [info] Operation mode: manual mode
+[dp_adapt_backs_controller_quat_node-5] [2026-09-28 00:17:15.070] [info] Killswitch: off
+[joystick_interface_auv_node.py-4] [INFO] [1790547435.070535074] [nautilus.joystick_interface_auv]: Operation mode set to: Manual : Killswitch False
+[operation_mode_manager_cpp-3] [2026-09-28 00:17:18.521] [info] Mode set to to reference mode
+[dp_adapt_backs_controller_quat_node-5] [2026-09-28 00:17:18.521] [info] Operation mode: reference mode
+[dp_adapt_backs_controller_quat_node-5] [2026-09-28 00:17:18.521] [info] Killswitch: off
+[joystick_interface_auv_node.py-4] [INFO] [1790547438.521462029] [nautilus.joystick_interface_auv]: Reference mode
+[joystick_interface_auv_node.py-4] [INFO] [1790547438.522319558] [nautilus.joystick_interface_auv]: Operation mode set to: Reference : Killswitch False
+[operation_mode_manager_cpp-3] [2026-09-28 00:17:44.981] [info] Killswitch set to true
+[dp_adapt_backs_controller_quat_node-5] [2026-09-28 00:17:44.981] [info] Operation mode: reference mode
+[dp_adapt_backs_controller_quat_node-5] [2026-09-28 00:17:44.981] [info] Killswitch: on
+[joystick_interface_auv_node.py-4] [INFO] [1790547464.982418896] [nautilus.joystick_interface_auv]: Operation mode set to: Reference : Killswitch True
+[operation_mode_manager_cpp-3] [2026-09-28 00:17:45.732] [info] Killswitch set to false
+[dp_adapt_backs_controller_quat_node-5] [2026-09-28 00:17:45.732] [info] Killswitch: off
+[dp_adapt_backs_controller_quat_node-5] [2026-09-28 00:17:45.732] [info] Operation mode: reference mode
+[joystick_interface_auv_node.py-4] [INFO] [1790547465.733113761] [nautilus.joystick_interface_auv]: Operation mode set to: Reference : Killswitch False
+[WARNING] [launch]: user interrupted with ctrl-c (SIGINT)
+[INFO] [foxglove_bridge-12]: sending signal 'SIGINT' to process[foxglove_bridge-12]
+[INFO] [stonefish_evaluation.py-11]: sending signal 'SIGINT' to process[stonefish_evaluation.py-11]
+[INFO] [stonefish_control.py-10]: sending signal 'SIGINT' to process[stonefish_control.py-10]
+[INFO] [gtsam_navigation_node-9]: sending signal 'SIGINT' to process[gtsam_navigation_node-9]
+[INFO] [stonefish_sensors.py-8]: sending signal 'SIGINT' to process[stonefish_sensors.py-8]
+[INFO] [stonefish_sim_interface-7]: sending signal 'SIGINT' to process[stonefish_sim_interface-7]
+[INFO] [thrust_allocator_auv_node-6]: sending signal 'SIGINT' to process[thrust_allocator_auv_node-6]
+[INFO] [dp_adapt_backs_controller_quat_node-5]: sending signal 'SIGINT' to process[dp_adapt_backs_controller_quat_node-5]
+[INFO] [joystick_interface_auv_node.py-4]: sending signal 'SIGINT' to process[joystick_interface_auv_node.py-4]
+[INFO] [operation_mode_manager_cpp-3]: sending signal 'SIGINT' to process[operation_mode_manager_cpp-3]
+[INFO] [robot_state_publisher-2]: sending signal 'SIGINT' to process[robot_state_publisher-2]
+[INFO] [stonefish_simulator-1]: sending signal 'SIGINT' to process[stonefish_simulator-1]
+[foxglove_bridge-12] [INFO] [1790547468.922601762] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[foxglove_bridge-12] [INFO] [1790547468.923222410] [foxglove_bridge]: Shutting down foxglove_bridge
+[foxglove_bridge-12] [2026-09-27T22:17:48Z INFO  foxglove::websocket::server] Shutting down
+[foxglove_bridge-12] [2026-09-27T22:17:48Z INFO  foxglove::websocket::server] Shutdown complete
+[foxglove_bridge-12] [INFO] [1790547468.923363924] [foxglove_bridge]: Shutdown complete
+[gtsam_navigation_node-9] [INFO] [1790547468.931567376] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[stonefish_sim_interface-7] [INFO] [1790547468.943099310] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[thrust_allocator_auv_node-6] [INFO] [1790547468.947291398] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[dp_adapt_backs_controller_quat_node-5] [INFO] [1790547468.950708692] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[joystick_interface_auv_node.py-4] Traceback (most recent call last):
+[joystick_interface_auv_node.py-4]   File "/home/vortex/ros2_ws/install/joystick_interface_auv/lib/joystick_interface_auv/joystick_interface_auv_node.py", line 580, in <module>
+[joystick_interface_auv_node.py-4]     main()
+[joystick_interface_auv_node.py-4]   File "/home/vortex/ros2_ws/install/joystick_interface_auv/lib/joystick_interface_auv/joystick_interface_auv_node.py", line 574, in main
+[joystick_interface_auv_node.py-4]     rclpy.spin(joystick_interface)
+[joystick_interface_auv_node.py-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 229, in spin
+[joystick_interface_auv_node.py-4]     executor.spin_once()
+[joystick_interface_auv_node.py-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 808, in spin_once
+[joystick_interface_auv_node.py-4]     self._spin_once_impl(timeout_sec)
+[joystick_interface_auv_node.py-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 797, in _spin_once_impl
+[joystick_interface_auv_node.py-4]     handler, entity, node = self.wait_for_ready_callbacks(timeout_sec=timeout_sec)
+[joystick_interface_auv_node.py-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 780, in wait_for_ready_callbacks
+[joystick_interface_auv_node.py-4]     return next(self._cb_iter)
+[joystick_interface_auv_node.py-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 677, in _wait_for_ready_callbacks
+[joystick_interface_auv_node.py-4]     wait_set.wait(timeout_nsec)
+[joystick_interface_auv_node.py-4] KeyboardInterrupt
+[operation_mode_manager_cpp-3] [INFO] [1790547468.955889442] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[robot_state_publisher-2] [INFO] [1790547468.958737224] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[ERROR] [joystick_interface_auv_node.py-4]: process has died [pid 168335, exit code -2, cmd '/home/vortex/ros2_ws/install/joystick_interface_auv/lib/joystick_interface_auv/joystick_interface_auv_node.py --ros-args -r __ns:=/nautilus --params-file /home/vortex/ros2_ws/install/auv_setup/share/auv_setup/config/robots/nautilus.yaml --params-file /home/vortex/ros2_ws/install/joystick_interface_auv/share/joystick_interface_auv/config/param_joystick_interface_auv.yaml --params-file /tmp/launch_params_2rfktnlg --params-file /tmp/launch_params_u77tsil4 -r wrench_input:=gtsam/command/manual'].
+[INFO] [thrust_allocator_auv_node-6]: process has finished cleanly [pid 168339]
+[INFO] [stonefish_sim_interface-7]: process has finished cleanly [pid 168341]
+[INFO] [dp_adapt_backs_controller_quat_node-5]: process has finished cleanly [pid 168337]
+[INFO] [operation_mode_manager_cpp-3]: process has finished cleanly [pid 168333]
+[INFO] [gtsam_navigation_node-9]: process has finished cleanly [pid 168345]
+[INFO] [robot_state_publisher-2]: process has finished cleanly [pid 168331]
+[INFO] [foxglove_bridge-12]: process has finished cleanly [pid 168351]
+[INFO] [stonefish_evaluation.py-11]: process has finished cleanly [pid 168349]
+[INFO] [stonefish_sensors.py-8]: process has finished cleanly [pid 168343]
+[INFO] [stonefish_control.py-10]: process has finished cleanly [pid 168347]
+[INFO] [stonefish_simulator-1]: process has finished cleanly [pid 168329]

@@ -1,0 +1,30 @@
+{
+  "barrel_5s_1000imu_8dvl_noiseless": {
+    "samples": 3638,
+    "position_rmse_after_5s_m": 0.12828796051833166,
+    "position_final_m": 0.20957668436693175,
+    "position_max_m": 0.20957668436693175,
+    "velocity_rmse_after_5s_mps": 0.006745170069911394,
+    "orientation_final_deg": 0.001353674741872633,
+    "position_nees_final": 7.4527368738873,
+    "position_nees_time_mean": 5.213001601939968,
+    "position_nees_fraction_in_single_sample_95_interval": 0.956583833190517,
+    "last_accepted_dvl_time": 72.375,
+    "rejected_dvl_including_startup": 17,
+    "measurement_sha256": "25eafd9587aad22d3ee2506f0500b497134d630880953531894a776972e3de5c"
+  },
+  "barrel_5s_1000imu_8dvl_noisy": {
+    "samples": 3638,
+    "position_rmse_after_5s_m": 0.17688279376451774,
+    "position_final_m": 0.28377944361225643,
+    "position_max_m": 0.28377944361225643,
+    "velocity_rmse_after_5s_mps": 0.012381082773298994,
+    "orientation_final_deg": 0.023355102399426977,
+    "position_nees_final": 14.482244787314094,
+    "position_nees_time_mean": 10.635275954981804,
+    "position_nees_fraction_in_single_sample_95_interval": 0.3607540702656384,
+    "last_accepted_dvl_time": 72.375,
+    "rejected_dvl_including_startup": 17,
+    "measurement_sha256": "25edb32092a0f02b518ff800ec8b4c7a766cfb4a89e0c246ba15c8e071c919e5"
+  }
+}

@@ -1,0 +1,11 @@
+Consolidate compiler generated dependencies of target gtsam_navigation_core
+[ 15%] Built target gtest_main
+[ 30%] Built target gtsam_navigation_node
+[ 53%] Built target gtsam_navigation_core
+[ 69%] Built target gtest
+Consolidate compiler generated dependencies of target gtsam_navigation_component
+Consolidate compiler generated dependencies of target estimator_tests
+[ 84%] Built target gtsam_navigation_component
+[ 92%] Building CXX object CMakeFiles/estimator_tests.dir/test/estimator_tests.cpp.o
+[100%] Linking CXX executable estimator_tests
+[100%] Built target estimator_tests

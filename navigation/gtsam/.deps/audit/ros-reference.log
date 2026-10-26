@@ -1,0 +1,3 @@
+[INFO] [1790539143.244404664] [audit_reference.gtsam_navigation]: Waiting for fixed Nautilus sensor transforms; bias states remain internal
+[INFO] [1790539143.344526508] [audit_reference.gtsam_navigation]: Fixed sensor transforms loaded; collecting stationary IMU samples
+[INFO] [1790539157.476921066] [rclcpp]: signal_handler(SIGINT/SIGTERM)

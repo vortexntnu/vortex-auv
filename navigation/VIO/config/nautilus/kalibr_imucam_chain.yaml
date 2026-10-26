@@ -9,10 +9,10 @@ cam0:
     - [0.0, 0.0, 0.0, 1.0]
   cam_overlaps: [0]
   camera_model: pinhole
-  distortion_coeffs: [-0.28368365,0.07451284,-0.00010473,-3.55590700e-05]
+  distortion_coeffs: [0.0,0.0,0.0,0.0]
   distortion_model: radtan
-  intrinsics: [457.587, 456.134, 379.999, 255.238] #fu, fv, cu, cv
-  resolution: [1440, 1080]
+  intrinsics: [360, 360, 360, 270] #fu, fv, cu, cv
+  resolution: [720, 540]
   rostopic: /nautilus/down_camera/image_color
 
 #cam1:

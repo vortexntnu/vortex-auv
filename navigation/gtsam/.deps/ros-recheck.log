@@ -1,0 +1,11 @@
+Internal ctest changing into directory: /home/vortex/ros2_ws/build/gtsam_navigation
+Test project /home/vortex/ros2_ws/build/gtsam_navigation
+    Start 3: test_test_navigation_launch.py
+1/1 Test #3: test_test_navigation_launch.py ...   Passed    8.81 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Label Time Summary:
+launch_test    =   8.81 sec*proc (1 test)
+
+Total Test time (real) =   8.81 sec
