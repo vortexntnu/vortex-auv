@@ -1,0 +1,12 @@
+[INFO] [launch]: All log files can be found below /home/vortex/ros2_ws/build/gtsam_navigation/rotation_ros_logs/2026-09-27-21-15-38-242541-vortex-89389
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [gtsam_navigation_node-1]: process started with pid [89390]
+[INFO] [simulate_sensors.py-2]: process started with pid [89392]
+[gtsam_navigation_node-1] [INFO] [1790536538.288470233] [nautilus.gtsam_navigation]: Waiting for fixed Nautilus sensor transforms; bias states remain internal
+[gtsam_navigation_node-1] [INFO] [1790536538.588654953] [nautilus.gtsam_navigation]: Fixed sensor transforms loaded; collecting stationary IMU samples
+[simulate_sensors.py-2] [INFO] [1790536568.544356845] [nautilus.gtsam_sensor_simulator]: RMSE: position=0.018531 m, IMU velocity=0.006483 m/s, yaw=0.087956 deg; 2763 estimates
+[INFO] [simulate_sensors.py-2]: process has finished cleanly [pid 89392]
+[WARNING] [launch]: user interrupted with ctrl-c (SIGINT)
+[INFO] [gtsam_navigation_node-1]: sending signal 'SIGINT' to process[gtsam_navigation_node-1]
+[gtsam_navigation_node-1] [INFO] [1790536571.201544119] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[INFO] [gtsam_navigation_node-1]: process has finished cleanly [pid 89390]

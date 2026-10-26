@@ -1,0 +1,27 @@
+{
+  "imu": {
+    "messages": 17949,
+    "median_header_rate_hz": 1000.0000000005542,
+    "wall_rate_hz": 997.9957263324997
+  },
+  "dvl": {
+    "messages": 71,
+    "median_header_rate_hz": 8.0,
+    "wall_rate_hz": 7.999976976084196
+  },
+  "truth": {
+    "messages": 17949,
+    "median_header_rate_hz": 1000.0000000005542,
+    "wall_rate_hz": 997.9964755730081
+  },
+  "odom": {
+    "messages": 1961,
+    "median_header_rate_hz": 125.00000000001377,
+    "wall_rate_hz": 125.00224518682852
+  },
+  "full_revolutions_checked_at_s": [
+    12,
+    17
+  ],
+  "lock_loss_and_recovery": true
+}

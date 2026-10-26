@@ -1,0 +1,50 @@
+[WARNING] hook id `ruff` uses deprecated stage names (commit) which will be removed in a future version.  run: `pre-commit migrate-config` to automatically fix this.
+[WARNING] hook id `ruff` uses deprecated stage names (commit) which will be removed in a future version.  run: `pre-commit migrate-config` to automatically fix this.
+check for added large files..............................................Passed
+check python ast.........................................................Passed
+check for case conflicts.................................................Passed
+check docstring is first.................................................Passed
+check for merge conflicts................................................Passed
+check for broken symlinks............................(no files to check)Skipped
+check xml............................................(no files to check)Skipped
+check yaml...........................................(no files to check)Skipped
+debug statements (python)................................................Passed
+fix end of files.........................................................Passed
+mixed line ending........................................................Passed
+trim trailing whitespace.................................................Passed
+fix utf-8 byte order marker..............................................Passed
+fix requirements.txt.................................(no files to check)Skipped
+ruff-format..............................................................Passed
+ruff-isort...............................................................Passed
+ruff-pyupgrade...........................................................Passed
+ruff-pydocstyle..........................................................Passed
+ruff-check...............................................................Failed
+- hook id: ruff
+- exit code: 1
+
+navigation/gtsam/test/audit_simulation.py:163:13: F841 Local variable `result` is assigned to but never used
+    |
+161 |         for seed in range(args.seeds):
+162 |             rows, truth, _ = measurements(kind, 75, seed)
+163 |             result = case(f"{kind}_seed{seed}", rows, truth)
+    |             ^^^^^^ F841
+164 |             ends.append(report[f"{kind}_seed{seed}"]["position_nees_final"])
+165 |         report[f"{kind}_ensemble"] = {
+    |
+    = help: Remove assignment to unused variable `result`
+
+Found 1 error.
+No fixes available (1 hidden fix can be enabled with the `--unsafe-fixes` option).
+
+clang-format.............................................................Passed
+ament_cppcheck.......................................(no files to check)Skipped
+ament_cpplint............................................................Failed
+- hook id: ament_cpplint
+- exit code: 1
+
+/home/vortex/ros2_ws/src/vortex-auv/navigation/gtsam/test/audit_replay.cpp:9:  Do not use namespace using-directives.  Use using-declarations instead.  [build/namespaces] [5]
+Category 'build/namespaces' errors found: 1
+Total errors found: 1
+
+ament_lint_cmake.........................................................Passed
+codespell................................................................Passed

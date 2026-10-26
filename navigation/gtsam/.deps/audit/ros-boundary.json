@@ -1,0 +1,40 @@
+{
+  "common_stamps": 479,
+  "max_state_and_covariance_difference": {
+    "poisoned": 0.0,
+    "absent": 0.0,
+    "changed_dvl": 0.14396132909737203
+  },
+  "subscriptions": {
+    "reference": [
+      "/audit_reference/dvl/twist",
+      "/audit_reference/imu/data_raw",
+      "/clock",
+      "/parameter_events"
+    ],
+    "poisoned": [
+      "/audit_poisoned/dvl/twist",
+      "/audit_poisoned/imu/data_raw",
+      "/clock",
+      "/parameter_events"
+    ],
+    "absent": [
+      "/audit_absent/dvl/twist",
+      "/audit_absent/imu/data_raw",
+      "/clock",
+      "/parameter_events"
+    ],
+    "changed_dvl": [
+      "/audit_changed_dvl/dvl/twist",
+      "/audit_changed_dvl/imu/data_raw",
+      "/clock",
+      "/parameter_events"
+    ]
+  },
+  "final_status": {
+    "changed_dvl": "DVL unavailable; IMU dead reckoning",
+    "reference": "DVL unavailable; IMU dead reckoning",
+    "absent": "DVL unavailable; IMU dead reckoning",
+    "poisoned": "DVL unavailable; IMU dead reckoning"
+  }
+}

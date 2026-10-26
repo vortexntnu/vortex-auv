@@ -1,0 +1,85 @@
+Initialization: True
+DP hold completed
+{
+  "initialized": true,
+  "settled_estimated_tracking_error_m": 0.04663293160923546,
+  "reference_received": true,
+  "pose_publishers": [
+    "gtsam_control_adapter"
+  ],
+  "dp_subscriptions": [
+    [
+      "/nautilus/guidance/dp_quat",
+      [
+        "vortex_msgs/msg/ReferenceFilterQuat"
+      ]
+    ],
+    [
+      "/nautilus/killswitch",
+      [
+        "std_msgs/msg/Bool"
+      ]
+    ],
+    [
+      "/nautilus/operation_mode",
+      [
+        "vortex_msgs/msg/OperationMode"
+      ]
+    ],
+    [
+      "/nautilus/pose",
+      [
+        "geometry_msgs/msg/PoseWithCovarianceStamped"
+      ]
+    ],
+    [
+      "/nautilus/twist",
+      [
+        "geometry_msgs/msg/TwistWithCovarianceStamped"
+      ]
+    ],
+    [
+      "/parameter_events",
+      [
+        "rcl_interfaces/msg/ParameterEvent"
+      ]
+    ]
+  ],
+  "gtsam_subscriptions": [
+    [
+      "/nautilus/dvl/twist",
+      [
+        "geometry_msgs/msg/TwistWithCovarianceStamped"
+      ]
+    ],
+    [
+      "/nautilus/imu/data_raw",
+      [
+        "sensor_msgs/msg/Imu"
+      ]
+    ],
+    [
+      "/parameter_events",
+      [
+        "rcl_interfaces/msg/ParameterEvent"
+      ]
+    ]
+  ],
+  "dp_active_wrench_max": 62.42727162560766,
+  "killswitch_zero": true,
+  "joystick_timeout_zero": true,
+  "imu_received_hz": 992.5319998316945,
+  "dvl_received_hz": 7.009763765410746,
+  "native_dvl_received_hz": 8.00000301070916,
+  "odom_received_hz": 124.72474208239936,
+  "truth_received_hz": 124.70404254094213,
+  "pose_received_hz": 124.7252639624985,
+  "matched_estimates": 4534,
+  "position_rmse_m": 0.019406156027959583,
+  "max_position_error_m": 0.08732646362905601,
+  "last_reference": "vortex_msgs.msg.ReferenceFilterQuat(header=std_msgs.msg.Header(stamp=builtin_interfaces.msg.Time(sec=1790547155, nanosec=732734381), frame_id='odom'), x=0.4561755755813571, y=0.002452570821998019, z=-0.0538236541438953, qw=0.9988571523160195, qx=-0.0007374789430773246, qy=-0.014534080212142262, qz=0.0455258816974236, x_dot=0.0, y_dot=0.0, z_dot=0.0, roll_dot=0.0, pitch_dot=0.0, yaw_dot=0.0)",
+  "last_pose": "geometry_msgs.msg.PoseWithCovarianceStamped(header=std_msgs.msg.Header(stamp=builtin_interfaces.msg.Time(sec=1790547156, nanosec=532227035), frame_id='nautilus/odom'), pose=geometry_msgs.msg.PoseWithCovariance(pose=geometry_msgs.msg.Pose(position=geometry_msgs.msg.Point(x=0.46992430859185036, y=0.0017804426922210983, z=-0.01262068657427931), orientation=geometry_msgs.msg.Quaternion(x=-0.0005752880381977648, y=-0.015472782165789843, z=0.0455470469522466, w=0.9988421940274915)), covariance=array([ 1.82962893e-04, -2.15710741e-08,  9.51978482e-08,  3.15416905e-07,\n        1.64350113e-08, -8.81648024e-08, -2.15710741e-08,  1.83933499e-04,\n       -3.10814215e-07, -2.44867706e-08,  2.81141983e-07,  3.63174421e-06,\n        9.51978482e-08, -3.10814215e-07,  1.70049732e-04,  7.77122446e-08,\n       -6.82657380e-07, -2.25049040e-08,  3.15416905e-07, -2.44867706e-08,\n        7.77122446e-08,  7.38544949e-07,  5.07052143e-09, -2.22632904e-08,\n        1.64350113e-08,  2.81141983e-07, -6.82657380e-07,  5.07052143e-09,\n        6.49466841e-07,  2.25637846e-08, -8.81648024e-08,  3.63174421e-06,\n       -2.25049040e-08, -2.22632904e-08,  2.25637846e-08,  1.44181563e-05])))",
+  "last_status": "diagnostic_msgs.msg.DiagnosticArray(header=std_msgs.msg.Header(stamp=builtin_interfaces.msg.Time(sec=1790547156, nanosec=429354250), frame_id=''), status=[diagnostic_msgs.msg.DiagnosticStatus(level=b'\\x00', name='/nautilus/gtsam_navigation/navigation', message='IMU and bottom-track DVL active', hardware_id='STIM300 + Nucleus bottom track', values=[diagnostic_msgs.msg.KeyValue(key='initialized', value='true'), diagnostic_msgs.msg.KeyValue(key='rejected_imu', value='0'), diagnostic_msgs.msg.KeyValue(key='rejected_dvl', value='16'), diagnostic_msgs.msg.KeyValue(key='active_states', value='80'), diagnostic_msgs.msg.KeyValue(key='factor_slots', value='204'), diagnostic_msgs.msg.KeyValue(key='buffered_samples', value='253'), diagnostic_msgs.msg.KeyValue(key='imu_age_seconds', value='0.001099'), diagnostic_msgs.msg.KeyValue(key='rejected_ros_messages', value='0'), diagnostic_msgs.msg.KeyValue(key='last_input_error', value='')])])",
+  "max_thruster_force_n": 19.862697631745753,
+  "stale_estimate_zero": true
+}

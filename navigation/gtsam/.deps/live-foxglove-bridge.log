@@ -1,0 +1,241 @@
+[INFO] [launch]: All log files can be found below /home/vortex/.ros/log/2026-09-28-00-26-19-791447-vortex-173327
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [foxglove_bridge-1]: process started with pid [173328]
+[foxglove_bridge-1] [INFO] [1790547979.921622789] [foxglove_bridge]: Starting foxglove_bridge (humble, 3.4.3@)
+[foxglove_bridge-1] [2026-09-27T22:26:19Z INFO  foxglove::websocket::server] Started server on 0.0.0.0:8765
+[foxglove_bridge-1] [INFO] [1790547979.923932638] [foxglove_bridge]: Server listening on port 8765
+[foxglove_bridge-1] [INFO] [1790547979.924939448] [foxglove_bridge]: Advertising new channel 2 for topic "/rosout"
+[foxglove_bridge-1] [INFO] [1790547979.925301282] [foxglove_bridge]: Advertising new channel 3 for topic "/parameter_events"
+[foxglove_bridge-1] [INFO] [1790547979.925492279] [foxglove_bridge]: Advertising new channel 4 for topic "/nautilus/joy"
+[foxglove_bridge-1] [ERROR] [1790547979.925616155] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/guidance/dp_quat" (vortex_msgs/msg/ReferenceFilterQuat): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547979.925713888] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_forces" (vortex_msgs/msg/ThrusterForces): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [INFO] [1790547979.926369261] [foxglove_bridge]: Advertising new channel 5 for topic "/nautilus/gtsam/truth"
+[foxglove_bridge-1] [INFO] [1790547979.926581574] [foxglove_bridge]: Advertising new channel 6 for topic "/nautilus/gtsam/command/manual"
+[foxglove_bridge-1] [INFO] [1790547979.926726605] [foxglove_bridge]: Advertising new channel 7 for topic "/nautilus/gripper_servos"
+[foxglove_bridge-1] [WARN] [1790547979.935200174] [foxglove_bridge]: Failed to add service "/nautilus/get_operation_mode" (vortex_msgs/srv/GetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547979.939893770] [foxglove_bridge]: Failed to add service "/nautilus/set_operation_mode" (vortex_msgs/srv/SetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547979.945282360] [foxglove_bridge]: Failed to add service "/nautilus/toggle_killswitch" (vortex_msgs/srv/ToggleKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [INFO] [1790547979.945659741] [foxglove_bridge]: Advertising new channel 8 for topic "/tf_static"
+[foxglove_bridge-1] [INFO] [1790547979.945704751] [foxglove_bridge]: Advertising new channel 9 for topic "/nautilus/twist"
+[foxglove_bridge-1] [INFO] [1790547979.945709923] [foxglove_bridge]: Advertising new channel 10 for topic "/nautilus/stonefish/unused_twist"
+[foxglove_bridge-1] [INFO] [1790547979.945744030] [foxglove_bridge]: Advertising new channel 11 for topic "/nautilus/stonefish/unused_pose"
+[foxglove_bridge-1] [INFO] [1790547979.945748529] [foxglove_bridge]: Advertising new channel 12 for topic "/nautilus/stonefish/unused_odom"
+[foxglove_bridge-1] [INFO] [1790547979.945752534] [foxglove_bridge]: Advertising new channel 13 for topic "/nautilus/stonefish/truth"
+[foxglove_bridge-1] [INFO] [1790547979.945757971] [foxglove_bridge]: Advertising new channel 14 for topic "/nautilus/wrench_input"
+[foxglove_bridge-1] [INFO] [1790547979.945763305] [foxglove_bridge]: Advertising new channel 15 for topic "/nautilus/stonefish/servos"
+[foxglove_bridge-1] [INFO] [1790547979.945818255] [foxglove_bridge]: Advertising new channel 16 for topic "/nautilus/stonefish/imu"
+[foxglove_bridge-1] [INFO] [1790547979.945823728] [foxglove_bridge]: Advertising new channel 17 for topic "/tf"
+[foxglove_bridge-1] [INFO] [1790547979.945828539] [foxglove_bridge]: Advertising new channel 18 for topic "/nautilus/pose"
+[foxglove_bridge-1] [ERROR] [1790547979.945846014] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/operation_mode" (vortex_msgs/msg/OperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [INFO] [1790547979.945889330] [foxglove_bridge]: Advertising new channel 19 for topic "/nautilus/killswitch_string"
+[foxglove_bridge-1] [INFO] [1790547979.945913697] [foxglove_bridge]: Advertising new channel 20 for topic "/nautilus/killswitch"
+[foxglove_bridge-1] [INFO] [1790547979.945945600] [foxglove_bridge]: Advertising new channel 21 for topic "/nautilus/joy/set_feedback"
+[foxglove_bridge-1] [INFO] [1790547979.946172695] [foxglove_bridge]: Advertising new channel 22 for topic "/nautilus/gtsam/vehicles"
+[foxglove_bridge-1] [INFO] [1790547979.946180139] [foxglove_bridge]: Advertising new channel 23 for topic "/nautilus/gtsam/command/mode"
+[foxglove_bridge-1] [INFO] [1790547979.946184851] [foxglove_bridge]: Advertising new channel 24 for topic "/nautilus/nucleus/dvl"
+[foxglove_bridge-1] [INFO] [1790547979.946190300] [foxglove_bridge]: Advertising new channel 25 for topic "/nautilus/gtsam/command/dp"
+[foxglove_bridge-1] [INFO] [1790547979.946195254] [foxglove_bridge]: Advertising new channel 26 for topic "/nautilus/servo_state"
+[foxglove_bridge-1] [INFO] [1790547979.946200002] [foxglove_bridge]: Advertising new channel 27 for topic "/nautilus/imu/data_raw"
+[foxglove_bridge-1] [ERROR] [1790547979.946224528] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls_image/stonefish_sonar_info" (stonefish_ros2/msg/SonarInfo): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547979.946246211] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/guidance/dp_quat" (vortex_msgs/msg/ReferenceFilterQuat): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547979.946259244] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls/sonar_info" (vortex_msgs/msg/SonarInfo): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547979.946271001] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_state" (stonefish_ros2/msg/ThrusterState): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [INFO] [1790547979.946276442] [foxglove_bridge]: Advertising new channel 28 for topic "/nautilus/dvl/twist"
+[foxglove_bridge-1] [INFO] [1790547979.946283209] [foxglove_bridge]: Advertising new channel 29 for topic "/nautilus/operation_mode_string"
+[foxglove_bridge-1] [ERROR] [1790547979.946295096] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/sim" (stonefish_ros2/msg/DVL): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [INFO] [1790547979.946404963] [foxglove_bridge]: Advertising new channel 30 for topic "/nautilus/stonefish/thrusters"
+[foxglove_bridge-1] [INFO] [1790547979.946410423] [foxglove_bridge]: Advertising new channel 31 for topic "/nautilus/dvl/bottom_lock"
+[foxglove_bridge-1] [ERROR] [1790547979.946422253] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_forces" (vortex_msgs/msg/ThrusterForces): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547979.946434452] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/altitude" (vortex_msgs/msg/DVLAltitude): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547979.950527605] [foxglove_bridge]: Failed to add service "/nautilus/get_operation_mode" (vortex_msgs/srv/GetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547979.951313837] [foxglove_bridge]: Failed to add service "/nautilus/set_killswitch" (vortex_msgs/srv/SetKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547979.951343761] [foxglove_bridge]: Failed to add service "/nautilus/set_operation_mode" (vortex_msgs/srv/SetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547979.953482103] [foxglove_bridge]: Failed to add service "/nautilus/toggle_killswitch" (vortex_msgs/srv/ToggleKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547979.953924370] [foxglove_bridge]: Failed to add service "/respawn_robot" (stonefish_ros2/srv/Respawn): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547979.954331210] [foxglove_bridge]: Failed to add service "/set_jerlov" (stonefish_ros2/srv/SetJerlov): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547979.954858140] [foxglove_bridge]: Failed to add service "/set_sun_params" (stonefish_ros2/srv/SetSunParams): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [2026-09-27T22:26:20Z INFO  foxglove::websocket::server] Registered client 127.0.0.1:37092
+[foxglove_bridge-1] [2026-09-27T22:26:20Z INFO  foxglove::websocket::connected_client::poller] Connection closed by client 127.0.0.1:37092
+[foxglove_bridge-1] [2026-09-27T22:26:20Z INFO  foxglove::websocket::server] Unregistered client 127.0.0.1:37092
+[foxglove_bridge-1] [INFO] [1790547980.455840796] [foxglove_bridge]: Advertising new channel 32 for topic "/nautilus/robot_description"
+[foxglove_bridge-1] [ERROR] [1790547980.455916219] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/operation_mode" (vortex_msgs/msg/OperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547980.455953564] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls_image/stonefish_sonar_info" (stonefish_ros2/msg/SonarInfo): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547980.455967136] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/guidance/dp_quat" (vortex_msgs/msg/ReferenceFilterQuat): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547980.455986938] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls/sonar_info" (vortex_msgs/msg/SonarInfo): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547980.455999125] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_state" (stonefish_ros2/msg/ThrusterState): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547980.456013677] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/sim" (stonefish_ros2/msg/DVL): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547980.456026920] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_forces" (vortex_msgs/msg/ThrusterForces): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547980.456039591] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/altitude" (vortex_msgs/msg/DVLAltitude): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547980.456322454] [foxglove_bridge]: Failed to add service "/nautilus/get_operation_mode" (vortex_msgs/srv/GetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547980.462029563] [foxglove_bridge]: Failed to add service "/nautilus/set_killswitch" (vortex_msgs/srv/SetKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547980.462132511] [foxglove_bridge]: Failed to add service "/nautilus/set_operation_mode" (vortex_msgs/srv/SetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547980.462184378] [foxglove_bridge]: Failed to add service "/nautilus/toggle_killswitch" (vortex_msgs/srv/ToggleKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547980.462220968] [foxglove_bridge]: Failed to add service "/respawn_robot" (stonefish_ros2/srv/Respawn): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547980.462254461] [foxglove_bridge]: Failed to add service "/set_jerlov" (stonefish_ros2/srv/SetJerlov): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547980.462286880] [foxglove_bridge]: Failed to add service "/set_sun_params" (stonefish_ros2/srv/SetSunParams): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547980.962738771] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/operation_mode" (vortex_msgs/msg/OperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [INFO] [1790547980.962943300] [foxglove_bridge]: Advertising new channel 33 for topic "/nautilus/gtsam/status"
+[foxglove_bridge-1] [INFO] [1790547980.962959445] [foxglove_bridge]: Advertising new channel 34 for topic "/nautilus/gtsam/odom"
+[foxglove_bridge-1] [ERROR] [1790547980.962992180] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls_image/stonefish_sonar_info" (stonefish_ros2/msg/SonarInfo): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547980.963015897] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/guidance/dp_quat" (vortex_msgs/msg/ReferenceFilterQuat): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547980.963037458] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls/sonar_info" (vortex_msgs/msg/SonarInfo): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547980.963057127] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_state" (stonefish_ros2/msg/ThrusterState): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547980.963078868] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/sim" (stonefish_ros2/msg/DVL): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547980.963113284] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_forces" (vortex_msgs/msg/ThrusterForces): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547980.963134688] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/altitude" (vortex_msgs/msg/DVLAltitude): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547980.963518455] [foxglove_bridge]: Failed to add service "/nautilus/get_operation_mode" (vortex_msgs/srv/GetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547980.977702518] [foxglove_bridge]: Failed to add service "/nautilus/set_killswitch" (vortex_msgs/srv/SetKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547980.977848222] [foxglove_bridge]: Failed to add service "/nautilus/set_operation_mode" (vortex_msgs/srv/SetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547980.977955376] [foxglove_bridge]: Failed to add service "/nautilus/toggle_killswitch" (vortex_msgs/srv/ToggleKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547980.978038161] [foxglove_bridge]: Failed to add service "/respawn_robot" (stonefish_ros2/srv/Respawn): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547980.978138399] [foxglove_bridge]: Failed to add service "/set_jerlov" (stonefish_ros2/srv/SetJerlov): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547980.978205191] [foxglove_bridge]: Failed to add service "/set_sun_params" (stonefish_ros2/srv/SetSunParams): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547981.478794132] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/operation_mode" (vortex_msgs/msg/OperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547981.478916688] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls_image/stonefish_sonar_info" (stonefish_ros2/msg/SonarInfo): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547981.478966031] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/guidance/dp_quat" (vortex_msgs/msg/ReferenceFilterQuat): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547981.479013339] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls/sonar_info" (vortex_msgs/msg/SonarInfo): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547981.479057870] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_state" (stonefish_ros2/msg/ThrusterState): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547981.479116326] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/sim" (stonefish_ros2/msg/DVL): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547981.479168562] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_forces" (vortex_msgs/msg/ThrusterForces): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547981.479213073] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/altitude" (vortex_msgs/msg/DVLAltitude): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547981.479875980] [foxglove_bridge]: Failed to add service "/nautilus/get_operation_mode" (vortex_msgs/srv/GetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547981.479936805] [foxglove_bridge]: Failed to add service "/nautilus/set_killswitch" (vortex_msgs/srv/SetKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547981.479982815] [foxglove_bridge]: Failed to add service "/nautilus/set_operation_mode" (vortex_msgs/srv/SetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547981.480031669] [foxglove_bridge]: Failed to add service "/nautilus/toggle_killswitch" (vortex_msgs/srv/ToggleKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547981.480076684] [foxglove_bridge]: Failed to add service "/respawn_robot" (stonefish_ros2/srv/Respawn): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547981.480129173] [foxglove_bridge]: Failed to add service "/set_jerlov" (stonefish_ros2/srv/SetJerlov): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547981.480174448] [foxglove_bridge]: Failed to add service "/set_sun_params" (stonefish_ros2/srv/SetSunParams): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [2026-09-27T22:26:22Z INFO  foxglove::websocket::server] Registered client 127.0.0.1:37094
+[foxglove_bridge-1] [INFO] [1790547982.201976498] [foxglove_bridge]: received connection graph subscribe request
+[foxglove_bridge-1] [ERROR] [1790547982.204540580] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/operation_mode" (vortex_msgs/msg/OperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547982.204976744] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls_image/stonefish_sonar_info" (stonefish_ros2/msg/SonarInfo): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547982.205197241] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/guidance/dp_quat" (vortex_msgs/msg/ReferenceFilterQuat): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547982.205382514] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls/sonar_info" (vortex_msgs/msg/SonarInfo): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547982.205529619] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_state" (stonefish_ros2/msg/ThrusterState): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547982.205687718] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/sim" (stonefish_ros2/msg/DVL): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547982.205830724] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_forces" (vortex_msgs/msg/ThrusterForces): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547982.205961365] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/altitude" (vortex_msgs/msg/DVLAltitude): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547982.208138388] [foxglove_bridge]: Failed to add service "/nautilus/get_operation_mode" (vortex_msgs/srv/GetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547982.208369864] [foxglove_bridge]: Failed to add service "/nautilus/set_killswitch" (vortex_msgs/srv/SetKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547982.208510092] [foxglove_bridge]: Failed to add service "/nautilus/set_operation_mode" (vortex_msgs/srv/SetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547982.208652394] [foxglove_bridge]: Failed to add service "/nautilus/toggle_killswitch" (vortex_msgs/srv/ToggleKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547982.208771610] [foxglove_bridge]: Failed to add service "/respawn_robot" (stonefish_ros2/srv/Respawn): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547982.208891447] [foxglove_bridge]: Failed to add service "/set_jerlov" (stonefish_ros2/srv/SetJerlov): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547982.209005179] [foxglove_bridge]: Failed to add service "/set_sun_params" (stonefish_ros2/srv/SetSunParams): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [INFO] [1790547982.216211040] [foxglove_bridge]: publishing connection graph
+[foxglove_bridge-1] [INFO] [1790547982.221043802] [foxglove_bridge]: received subscribe request for channel 34 from client 2
+[foxglove_bridge-1] [INFO] [1790547982.225085387] [foxglove_bridge]: Created ROS subscription on /nautilus/gtsam/odom (nav_msgs/msg/Odometry) for channel 34
+[foxglove_bridge-1] [INFO] [1790547982.225197460] [foxglove_bridge]: received subscribe request for channel 5 from client 2
+[foxglove_bridge-1] [INFO] [1790547982.229343451] [foxglove_bridge]: Created ROS subscription on /nautilus/gtsam/truth (nav_msgs/msg/Odometry) for channel 5
+[foxglove_bridge-1] [INFO] [1790547982.531450108] [foxglove_bridge]: received unsubscribe request for channel 34 from client 2
+[foxglove_bridge-1] [INFO] [1790547982.531489968] [foxglove_bridge]: Cleaned up ROS subscription for channel 34 (no more subscribers)
+[foxglove_bridge-1] [INFO] [1790547982.531513480] [foxglove_bridge]: received unsubscribe request for channel 5 from client 2
+[foxglove_bridge-1] [INFO] [1790547982.531517377] [foxglove_bridge]: Cleaned up ROS subscription for channel 5 (no more subscribers)
+[foxglove_bridge-1] [INFO] [1790547982.597768450] [foxglove_bridge]: received subscribe request for channel 34 from client 2
+[foxglove_bridge-1] [INFO] [1790547982.598634971] [foxglove_bridge]: Created ROS subscription on /nautilus/gtsam/odom (nav_msgs/msg/Odometry) for channel 34
+[foxglove_bridge-1] [INFO] [1790547982.598680753] [foxglove_bridge]: received subscribe request for channel 5 from client 2
+[foxglove_bridge-1] [INFO] [1790547982.599212882] [foxglove_bridge]: Created ROS subscription on /nautilus/gtsam/truth (nav_msgs/msg/Odometry) for channel 5
+[foxglove_bridge-1] [ERROR] [1790547982.717539647] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/operation_mode" (vortex_msgs/msg/OperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547982.717645843] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls_image/stonefish_sonar_info" (stonefish_ros2/msg/SonarInfo): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547982.717669176] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/guidance/dp_quat" (vortex_msgs/msg/ReferenceFilterQuat): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547982.717690671] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls/sonar_info" (vortex_msgs/msg/SonarInfo): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547982.717711754] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_state" (stonefish_ros2/msg/ThrusterState): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547982.717737019] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/sim" (stonefish_ros2/msg/DVL): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547982.717758338] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_forces" (vortex_msgs/msg/ThrusterForces): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790547982.717777566] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/altitude" (vortex_msgs/msg/DVLAltitude): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547982.718394635] [foxglove_bridge]: Failed to add service "/nautilus/get_operation_mode" (vortex_msgs/srv/GetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547982.718437881] [foxglove_bridge]: Failed to add service "/nautilus/set_killswitch" (vortex_msgs/srv/SetKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547982.718461032] [foxglove_bridge]: Failed to add service "/nautilus/set_operation_mode" (vortex_msgs/srv/SetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547982.718483684] [foxglove_bridge]: Failed to add service "/nautilus/toggle_killswitch" (vortex_msgs/srv/ToggleKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547982.718502637] [foxglove_bridge]: Failed to add service "/respawn_robot" (stonefish_ros2/srv/Respawn): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547982.718521463] [foxglove_bridge]: Failed to add service "/set_jerlov" (stonefish_ros2/srv/SetJerlov): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790547982.718539883] [foxglove_bridge]: Failed to add service "/set_sun_params" (stonefish_ros2/srv/SetSunParams): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [INFO] [1790547982.719910030] [foxglove_bridge]: publishing connection graph
+[foxglove_bridge-1] [INFO] [1790548066.549459145] [foxglove_bridge]: received unsubscribe request for channel 34 from client 2
+[foxglove_bridge-1] [INFO] [1790548066.549548729] [foxglove_bridge]: Cleaned up ROS subscription for channel 34 (no more subscribers)
+[foxglove_bridge-1] [INFO] [1790548066.549670874] [foxglove_bridge]: received unsubscribe request for channel 5 from client 2
+[foxglove_bridge-1] [INFO] [1790548066.549698964] [foxglove_bridge]: Cleaned up ROS subscription for channel 5 (no more subscribers)
+[foxglove_bridge-1] [ERROR] [1790548066.554222583] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/operation_mode" (vortex_msgs/msg/OperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548066.554353388] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls_image/stonefish_sonar_info" (stonefish_ros2/msg/SonarInfo): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548066.554400598] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/guidance/dp_quat" (vortex_msgs/msg/ReferenceFilterQuat): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548066.554440546] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls/sonar_info" (vortex_msgs/msg/SonarInfo): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548066.554469417] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_state" (stonefish_ros2/msg/ThrusterState): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548066.554506552] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/sim" (stonefish_ros2/msg/DVL): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548066.554538866] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_forces" (vortex_msgs/msg/ThrusterForces): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548066.554569258] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/altitude" (vortex_msgs/msg/DVLAltitude): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548066.555480285] [foxglove_bridge]: Failed to add service "/nautilus/get_operation_mode" (vortex_msgs/srv/GetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548066.555540904] [foxglove_bridge]: Failed to add service "/nautilus/set_killswitch" (vortex_msgs/srv/SetKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548066.555573538] [foxglove_bridge]: Failed to add service "/nautilus/set_operation_mode" (vortex_msgs/srv/SetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548066.555611227] [foxglove_bridge]: Failed to add service "/nautilus/toggle_killswitch" (vortex_msgs/srv/ToggleKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548066.555637309] [foxglove_bridge]: Failed to add service "/respawn_robot" (stonefish_ros2/srv/Respawn): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548066.555657277] [foxglove_bridge]: Failed to add service "/set_jerlov" (stonefish_ros2/srv/SetJerlov): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548066.555673245] [foxglove_bridge]: Failed to add service "/set_sun_params" (stonefish_ros2/srv/SetSunParams): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [INFO] [1790548066.557360444] [foxglove_bridge]: publishing connection graph
+[foxglove_bridge-1] [INFO] [1790548066.573344549] [foxglove_bridge]: received subscribe request for channel 34 from client 2
+[foxglove_bridge-1] [INFO] [1790548066.574251164] [foxglove_bridge]: Created ROS subscription on /nautilus/gtsam/odom (nav_msgs/msg/Odometry) for channel 34
+[foxglove_bridge-1] [INFO] [1790548066.574351198] [foxglove_bridge]: received subscribe request for channel 31 from client 2
+[foxglove_bridge-1] [INFO] [1790548066.575062357] [foxglove_bridge]: Created ROS subscription on /nautilus/dvl/bottom_lock (std_msgs/msg/Bool) for channel 31
+[foxglove_bridge-1] [ERROR] [1790548067.058032746] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/operation_mode" (vortex_msgs/msg/OperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548067.058169359] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls_image/stonefish_sonar_info" (stonefish_ros2/msg/SonarInfo): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548067.058209778] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/guidance/dp_quat" (vortex_msgs/msg/ReferenceFilterQuat): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548067.058239369] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls/sonar_info" (vortex_msgs/msg/SonarInfo): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548067.058265776] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_state" (stonefish_ros2/msg/ThrusterState): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548067.058295733] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/sim" (stonefish_ros2/msg/DVL): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548067.058323336] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_forces" (vortex_msgs/msg/ThrusterForces): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548067.058347541] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/altitude" (vortex_msgs/msg/DVLAltitude): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548067.058942963] [foxglove_bridge]: Failed to add service "/nautilus/get_operation_mode" (vortex_msgs/srv/GetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548067.058967062] [foxglove_bridge]: Failed to add service "/nautilus/set_killswitch" (vortex_msgs/srv/SetKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548067.058979815] [foxglove_bridge]: Failed to add service "/nautilus/set_operation_mode" (vortex_msgs/srv/SetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548067.058992855] [foxglove_bridge]: Failed to add service "/nautilus/toggle_killswitch" (vortex_msgs/srv/ToggleKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548067.059004093] [foxglove_bridge]: Failed to add service "/respawn_robot" (stonefish_ros2/srv/Respawn): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548067.059015535] [foxglove_bridge]: Failed to add service "/set_jerlov" (stonefish_ros2/srv/SetJerlov): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548067.059026604] [foxglove_bridge]: Failed to add service "/set_sun_params" (stonefish_ros2/srv/SetSunParams): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [INFO] [1790548067.060294851] [foxglove_bridge]: publishing connection graph
+[foxglove_bridge-1] [ERROR] [1790548137.210765655] [foxglove_bridge]: Failed to retrieve parameters from node '/nautilus/thrust_allocator_auv_node': Failed to retrieve parameter names for node '/nautilus/thrust_allocator_auv_node'
+[foxglove_bridge-1] [WARN] [1790548137.210828858] [foxglove_bridge]: Adding node /nautilus/thrust_allocator_auv_node to the ignore list to prevent repeated timeouts or failures in future parameter requests.
+[foxglove_bridge-1] [ERROR] [1790548147.259218040] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/operation_mode" (vortex_msgs/msg/OperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548147.259529814] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls_image/stonefish_sonar_info" (stonefish_ros2/msg/SonarInfo): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548147.259628130] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/guidance/dp_quat" (vortex_msgs/msg/ReferenceFilterQuat): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548147.259705506] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls/sonar_info" (vortex_msgs/msg/SonarInfo): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548147.259776460] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_state" (stonefish_ros2/msg/ThrusterState): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548147.259862315] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/sim" (stonefish_ros2/msg/DVL): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548147.259943127] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_forces" (vortex_msgs/msg/ThrusterForces): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548147.260014142] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/altitude" (vortex_msgs/msg/DVLAltitude): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548147.262046983] [foxglove_bridge]: Failed to add service "/nautilus/get_operation_mode" (vortex_msgs/srv/GetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548147.262186830] [foxglove_bridge]: Failed to add service "/nautilus/set_killswitch" (vortex_msgs/srv/SetKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548147.262269564] [foxglove_bridge]: Failed to add service "/nautilus/set_operation_mode" (vortex_msgs/srv/SetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548147.262351220] [foxglove_bridge]: Failed to add service "/nautilus/toggle_killswitch" (vortex_msgs/srv/ToggleKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548147.262419334] [foxglove_bridge]: Failed to add service "/respawn_robot" (stonefish_ros2/srv/Respawn): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548147.262487715] [foxglove_bridge]: Failed to add service "/set_jerlov" (stonefish_ros2/srv/SetJerlov): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548147.262559009] [foxglove_bridge]: Failed to add service "/set_sun_params" (stonefish_ros2/srv/SetSunParams): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [INFO] [1790548147.266705237] [foxglove_bridge]: publishing connection graph
+[foxglove_bridge-1] [ERROR] [1790548147.767503527] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/operation_mode" (vortex_msgs/msg/OperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548147.767588205] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls_image/stonefish_sonar_info" (stonefish_ros2/msg/SonarInfo): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548147.767605667] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/guidance/dp_quat" (vortex_msgs/msg/ReferenceFilterQuat): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548147.767619573] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/fls/sonar_info" (vortex_msgs/msg/SonarInfo): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548147.767632134] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_state" (stonefish_ros2/msg/ThrusterState): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548147.767647516] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/sim" (stonefish_ros2/msg/DVL): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548147.767675671] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/thruster_forces" (vortex_msgs/msg/ThrusterForces): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [ERROR] [1790548147.767695677] [foxglove_bridge]: Failed to load schemaDefinition for topic "/nautilus/dvl/altitude" (vortex_msgs/msg/DVLAltitude): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548147.768110517] [foxglove_bridge]: Failed to add service "/nautilus/get_operation_mode" (vortex_msgs/srv/GetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548147.768130274] [foxglove_bridge]: Failed to add service "/nautilus/set_killswitch" (vortex_msgs/srv/SetKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548147.768142595] [foxglove_bridge]: Failed to add service "/nautilus/set_operation_mode" (vortex_msgs/srv/SetOperationMode): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548147.768155669] [foxglove_bridge]: Failed to add service "/nautilus/toggle_killswitch" (vortex_msgs/srv/ToggleKillswitch): package 'vortex_msgs' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548147.768167233] [foxglove_bridge]: Failed to add service "/respawn_robot" (stonefish_ros2/srv/Respawn): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548147.768178477] [foxglove_bridge]: Failed to add service "/set_jerlov" (stonefish_ros2/srv/SetJerlov): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [WARN] [1790548147.768189627] [foxglove_bridge]: Failed to add service "/set_sun_params" (stonefish_ros2/srv/SetSunParams): package 'stonefish_ros2' not found, searching: [/opt/ros/humble]
+[foxglove_bridge-1] [INFO] [1790548147.771098453] [foxglove_bridge]: publishing connection graph
+[WARNING] [launch]: user interrupted with ctrl-c (SIGINT)
+[INFO] [foxglove_bridge-1]: sending signal 'SIGINT' to process[foxglove_bridge-1]
+[foxglove_bridge-1] [INFO] [1790548172.235386217] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[foxglove_bridge-1] [INFO] [1790548172.236258758] [foxglove_bridge]: Shutting down foxglove_bridge
+[foxglove_bridge-1] [2026-09-27T22:29:32Z INFO  foxglove::websocket::server] Shutting down
+[foxglove_bridge-1] [INFO] [1790548172.236616549] [foxglove_bridge]: received connection graph subscribe request
+[foxglove_bridge-1] [INFO] [1790548172.236631987] [foxglove_bridge]: received unsubscribe request for channel 34 from client 2
+[foxglove_bridge-1] [INFO] [1790548172.236639297] [foxglove_bridge]: Cleaned up ROS subscription for channel 34 (no more subscribers)
+[foxglove_bridge-1] [INFO] [1790548172.238963556] [foxglove_bridge]: received unsubscribe request for channel 31 from client 2
+[foxglove_bridge-1] [INFO] [1790548172.238983799] [foxglove_bridge]: Cleaned up ROS subscription for channel 31 (no more subscribers)
+[foxglove_bridge-1] [2026-09-27T22:29:32Z INFO  foxglove::websocket::server] Unregistered client 127.0.0.1:37094
+[foxglove_bridge-1] [2026-09-27T22:29:32Z INFO  foxglove::websocket::server] Shutdown complete
+[foxglove_bridge-1] [INFO] [1790548172.249440351] [foxglove_bridge]: Shutdown complete
+[INFO] [foxglove_bridge-1]: process has finished cleanly [pid 173328]
