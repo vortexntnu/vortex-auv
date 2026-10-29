@@ -127,7 +127,8 @@ goal: class_name, out_frame, duration_s, max_range_m, min_hits, max_spread_m, fa
    `duration_s` and are within `max_range_m` of the vehicle. The map and the
    prior gate are not used.
 3. The largest cluster is the object. It fails with fewer than `min_hits`
-   or a spread over `max_spread_m`.
+   or a spread (RMS distance of the hits from the median) over
+   `max_spread_m`.
 4. On success `out_frame` (default `<class_name>/measured`) is set in `odom`.
    It stays there until the next measurement with that name.
 5. On failure the old `out_frame` stays. With `fallback_from` set, that frame

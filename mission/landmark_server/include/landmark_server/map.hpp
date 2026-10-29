@@ -32,7 +32,7 @@ struct Landmark {
     /// Of the median: spread^2 / n.
     Eigen::Matrix3d cov{Eigen::Matrix3d::Zero()};
     double yaw_var{0.0};
-    /// Largest horizontal distance of a hit from the median.
+    /// RMS horizontal distance of the hits from the median.
     double spread_m{0.0};
     int n_obs{0};
     double first_seen{0.0};

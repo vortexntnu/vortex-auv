@@ -115,9 +115,10 @@ Landmark summarise(const std::vector<const Hit*>& hits) {
     for (const Hit* h : hits) {
         const Eigen::Vector3d d = h->position - l.position;
         l.cov += d * d.transpose();
-        l.spread_m = std::max(l.spread_m, d.head<2>().norm());
+        l.spread_m += d.head<2>().squaredNorm();
     }
     const double n = static_cast<double>(hits.size());
+    l.spread_m = std::sqrt(l.spread_m / n);
     l.cov /= n * std::max(n - 1.0, 1.0);
     if (cls->has_orientation) {
         if (const auto yaw =

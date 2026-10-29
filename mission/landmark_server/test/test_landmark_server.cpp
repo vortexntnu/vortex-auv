@@ -83,7 +83,7 @@ TEST(Summarise, MedianIgnoresAnOutlierAndMajorityGivesTheClass) {
     EXPECT_EQ(l.cls.name, "white");
     EXPECT_DOUBLE_EQ(l.position.x(), 2.0);
     EXPECT_EQ(l.n_obs, 7);
-    EXPECT_NEAR(l.spread_m, 0.4, 1e-9);
+    EXPECT_NEAR(l.spread_m, std::sqrt(0.16 / 7.0), 1e-9);
 }
 
 TEST(DetectionMap, IdsStayWhenTheClusterMovesALittle) {
@@ -155,10 +155,10 @@ TEST(Measure, TooFewHitsOrTooMuchSpreadFails) {
     add_hits(hits, c, 3.0, 0.0);
     hits.push_back(hit(c, 3.0, 0.45));
     MeasureSettings s;
-    s.max_spread_m = 0.2;
+    s.max_spread_m = 0.1;
     const auto m = measure_object(hits, Pose::Identity(), s);
     EXPECT_FALSE(m.ok);
-    EXPECT_NEAR(m.spread_m, 0.45, 0.01);
+    EXPECT_NEAR(m.spread_m, 0.17, 0.01);
 }
 
 TEST(Measure, SlalomRowIsTheNearestInFrontAcrossItsPipes) {
