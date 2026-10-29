@@ -760,6 +760,12 @@ class LandmarkServerNode : public rclcpp::Node {
                 result->message += ", no fallback: " + std::string(e.what());
             }
         }
+        // The frame and its targets must be in TF before the client hears back.
+        publish_map();
+        for (auto& f : frames_) {
+            f.header.stamp = to_stamp(odom_->t);
+        }
+        tf_broadcaster_->sendTransform(frames_);
         spdlog::info("landmark_server: measure {} -> {}: {}{}", m.cls,
                      m.out_frame, r.ok ? "ok, " : "failed, ", result->message);
         if (r.ok) {
