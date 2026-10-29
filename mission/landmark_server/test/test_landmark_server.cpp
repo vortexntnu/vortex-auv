@@ -326,6 +326,40 @@ TEST(Measure, SlalomRowNotSeenFollowsTheOthers) {
     EXPECT_LT((m.rows[2].translation().head<2>() - reds[2]).norm(), 1.05);
 }
 
+TEST(Measure, SlalomThatIsNotEvenRowsFails) {
+    using LS = vortex_msgs::msg::LandmarkSubtype;
+    const ClassConfig red = slalom_class(LS::SLALOM_PIPE_RED);
+    const ClassConfig white = slalom_class(LS::SLALOM_PIPE_WHITE);
+    const double th = 20.0 * M_PI / 180.0;
+    const Eigen::Vector2d n(std::cos(th), std::sin(th));
+    const Pose T = yaw_pose(0.0, Eigen::Vector3d(3.0, 0.5, 1.0));
+    auto reds = slalom_reds(th);
+    auto measure = [&](const std::vector<Eigen::Vector2d>& r, double turn_last) {
+        std::vector<Hit> hits;
+        for (std::size_t k = 0; k < r.size(); ++k) {
+            add_row(hits, red, white, r[k], th + (k + 1 == r.size() ? turn_last : 0.0));
+        }
+        return measure_slalom(hits, T, MeasureSettings{});
+    };
+    std::mt19937 rng(5);
+    std::normal_distribution<double> noise(0.0, 0.1);
+    auto noisy = reds;
+    for (auto& r : noisy) {
+        r += Eigen::Vector2d(noise(rng), noise(rng));
+    }
+    EXPECT_TRUE(measure(noisy, 0.0).ok) << measure(noisy, 0.0).message;
+    auto uneven = reds;
+    uneven[2] += 1.2 * n;  // 2 m, then 3.2 m
+    EXPECT_FALSE(measure(uneven, 0.0).ok);
+    EXPECT_FALSE(measure(reds, 25.0 * M_PI / 180.0).ok);  // last row turned
+    std::vector<Hit> two_reds;
+    add_row(two_reds, red, white, reds[0], th);
+    add_hits(two_reds, red, reds[0].x() - 0.8 * std::sin(th), reds[0].y() + 0.8 * std::cos(th));
+    const auto m = measure_slalom(two_reds, T, MeasureSettings{});
+    EXPECT_FALSE(m.ok);
+    EXPECT_NE(m.message.find("red pipes in one row"), std::string::npos) << m.message;
+}
+
 TEST(GateFrames, TwoPanelsGiveTheGateDirection) {
     GateParams gate;
     gate.panel_classes = {"left", "right"};

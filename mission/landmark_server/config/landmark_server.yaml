@@ -24,6 +24,7 @@
       # class "slalom": rows this far apart, from the first in front on
       slalom_rows: 3
       slalom_spacing_m: 2.0
+      slalom_max_row_error_m: 0.4   # a pipe farther off its row: not this slalom, fails
 
     # prior_<task>/corrected is the prior in odom. Enabled, every prior moves
     # by how far the last measured task was from its own prior: the drift

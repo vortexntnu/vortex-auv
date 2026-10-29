@@ -5,7 +5,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <limits>
+#include <map>
 #include <optional>
 #include <utility>
 
@@ -253,6 +255,34 @@ Measurement measure_slalom(const std::vector<Hit>& hits,
         }
     }
 
+    // Does the slalom look like evenly spaced rows? Every pipe close to its
+    // row, at most one red pipe per row.
+    double worst = 0.0;
+    std::map<std::int64_t, int> reds_in_row;
+    for (const Pipe& q : pipes) {
+        const double a = along(q.p, theta) - a0;
+        const std::int64_t k = std::lround(a / D);
+        worst = std::max(worst, std::abs(a - k * D));
+        reds_in_row[k] += q.red;
+    }
+    if (worst > s.slalom_max_row_error_m) {
+        return failed(
+            fmt::format("a pipe is {:.2f} m off its row (> {:.2f} m): "
+                        "not evenly spaced rows",
+                        worst, s.slalom_max_row_error_m),
+            n);
+    }
+    for (const auto& [k, reds] : reds_in_row) {
+        if (reds > 1) {
+            return failed(fmt::format("{} red pipes in one row: not the slalom "
+                                      "it expects",
+                                      reds),
+                          n);
+        }
+    }
+    // One pipe gives no heading: then it is the vehicle's.
+    const bool heading_measured = pipes.size() > 1;
+
     // Rows from the first one with a pipe in front of the vehicle.
     const double a_vehicle = along(T_odom_base.translation(), theta);
     std::optional<int> first;
@@ -312,9 +342,12 @@ Measurement measure_slalom(const std::vector<Hit>& hits,
     }
     m.pose = m.rows.front();
     m.ok = true;
-    m.message =
-        fmt::format("{} of {} rows seen, {} pipes, {} hits, spread {:.2f} m",
-                    seen, s.slalom_rows, pipes.size(), m.hits, m.spread_m);
+    m.message = fmt::format(
+        "{} of {} rows seen, {} pipes, {} hits, spread {:.2f} m, worst {:.2f} "
+        "m "
+        "off its row{}",
+        seen, s.slalom_rows, pipes.size(), m.hits, m.spread_m, worst,
+        heading_measured ? "" : ", heading from the vehicle");
     return m;
 }
 

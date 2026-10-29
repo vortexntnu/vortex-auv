@@ -239,6 +239,7 @@ class LandmarkServerNode : public rclcpp::Node {
         read("measure.max_spread_m", p.measure_max_spread_m);
         read("measure.slalom_rows", p.slalom_rows);
         read("measure.slalom_spacing_m", p.slalom_spacing_m);
+        read("measure.slalom_max_row_error_m", p.slalom_max_row_error_m);
         read("gate.panel_classes", p.gate.panel_classes);
         read("gate.min_separation_m", p.gate.min_separation_m);
         read("gate.max_separation_m", p.gate.max_separation_m);
@@ -760,6 +761,7 @@ class LandmarkServerNode : public rclcpp::Node {
             g.max_spread_m > 0.0 ? g.max_spread_m : p.measure_max_spread_m;
         m.settings.slalom_rows = p.slalom_rows;
         m.settings.slalom_spacing_m = p.slalom_spacing_m;
+        m.settings.slalom_max_row_error_m = p.slalom_max_row_error_m;
         measuring_ = std::move(m);
         spdlog::info("landmark_server: measuring {} for {:.1f} s", g.class_name,
                      measuring_->end_t - measuring_->start_t);

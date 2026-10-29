@@ -190,6 +190,7 @@ first row with a pipe in front of the vehicle. `<out_frame>` itself is row 0.
 | +X | The slalom's heading, away from the vehicle |
 | Rows not seen | Placed on, from the rows that were |
 | Range | `max_range_m` when the goal gives 0, as the slalom is longer than one object |
+| Fails | A pipe farther than `measure.slalom_max_row_error_m` from its row, or two red pipes in one row: the slalom is not evenly spaced rows. Fall back to `slalom_row` |
 
 Measured from in front of the slalom it gives every gap; measured again 1 m
 before a gap it gives that row with the heading from all the pipes it sees,

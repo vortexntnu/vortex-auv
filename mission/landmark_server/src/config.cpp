@@ -60,7 +60,8 @@ void Config::validate() const {
     }
     if (p.measure_duration_s <= 0.0 || p.measure_max_range_m <= 0.0 ||
         p.measure_min_hits < 1 || p.measure_max_spread_m <= 0.0 ||
-        p.slalom_rows < 1 || p.slalom_spacing_m <= 0.0) {
+        p.slalom_rows < 1 || p.slalom_spacing_m <= 0.0 ||
+        p.slalom_max_row_error_m <= 0.0) {
         fail("measure values must be positive");
     }
     if (p.max_hit_age_s < 0.0) {

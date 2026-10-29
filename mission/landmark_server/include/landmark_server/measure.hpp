@@ -15,6 +15,7 @@ struct MeasureSettings {
     double max_spread_m{0.3};
     int slalom_rows{3};
     double slalom_spacing_m{2.0};
+    double slalom_max_row_error_m{0.4};
 };
 
 struct Measurement {
