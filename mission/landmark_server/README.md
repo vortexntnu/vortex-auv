@@ -1,26 +1,33 @@
 # landmark_server
 
-Takes object detections from perception and builds a map of the course. The
-mission reads the map as TF frames and drives to them.
+Takes object detections from perception and keeps a map of the course. The
+mission drives to the map's TF frames to find a task, then measures the
+object close up with the `measure` action and drives to that.
 
 ## Core concepts
 
-- **Landmark**: one object in the map, built from many detections.
+- **Hit**: one detection, stored in `odom`.
+- **Landmark**: a cluster of hits of one class group. Its position is the
+  median of the hits.
 - **Class**: a kind of object, e.g. `torpedo_board`. Listed under `classes`
   in `config/landmark_server.yaml`. Detections of other types are ignored.
-- **Map frame**: where the vehicle was at startup. `map -> odom` corrects
-  odometry drift.
-- **Prior map**: roughly where each task is in the pool, drawn in the GUI.
-  Gives a `prior_<task>` frame to search from and rejects detections far
-  from their task.
-- **Target frame**: a frame that is not an object itself, e.g. the gap
-  between two slalom pipes.
+- **Measured frame**: an object measured from fresh, close detections while
+  the vehicle holds still. Fixed in `odom` until measured again.
+- **Target frame**: a place to go next to a frame, e.g. 2 m in front of the
+  board. Offsets in the config.
+- **Prior map**: roughly where each task is, relative to the start, drawn in
+  the GUI. Gives `prior_<task>` frames and drops detections far from their
+  task.
+
+There is no drift correction. Landmarks live in `odom`, the frame the
+vehicle drives in, so a landmark seen recently is where the vehicle will find
+it. For the final approach the mission measures again, close up.
 
 ## Run
 
 ```bash
 ros2 launch landmark_server landmark_server.launch.py            # pool
-ros2 launch landmark_server landmark_server.launch.py env:=sim   # simulator
+ros2 launch landmark_server landmark_server.launch.py env:=sim   # simulator, premap_sim.yaml
 ```
 
 ### Starting a map
@@ -50,33 +57,151 @@ The heading is kept as an odometry yaw. It holds for as long as the
 odometry is not restarted, and is forgotten when `landmark_server`
 restarts. Without step 1 a new map points the way the vehicle points.
 
-## Topics
+## Topics, services, actions
 
-| Topic | Direction | Type |
+| Name | Kind | Type |
 |---|---|---|
 | `odom` | in | `nav_msgs/Odometry` |
 | `landmarks` | in | `vortex_msgs/LandmarkArray` |
 | `mission/wipe` | in | `std_msgs/Empty` |
 | `mission/set_heading` | in | `std_msgs/Empty` |
-| `landmark_server/landmarks` | out | `vortex_msgs/LandmarkTrackArray` |
+| `landmark_server/landmarks` | out, in `odom` | `vortex_msgs/LandmarkTrackArray` |
+| `landmark_server/measure` | action | `vortex_msgs/MeasureLandmark` |
+| `landmark_server/reset` | service | `vortex_msgs/ResetLandmarks` |
+| `landmark_server/set_premap`, `get_premap` | service | prior map, used by the GUI |
 
-Perception publishes detections on `landmarks`. To use the map, read
-`landmark_server/landmarks` or look up the TF frames below.
+Detectors should publish in the camera frame with the image stamp. The server
+puts each detection in `odom` with TF at that stamp. Detections already in
+`odom` or `map` are used, with a warning.
 
 ## TF frames
 
-| Frame | |
+| Frame | Parent | |
+|---|---|---|
+| `<class>` | `odom` | The most observed landmark of the class |
+| `<class>/measured`, or the action's `out_frame` | `odom` | The last successful measurement |
+| `<parent>/<target>` | the parent | Target frames from the config |
+| `gate_middle`, `<panel>_entrance`, `<panel>_exit` | `odom` | Gate, from the two role panels |
+| `start` | `map` | Where the map started |
+| `prior_<task>` | `map` | Where the prior map puts the task |
+
+`map -> odom` is fixed when the map starts (`wipe`, `set_heading`, or the
+first odometry): `map` is the start pose turned to the course heading.
+
+Frame axes: +X forward, +Y right, +Z down. Objects with a front (the board,
+bins, the table) have +X out of the front. Objects without a yaw get +X from
+the vehicle to the object when measured, and no yaw in the map.
+
+## How a detection becomes a landmark
+
+```
+detection
+  │  type/subtype not a class, NaN, bad quaternion ─────▶ dropped
+  │  farther than max_range_m from the vehicle ─────────▶ dropped
+  │  farther than the task radius from prior_<task> ────▶ dropped
+  ▼
+stored in odom, the newest max_hits_per_class per class
+  ▼  twice a second, per class group
+densest hit, the hits within cluster_radius_m of it ─▶ a landmark if ≥ confirm_hits
+  │  remove them, repeat
+  ▼
+class: majority of its hits. Position: median. Yaw: circular mean
+  ▼
+shown: the max_instances most observed of each class
+```
+
+- Landmarks are built again every time, so a bad hit cannot stick.
+- Densest first: hits between two pipes do not join them into one.
+- A landmark keeps its id while it moves less than twice `cluster_radius_m`.
+- The covariance in `LandmarkTrackArray` is the spread of the hits squared
+  over their number. `observations` is the number of hits.
+
+## Measure
+
+```
+goal: class_name, out_frame, duration_s, max_range_m, min_hits, max_spread_m, fallback_from
+```
+
+1. Hold the vehicle still near the object.
+2. The action collects the detections of the class that arrive during
+   `duration_s` and are within `max_range_m` of the vehicle. The map and the
+   prior gate are not used.
+3. The largest cluster is the object. It fails with fewer than `min_hits`
+   or a spread over `max_spread_m`.
+4. On success `out_frame` (default `<class_name>/measured`) is set in `odom`.
+   It stays there until the next measurement with that name.
+5. On failure the old `out_frame` stays. With `fallback_from` set, that frame
+   is copied to `out_frame` and `used_fallback` is true.
+
+0 or "" in the goal uses the default from `measure` in the config.
+Cancelling publishes nothing.
+
+| Result | |
 |---|---|
-| `<class>` | The object, e.g. `torpedo_board` |
-| `prior_<task>` | Where the prior map puts the task |
-| `start` | Where the run started |
-| `gate_middle`, `<panel>_entrance`, `<panel>_exit` | Gate, from the two role panels |
+| `success` | The frame was measured |
+| `used_fallback` | `fallback_from` was copied instead |
+| `hits`, `spread_m` | Of the cluster used |
+| `message` | Why it failed |
 
-For target frames +X is the direction to drive or face.
+Feedback: `hits` collected so far.
 
-With only one gate panel in the map there is no `gate_middle`, and that
-panel's entrance and exit point along the line from `start` to the panel.
-That is only right when the run starts in front of the gate.
+### slalom_row
+
+`class_name: slalom_row` measures the nearest row in front of the vehicle
+from the red and white pipes:
+
+| | |
+|---|---|
+| Origin | The red pipe |
+| +X | Through the row, away from the vehicle |
+| Direction | Across the line of the pipes. With only the red pipe seen: from the vehicle to it |
+| Rows | Each red pipe is one row. A white pipe belongs to the nearest red one |
+
+### Example
+
+```bash
+ros2 action send_goal /nautilus/landmark_server/measure vortex_msgs/action/MeasureLandmark \
+  "{class_name: torpedo_board, fallback_from: torpedo_board}"
+ros2 run tf2_ros tf2_echo nautilus/odom nautilus/torpedo_board/measured/standoff
+```
+
+## Target frames
+
+```yaml
+targets:
+  standoff: {parents: ["torpedo_board", "torpedo_board/measured"], x: 2.0, yaw: 180.0}
+```
+
+This gives `torpedo_board/standoff` and `torpedo_board/measured/standoff`
+whenever their parent exists. x, y, z in m and roll, pitch, yaw in degrees,
+in the parent's axes. A parent can be any TF frame, also another target.
+Change one while running:
+
+```bash
+ros2 param set /nautilus/landmark_server_node targets.standoff.x 1.5
+```
+
+| Target | Parents | |
+|---|---|---|
+| `entry`, `exit` | `gate_middle` | 1.5 m before and after the gate |
+| `gap_left_entry`, `gap_left_exit`, `gap_right_*` | `slalom_row/measured`, `.../next` | 1 m before and after the middle of each gap |
+| `next` | `slalom_row/measured` | Where the next row should be |
+| `standoff` | board, table | 2 m in front, facing it |
+| `shoot` | each opening | 0.6 m in front, facing it |
+| `above` | bins, table | 1 m above |
+| `centre` | octagon | |
+| `home` | `start` | |
+
+The numbers are from the simulator course.
+
+## Reset
+
+```bash
+ros2 service call /nautilus/landmark_server/reset vortex_msgs/srv/ResetLandmarks "{class_name: torpedo_board}"
+```
+
+Drops the stored hits and landmarks of the class, `""` for all. Measured
+frames stay. `mission/wipe` also starts a new `map`.
 
 ## Debug mode
 
@@ -84,15 +209,10 @@ That is only right when the run starts in front of the gate.
 ros2 launch landmark_server landmark_server.launch.py debug:=true
 ```
 
-Also publishes:
-
 | Topic | |
 |---|---|
-| `landmark_server/markers` | The map for Foxglove: a cube or real-size box per landmark, its name, id and uncertainty, and an arrow along +X when the yaw is known. Grey when not seen lately |
-| `landmark_server/nis` | Should be near 1. Higher means the `detection` noise in the config is too low |
-| `landmark_server/raw_detections` | Every detection as it comes in, a small sphere in the colour of its type that lives 0.3 s. Missed detections show as flicker next to the steady map |
-
-Off by default.
+| `landmark_server/markers` | A cube or real-size box per landmark, its name, id, hits and spread, and an arrow along +X when the yaw is known. Grey when not seen for a second |
+| `landmark_server/raw_detections` | Every detection as it comes in, a small sphere that lives 0.3 s |
 
 ## Prior map
 
@@ -118,9 +238,9 @@ where the vehicle was when the map started. The arrow and the dots need
 ## Adding a landmark
 
 A landmark kind is a **class**: one entry under `classes` in
-`config/landmark_server.yaml`. Perception does not change. It keeps
-publishing `vortex_msgs/LandmarkArray` with a type and subtype, and the
-server picks the class with that type and subtype.
+`config/landmark_server.yaml`. Perception keeps publishing
+`vortex_msgs/LandmarkArray` with a type and subtype, and the server picks
+the class with that type and subtype.
 
 ### Where to add it
 
@@ -148,67 +268,33 @@ or if a type or subtype name is not in `landmark_names.hpp`. Detections
 whose type and subtype match no class are ignored, with one warning per
 pair.
 
-### How a detection becomes a landmark
-
-```
-detection
-  │  type/subtype not a class ─────────────────────────────▶ ignored
-  │  range > max_range_m ──────────────────────────────────▶ dropped
-  ▼
-match against landmarks of the same group (chi² gate) ──▶ matched: refines that landmark
-  │ unmatched
-  ▼
-prior gate: farther than the task radius from prior_<task> ──▶ rejected
-  ▼
-candidate: within candidate_radius_m of earlier unmatched hits
-  │  confirm_hits within confirm_window_s
-  ▼
-new landmark, unless one of the group is within merge_radius_m
-  ▼
-shown: the max_instances most observed of the class
-```
-
-- The prior gate only stops **new** landmarks. Once a landmark exists,
-  matched detections refine it wherever it ends up.
-- The class of a landmark is a majority vote over its detections. Within a
-  `group`, a landmark first seen as one class can become another.
-- Same-group landmarks that end up within `merge_radius_m` are merged, e.g.
-  a copy made while the odometry had drifted.
-- `max_instances` only limits what is published. Extra landmarks stay in
-  the map and can take over if they get more detections.
+The server refuses to start if two classes have the same type and subtype,
+or if a type or subtype name is not in `landmark_names.hpp`.
 
 ### Class fields
 
 | Field | What it does | How to pick it |
 |---|---|---|
 | `type`, `subtype` | Names of the `LandmarkType` / `LandmarkSubtype` constants the detector sends | Must match what perception publishes |
-| `symmetry_deg` | How much of the yaw is known. `0`: the full yaw. `90` / `180`: only modulo that, each detection is snapped to the symmetric yaw closest to the estimate. `360`: no yaw, only position | The smallest turn that makes the object look the same. A pipe or buoy is `360`, a bin seen from above `180`, a board with a front `0` |
-| `has_orientation` | Use the detector's orientation. Without it, or with `symmetry_deg: 360`, a detection only gives bearing and range | `true` only if the detector gives a usable orientation. The detector must also set the orientation variances (covariance diagonal 21, 28, 35) below 1000, else the orientation is ignored anyway |
-| `prior` | Task label in the prior map, e.g. `"torpedo"`. New landmarks must lie near `prior_<task>`. `""` turns the gate off | Several classes can share a task. A class whose task is not in the prior map gets no gate, with a warning at startup |
+| `symmetry_deg` | How much of the yaw is known. `0`: the full yaw. `90` / `180`: only modulo that, the yaws are averaged modulo it. `360`: no yaw, only position | The smallest turn that makes the object look the same. A pipe or buoy is `360`, a bin seen from above `180`, a board with a front `0` |
+| `has_orientation` | Use the detector's orientation. Without it, or with `symmetry_deg: 360`, a detection only gives a position | `true` only if the detector gives a usable orientation. The detector must also set the orientation variances (covariance diagonal 21, 28, 35) below 1000. An all-zero covariance means no orientation |
+| `prior` | Task label in the prior map, e.g. `"torpedo"`. Detections must lie near `prior_<task>`. `""` turns the gate off | Several classes can share a task. A class whose task is not in the prior map gets no gate, with a warning at startup |
 | `prior_radius_m` | Horizontal radius of that gate in m. A radius set in the GUI for the task wins over this | Large enough for the error of the prior map plus the size of the task. Too small rejects the real object, too large lets false detections through |
 | `max_instances` | How many landmarks of the class are published, most observed first. `0` = all | How many the course has. The frame `<class>` is always the most observed one |
-| `group` | Classes that can be mistaken for each other share a group: they are matched, merged and voted on together. Default: the class name, alone | Give the same group when the detector mixes the classes up, e.g. red and white slalom pipes |
+| `group` | Classes that can be mistaken for each other share a group: they are clustered and voted on together. Default: the class name, alone | Give the same group when the detector mixes the classes up, e.g. red and white slalom pipes |
 
-### Global values that decide what gets in
+## Settings
 
-All in `config/landmark_server.yaml`, shared by every class.
+All in `config/landmark_server.yaml`.
 
 | Value | What it does | Raise it when | Lower it when |
 |---|---|---|---|
-| `max_range_m` | Detections farther away are dropped | Far objects are never mapped | Far detections are noisy |
-| `new_landmarks.confirm_hits` | Detections a candidate needs to become a landmark | False detections become landmarks | Real objects appear late |
-| `new_landmarks.confirm_window_s` | Time those detections must fall in | The detector sees the object only now and then | Brief false detections pile up |
-| `new_landmarks.candidate_radius_m` | How close a detection must be to a candidate to count for it | Hits of one object start several candidates | Two objects of one group are closer than twice this |
-| `upkeep.merge_radius_m` | Landmarks of one group this close become one | Duplicates stay | Real objects of one group are merged |
-| `association.gate_prob` | How far, in sigmas, a detection may lie from a landmark and still match | Detections of a known object start new candidates | Detections match the wrong object |
-| `association.ambiguity_d2` | A match is dropped when a second landmark is almost as close | Objects next to each other steal detections | Detections near two objects are wasted |
-| `detection.*` | Detection noise. Larger trusts each detection less | NIS well above 1 | NIS well below 1, map slow to settle |
-| `detection.orientation_yaw_sigma` | Noise of the detector's yaw | The landmark's yaw jumps | Yaw follows the detector too slowly |
-
-`landmark_server/nis` (debug mode) is the check for the `detection` values.
-Every rejected detection shows as a dot in the GUI and in
-`landmark_server/raw_detections`. A class that keeps hitting the prior gate
-gives a warning with how far its nearest detection was.
+| `max_range_m` | Detections farther from the vehicle are dropped | Far objects are never mapped | Far detections are noisy |
+| `map.cluster_radius_m` | Hits this close to the densest one are one object | One object becomes two | Two objects of one group become one. Keep under half their spacing |
+| `map.confirm_hits` | Hits a cluster needs to be a landmark | False detections become landmarks | Real objects appear late |
+| `map.max_hits_per_class` | Hits kept per class, the newest | Landmarks out of view disappear | Clustering is slow |
+| `map.max_hit_age_s` | Hits older than this are forgotten, 0 keeps all | | The map lags behind after a lot of drift. Landmarks out of view then disappear |
+| `measure.*` | Defaults for the action | | |
 
 ### Debug box
 
@@ -221,146 +307,3 @@ markers:
 `size` is [x out of the front, y right, z down], `offset` the box centre
 from the landmark, `solid` draws the object itself instead of an outline.
 Without a box the landmark is a small cube.
-
-## Target frames
-
-A target frame is a place to go that is not an object itself: the gap
-between two pipes, a point in front of a board. It is computed from the
-landmarks every time the map is published.
-
-```
-landmarks ─▶ <task>_frames(landmarks, params) ─▶ NamedPose[] ─▶ TF map -> <name>
-                      │
-                      └─ returns nothing while the landmarks it needs are missing
-```
-
-### Conventions
-
-| | |
-|---|---|
-| Frame | In `map`. +X is the way to drive or face, +Y right, +Z down |
-| Level | Yaw only. Roll and pitch are zero even if the landmark is tilted |
-| Offsets | The mission adds its own offset in the frame: x = -1 is 1 m before it, x = 1 is 1 m past it |
-| Missing landmarks | Return an empty list. The frame then does not exist and the mission waits or falls back |
-| Names | Fixed and predictable, e.g. `<panel>_entrance`. The mission config refers to them by name |
-| Numbers | In `config/landmark_server.yaml`, not in the code |
-| Landmark frame | Origin in the object. For objects with a front (the torpedo board) +X points out of the front |
-
-### API
-
-```cpp
-#include "landmark_server/targets.hpp"
-
-struct NamedPose {
-    std::string name;
-    gtsam::Pose3 pose;   // in map
-};
-
-// Most observed landmark of a class, or nullptr.
-const LandmarkState* best_of(const std::vector<LandmarkState>& landmarks,
-                             const std::string& cls);
-
-// What a landmark gives you.
-landmark->pose.translation();        // position in map
-landmark->pose.rotation().yaw();     // only meaningful if landmark->yaw_known
-landmark->n_obs;                     // number of detections
-landmark->cls.name;                  // class name from the config
-```
-
-### Example
-
-A frame 1 m in front of a buoy, facing it.
-
-1. Params in `config.hpp`, plus a `BuoyParams buoy;` member in `Params`:
-
-   ```cpp
-   struct BuoyParams {
-       std::string buoy_class;
-       double standoff_m{1.0};
-   };
-   ```
-
-2. Read them in `load_config()` in `landmark_server_node.cpp`:
-
-   ```cpp
-   read("buoy.buoy_class", p.buoy.buoy_class);
-   read("buoy.standoff_m", p.buoy.standoff_m);
-   ```
-
-3. The function in `targets.cpp`, declared in `targets.hpp`:
-
-   ```cpp
-   std::vector<NamedPose> buoy_frames(const std::vector<LandmarkState>& landmarks,
-                                      const BuoyParams& buoy,
-                                      const gtsam::Point3& start) {
-       const LandmarkState* b = best_of(landmarks, buoy.buoy_class);
-       if (!b) {
-           return {};
-       }
-       // A buoy has no front, so face it from the start side.
-       const gtsam::Point3 to_buoy = b->pose.translation() - start;
-       const double yaw = std::atan2(to_buoy.y(), to_buoy.x());
-       const gtsam::Rot3 R = gtsam::Rot3::Yaw(yaw);
-       const gtsam::Point3 p =
-           b->pose.translation() - R * gtsam::Point3(buoy.standoff_m, 0.0, 0.0);
-       return {{"buoy_front", gtsam::Pose3(R, p)}};
-   }
-   ```
-
-4. Publish it in `publish_map()`, next to the gate frames:
-
-   ```cpp
-   for (const NamedPose& g : buoy_frames(shown, cfg_.params.buoy,
-                                         graph_.keyframe_pose(0).translation())) {
-       frames_.push_back(frame(g.name, g.pose));
-   }
-   ```
-
-5. Add the values to `config/landmark_server.yaml`:
-
-   ```yaml
-   buoy:
-     buoy_class: "buoy"
-     standoff_m: 1.0
-   ```
-
-The mission can now use `GoToFrame frame="buoy_front"`.
-
-`gate_frames()` in `targets.cpp` is a real one: it builds five frames from
-the two gate panels, or two frames when only one panel is mapped.
-
-### To write
-
-| Target | Owner | Frames | Built from |
-|---|---|---|---|
-| Slalom gaps | André | `slalom_left_<n>`, `slalom_right_<n>`, +X through the row | Red and white pipes |
-| Torpedo openings | Johannes | `torpedo_opening_<name>`, +X through the board | Board centre and normal |
-
-Slalom hints:
-- Each red pipe is one row. The white pipes belong to the nearest red one.
-- The gap is between the red pipe and the white pipe on that side. Decide
-  what to publish when the white pipe has not been seen yet.
-- Number the rows so that a row found late does not rename the others.
-- The row's direction comes from the line through its pipes.
-
-Torpedo hints:
-- The openings are fixed offsets from the board centre, in the plane of the
-  board.
-- The board's +X points out of the front, towards the vehicle. The opening
-  frame should point the other way.
-- Put the offsets in the config. Being able to change them while running
-  with `ros2 param set` makes them much easier to line up against the
-  camera image.
-- Which opening is ours depends on the board version.
-
-## Tuning
-
-Run with `debug:=true` and change one value at a time.
-
-| Symptom | Change |
-|---|---|
-| NIS above 1 | Raise `detection.*` sigmas |
-| Duplicates after a loop | Raise `odom.sigma_*_per_m` |
-| False detections become landmarks | Raise `confirm_hits` or lower the task radius |
-| Real objects appear late | Lower `confirm_hits` |
-| Object rejected near its task | Raise the task radius or fix the prior map |

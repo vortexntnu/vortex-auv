@@ -17,7 +17,7 @@
     # Defaults for the measure action, when the goal gives 0. Only hits that
     # arrive during the action and within max_range_m of the vehicle count.
     measure:
-      duration_s: 3.0
+      duration_s: 5.0
       max_range_m: 4.0
       min_hits: 5
       max_spread_m: 0.3
