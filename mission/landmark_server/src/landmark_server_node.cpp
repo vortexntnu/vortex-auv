@@ -831,6 +831,26 @@ class LandmarkServerNode : public rclcpp::Node {
                  Eigen::AngleAxisd(v[3] * kDeg, Eigen::Vector3d::UnitX()))
                     .toRotationMatrix();
             offset.translation() = Eigen::Vector3d(v[0], v[1], v[2]);
+            // With a tool, the offset is where the tool goes; the frame is
+            // where the vehicle has to be for that.
+            std::string tool;
+            read(k + "tool", tool);
+            if (!tool.empty()) {
+                try {
+                    offset =
+                        offset * to_pose(tf_buffer_
+                                             ->lookupTransform(
+                                                 frame_prefix_ + "base_link",
+                                                 frame_prefix_ + tool,
+                                                 tf2::TimePointZero)
+                                             .transform)
+                                     .inverse();
+                } catch (const tf2::TransformException& e) {
+                    spdlog::debug("landmark_server: target {}: no tool {}: {}",
+                                  name, tool, e.what());
+                    continue;
+                }
+            }
             for (const auto& parent : parents) {
                 const std::string pf = frame_prefix_ + parent;
                 const bool ours = std::any_of(

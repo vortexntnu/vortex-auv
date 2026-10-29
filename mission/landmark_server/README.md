@@ -182,6 +182,8 @@ targets:
 This gives `torpedo_board/standoff` and `torpedo_board/measured/standoff`
 whenever their parent exists. x, y, z in m and roll, pitch, yaw in degrees,
 in the parent's axes. A parent can be any TF frame, also another target.
+With `tool: "grip_point"` the offset is where that vehicle frame goes, and the
+target is where `base_link` has to be for it.
 Change one while running:
 
 ```bash
@@ -190,11 +192,11 @@ ros2 param set /nautilus/landmark_server_node targets.standoff.x 1.5
 
 | Target | Parents | |
 |---|---|---|
-| `entry`, `exit` | `gate_middle`, a measured gate panel | 1.5 m before and after the gate, 0.5 m below the panels |
+| `entry`, `exit` | `gate_middle`, a measured gate panel | 1.5 m before and after the gate, 0.8 m below the panels |
 | `gap_left_entry`, `gap_left_exit`, `gap_right_*` | `slalom_row/measured`, `.../next` | 1 m before and after the middle of each gap |
 | `next` | `slalom_row/measured` | Where the next row should be |
 | `standoff` | board, table | 2 m in front, facing it |
-| `shoot` | each opening | 0.6 m in front, facing it |
+| `shoot` | each opening | The gripper (`grip_point`) 0.4 m in front, facing it |
 | `above` | bins, table | 1 m above |
 | `centre` | octagon | |
 | `home` | `start` | |
