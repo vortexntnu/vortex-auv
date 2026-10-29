@@ -17,7 +17,9 @@ namespace {
 using LS = vortex_msgs::msg::LandmarkSubtype;
 using LT = vortex_msgs::msg::LandmarkType;
 
-constexpr double kMaxWhiteToRedM = 2.5;
+// shortcut: white pipes are ~1.6 m from their red one and 2.1+ m from the
+// next row's on the sim course; make it a setting if the real course differs.
+constexpr double kMaxWhiteToRedM = 1.8;
 
 std::vector<Landmark> clusters_of(const std::vector<const Hit*>& hits,
                                   const MeasureSettings& s) {

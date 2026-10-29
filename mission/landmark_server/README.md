@@ -78,7 +78,8 @@ puts each detection in `odom` with TF at that stamp. Detections already in
 
 | Frame | Parent | |
 |---|---|---|
-| `<class>` | `odom` | The most observed landmark of the class |
+| `<class>` | `odom` | The most observed landmark of the class. Until the class is seen: its `prior_<task>`, under `map` |
+| `<class>/live` | `odom` | The newest detection, for 1 s after it |
 | `<class>/measured`, or the action's `out_frame` | `odom` | The last successful measurement |
 | `<parent>/<target>` | the parent | Target frames from the config |
 | `gate_middle`, `<panel>_entrance`, `<panel>_exit` | `odom` | Gate, from the two role panels |
@@ -87,6 +88,11 @@ puts each detection in `odom` with TF at that stamp. Detections already in
 
 `map -> odom` is fixed when the map starts (`wipe`, `set_heading`, or the
 first odometry): `map` is the start pose turned to the course heading.
+
+So `<class>` always exists for a class with a task in the prior map. Check
+`landmark_server/landmarks` (or `LandmarkConfirmed`) to know whether it was
+seen. Frames from best to worst for the final approach:
+`<class>/measured` → `<class>/live` → `<class>` → `prior_<task>`.
 
 Frame axes: +X forward, +Y right, +Z down. Objects with a front (the board,
 bins, the table) have +X out of the front. Objects without a yaw get +X from
@@ -184,7 +190,7 @@ ros2 param set /nautilus/landmark_server_node targets.standoff.x 1.5
 
 | Target | Parents | |
 |---|---|---|
-| `entry`, `exit` | `gate_middle` | 1.5 m before and after the gate |
+| `entry`, `exit` | `gate_middle`, a measured gate panel | 1.5 m before and after the gate, 0.5 m below the panels |
 | `gap_left_entry`, `gap_left_exit`, `gap_right_*` | `slalom_row/measured`, `.../next` | 1 m before and after the middle of each gap |
 | `next` | `slalom_row/measured` | Where the next row should be |
 | `standoff` | board, table | 2 m in front, facing it |

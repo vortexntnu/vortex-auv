@@ -179,6 +179,22 @@ TEST(Measure, SlalomRowIsTheNearestInFrontAcrossItsPipes) {
     EXPECT_EQ(m.hits, 18);
 }
 
+TEST(Measure, WhitePipeOfTheNextRowDoesNotTurnTheRow) {
+    using LS = vortex_msgs::msg::LandmarkSubtype;
+    const ClassConfig red = slalom_class(LS::SLALOM_PIPE_RED);
+    const ClassConfig white = slalom_class(LS::SLALOM_PIPE_WHITE);
+    std::vector<Hit> hits;
+    // Sim course row 0 seen from (6.6, -0.45): its red and left white, and
+    // the left white of row 1 whose red is not seen.
+    add_hits(hits, red, 8.10, 0.345);
+    add_hits(hits, white, 8.14, -1.24);
+    add_hits(hits, white, 10.15, -0.645);
+    const Pose T = yaw_pose(0.0, Eigen::Vector3d(6.6, -0.45, 1.0));
+    const auto m = measure_slalom_row(hits, T, MeasureSettings{});
+    ASSERT_TRUE(m.ok) << m.message;
+    EXPECT_NEAR(yaw_of(m.pose.rotation()), 0.0, 0.05);
+}
+
 TEST(Measure, SlalomRowWithOnlyRedPointsFromTheVehicle) {
     using LS = vortex_msgs::msg::LandmarkSubtype;
     const ClassConfig red = slalom_class(LS::SLALOM_PIPE_RED);

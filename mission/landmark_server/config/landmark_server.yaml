@@ -29,8 +29,8 @@
     # slalom_row/measured has +X through the row, +Y right, from its red
     # pipe. Numbers are placeholders from the simulator course.
     targets:
-      entry: {parents: ["gate_middle"], x: -1.5}
-      exit: {parents: ["gate_middle"], x: 1.5}
+      entry: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: -1.5, z: 0.5}
+      exit: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: 1.5, z: 0.5}
       gap_left_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next"], x: -1.0, y: -0.75}
       gap_left_exit: {parents: ["slalom_row/measured", "slalom_row/measured/next"], x: 1.0, y: -0.75}
       gap_right_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next"], x: -1.0, y: 0.75}

@@ -47,6 +47,7 @@ constexpr double kFramePeriodS = 0.1;
 constexpr auto kMapPeriod = std::chrono::milliseconds(500);
 constexpr double kTfWaitS = 1.0;
 constexpr double kRetainedAfterS = 1.0;
+constexpr double kLiveS = 1.0;  // <class>/live lives this long after a hit
 constexpr double kNoOrientationVariance = 1000.0;
 constexpr const char* kGuiPrefix = "__gui/";
 constexpr double kPriorWarnPeriodS = 10.0;
@@ -462,6 +463,7 @@ class LandmarkServerNode : public rclcpp::Node {
             Eigen::Vector3d(0.0, 0.0, T_odom_base.translation().z());
         T_map_odom_ = T_map_start_ * T_odom_base.inverse();
         map_.clear();
+        last_hit_.clear();
         pending_.clear();
         publish_map();
     }
@@ -667,6 +669,9 @@ class LandmarkServerNode : public rclcpp::Node {
                     continue;
                 }
             }
+            if (t >= last_hit_[cls->name].t) {
+                last_hit_[cls->name] = h;
+            }
             map_.add(h,
                      static_cast<std::size_t>(cfg_.params.max_hits_per_class));
         }
@@ -769,9 +774,11 @@ class LandmarkServerNode : public rclcpp::Node {
                   vortex_msgs::srv::ResetLandmarks::Response& res) {
         if (req.class_name.empty()) {
             map_.clear();
+            last_hit_.clear();
             res.message = "all classes reset";
         } else if (cfg_.find_class(req.class_name)) {
             map_.clear_class(req.class_name);
+            last_hit_.erase(req.class_name);
             res.message = req.class_name + " reset";
         } else {
             res.message = "no class '" + req.class_name + "'";
@@ -901,6 +908,23 @@ class LandmarkServerNode : public rclcpp::Node {
         for (const auto& cls : classes) {
             frames_.push_back(frame(odom, frame_prefix_ + cls,
                                     landmark_pose(*best_of(shown, cls))));
+        }
+        // Not seen yet: the class frame is its task in the prior map.
+        for (const ClassConfig& c : cfg_.classes) {
+            const auto prior = premap_.objects.find(c.prior);
+            if (!classes.count(c.name) && prior != premap_.objects.end()) {
+                frames_.push_back(
+                    frame(map_frame_, frame_prefix_ + c.name, prior->second));
+            }
+        }
+        for (const auto& [name, h] : last_hit_) {
+            if (t - h.t <= kLiveS) {
+                const Eigen::Vector3d to = h.position - odom_->T.translation();
+                frames_.push_back(
+                    frame(odom, frame_prefix_ + name + "/live",
+                          yaw_pose(h.yaw.value_or(std::atan2(to.y(), to.x())),
+                                   h.position)));
+            }
         }
         const Eigen::Vector3d start =
             (T_map_odom_.inverse() * T_map_start_).translation();
@@ -1085,6 +1109,7 @@ class LandmarkServerNode : public rclcpp::Node {
     std::string premap_file_;
     DetectionMap map_;
     std::optional<Measuring> measuring_;
+    std::map<std::string, Hit> last_hit_;
     // Measured frames in odom, kept until measured again.
     std::map<std::string, Pose> measured_;
     std::vector<vortex_msgs::msg::LandmarkArray::ConstSharedPtr> pending_;
