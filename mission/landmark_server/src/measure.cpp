@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <optional>
+#include <utility>
 
 #include <vortex_msgs/msg/landmark_subtype.hpp>
 #include <vortex_msgs/msg/landmark_type.hpp>
@@ -166,6 +168,153 @@ Measurement measure_slalom_row(const std::vector<Hit>& hits,
     m.ok = true;
     m.message = fmt::format("row with {} pipes, {} hits, spread {:.2f} m",
                             row.size(), m.hits, m.spread_m);
+    return m;
+}
+
+Measurement measure_slalom(const std::vector<Hit>& hits,
+                           const Pose& T_odom_base,
+                           const MeasureSettings& s) {
+    std::vector<const Hit*> red_hits;
+    std::vector<const Hit*> white_hits;
+    for (const Hit& h : hits) {
+        if (h.cls->type != LT::SLALOM_PIPE) {
+            continue;
+        }
+        (h.cls->subtype == LS::SLALOM_PIPE_RED ? red_hits : white_hits)
+            .push_back(&h);
+    }
+    const int n = static_cast<int>(red_hits.size() + white_hits.size());
+    struct Pipe {
+        Eigen::Vector3d p;
+        bool red;
+    };
+    std::vector<Pipe> pipes;
+    Measurement m;
+    for (const auto& [group, red] :
+         {std::pair{&red_hits, true}, std::pair{&white_hits, false}}) {
+        for (const Landmark& l : clusters_of(*group, s)) {
+            pipes.push_back({l.position, red});
+            m.hits += l.n_obs;
+            m.spread_m = std::max(m.spread_m, l.spread_m);
+        }
+    }
+    if (std::none_of(pipes.begin(), pipes.end(),
+                     [](const Pipe& q) { return q.red; })) {
+        return failed(fmt::format("{} pipe hits, no red pipe", n), n);
+    }
+    if (m.spread_m > s.max_spread_m) {
+        m.message = fmt::format("spread {:.2f} m > {:.2f} m", m.spread_m,
+                                s.max_spread_m);
+        return m;
+    }
+
+    // Heading through the rows: the one where the pipes fall best on lines
+    // spacing_m apart, a little in favour of where the vehicle looks.
+    const double D = s.slalom_spacing_m;
+    const double heading = yaw_of(T_odom_base.rotation());
+    auto along = [](const Eigen::Vector3d& p, double th) {
+        return p.x() * std::cos(th) + p.y() * std::sin(th);
+    };
+    auto row_offset = [&](double th, double* cost) {
+        double best_cost = std::numeric_limits<double>::max();
+        double best_a0 = 0.0;
+        for (const Pipe& ref : pipes) {
+            double a0 = along(ref.p, th);
+            for (int it = 0; it < 2; ++it) {
+                double c = 0.0, mean = 0.0;
+                for (const Pipe& q : pipes) {
+                    const double a = along(q.p, th) - a0;
+                    const double r = a - D * std::round(a / D);
+                    c += r * r;
+                    mean += r;
+                }
+                a0 += mean / static_cast<double>(pipes.size());
+                if (it == 1 && c < best_cost) {
+                    best_cost = c;
+                    best_a0 = a0;
+                }
+            }
+        }
+        *cost = best_cost;
+        return best_a0;
+    };
+    double theta = heading;
+    double a0 = 0.0;
+    double best = std::numeric_limits<double>::max();
+    for (int deg = -90; deg <= 90; ++deg) {
+        const double th = wrap(heading + deg * M_PI / 180.0);
+        double c = 0.0;
+        const double a = row_offset(th, &c);
+        c += 1e-3 * std::pow(deg * M_PI / 180.0, 2);
+        if (c < best) {
+            best = c;
+            theta = th;
+            a0 = a;
+        }
+    }
+
+    // Rows from the first one with a pipe in front of the vehicle.
+    const double a_vehicle = along(T_odom_base.translation(), theta);
+    std::optional<int> first;
+    for (const Pipe& q : pipes) {
+        const int k =
+            static_cast<int>(std::lround((along(q.p, theta) - a0) / D));
+        if (a0 + k * D > a_vehicle && (!first || k < *first)) {
+            first = k;
+        }
+    }
+    if (!first) {
+        return failed(fmt::format("{} pipe hits, no row in front", n), n);
+    }
+    const Eigen::Vector2d u(-std::sin(theta), std::cos(theta));
+    double z = 0.0;
+    for (const Pipe& q : pipes) {
+        z += q.p.z() / static_cast<double>(pipes.size());
+    }
+    // Sideways: the row's red pipe, else the middle of its pipes, else the
+    // row before.
+    std::optional<double> lateral;
+    for (const Pipe& q : pipes) {
+        if (q.red && std::lround((along(q.p, theta) - a0) / D) >= *first) {
+            if (!lateral) {
+                lateral = q.p.head<2>().dot(u);
+            }
+        }
+    }
+    int seen = 0;
+    for (int k = 0; k < s.slalom_rows; ++k) {
+        const int row = *first + k;
+        std::optional<double> red_l;
+        double sum = 0.0;
+        int count = 0;
+        for (const Pipe& q : pipes) {
+            if (std::lround((along(q.p, theta) - a0) / D) != row) {
+                continue;
+            }
+            const double l = q.p.head<2>().dot(u);
+            if (q.red) {
+                red_l = l;
+            }
+            sum += l;
+            ++count;
+        }
+        if (red_l) {
+            lateral = red_l;
+        } else if (count > 1) {
+            lateral = sum / count;
+        }
+        seen += count > 0;
+        const double a = a0 + row * D;
+        const Eigen::Vector2d xy =
+            a * Eigen::Vector2d(std::cos(theta), std::sin(theta)) +
+            lateral.value_or(0.0) * u;
+        m.rows.push_back(yaw_pose(theta, Eigen::Vector3d(xy.x(), xy.y(), z)));
+    }
+    m.pose = m.rows.front();
+    m.ok = true;
+    m.message =
+        fmt::format("{} of {} rows seen, {} pipes, {} hits, spread {:.2f} m",
+                    seen, s.slalom_rows, pipes.size(), m.hits, m.spread_m);
     return m;
 }
 

@@ -21,6 +21,15 @@
       max_range_m: 4.0
       min_hits: 5
       max_spread_m: 0.3
+      # class "slalom": rows this far apart, from the first in front on
+      slalom_rows: 3
+      slalom_spacing_m: 2.0
+
+    # prior_<task>/corrected is the prior in odom. Enabled, every prior moves
+    # by how far the last measured task was from its own prior: the drift
+    # since the start drops out, but an eyeballed prior moves the others.
+    prior_offset:
+      enabled: false
 
     # <parent>/<name> for every parent that exists in TF, offset in the
     # parent's axes: x, y, z [m], roll, pitch, yaw [deg]. ros2 param set
@@ -31,16 +40,25 @@
     targets:
       entry: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: -1.5, z: 0.8}   # clear of the gate's centre pole
       exit: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: 1.5, z: 0.8}
-      gap_left_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next"], x: -1.0, y: -0.75}
-      gap_left_exit: {parents: ["slalom_row/measured", "slalom_row/measured/next"], x: 1.0, y: -0.75}
-      gap_right_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next"], x: -1.0, y: 0.75}
-      gap_right_exit: {parents: ["slalom_row/measured", "slalom_row/measured/next"], x: 1.0, y: 0.75}
+      gap_left_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/refined", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: -1.0, y: -0.75}
+      gap_left_exit: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/refined", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: 1.0, y: -0.75}
+      gap_right_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/refined", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: -1.0, y: 0.75}
+      gap_right_exit: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/refined", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: 1.0, y: 0.75}
       next: {parents: ["slalom_row/measured"], x: 2.0}   # rows are 2 m apart
       standoff: {parents: ["torpedo_board", "torpedo_board/measured", "table", "table/measured"], x: 2.0, yaw: 180.0}
       shoot: {parents: ["torpedo_opening_large_left", "torpedo_opening_large_right", "torpedo_opening_small_top", "torpedo_opening_small_bottom", "torpedo_opening_large_left/measured", "torpedo_opening_large_right/measured", "torpedo_opening_small_top/measured", "torpedo_opening_small_bottom/measured"], x: 0.4, yaw: 180.0, tool: "grip_point"}
       above: {parents: ["bin_structure", "bin_structure/measured", "bin_search_rescue", "bin_survey_repair", "table", "table/measured"], z: -1.0}
       centre: {parents: ["octagon", "octagon/measured"], z: 0.5}
       home: {parents: ["start"]}
+      # Where each task's search starts. On a class frame it follows the
+      # object as soon as it is seen; until then the class frame is its prior.
+      search_gate: {parents: ["gate_search_rescue"], x: -2.5, z: 0.6}
+      search_slalom: {parents: ["prior_slalom/corrected"], x: -4.0, y: -0.9, z: 0.1}
+      search_torpedo: {parents: ["torpedo_board"], x: 3.0, yaw: 180.0}
+      # Around the slalom on its left, for when it fails half way: straight
+      # lines between tasks must not cross it.
+      around_start: {parents: ["prior_slalom/corrected"], x: -4.0, y: -4.0, z: 0.1}
+      around_end: {parents: ["prior_slalom/corrected"], x: 4.0, y: -4.0, z: 0.1}
 
     # Gate target frames. Empty panel_classes turns them off.
     gate:

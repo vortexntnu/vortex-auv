@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.8)
 project(landmark_server)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 20)
 endif()

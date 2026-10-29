@@ -27,34 +27,52 @@ std::vector<std::vector<std::size_t>> cluster(
     const std::vector<Eigen::Vector3d>& points,
     double radius,
     std::size_t min_size) {
+    // Neighbours are found once; taking out a cluster only lowers the counts
+    // of what was next to it. Same result as recounting every round.
     const double r2 = radius * radius;
-    std::vector<bool> alive(points.size(), true);
+    const std::size_t n = points.size();
+    std::vector<std::vector<std::size_t>> near(n);
+    for (std::size_t i = 0; i < n; ++i) {
+        for (std::size_t j = i + 1; j < n; ++j) {
+            if ((points[i] - points[j]).squaredNorm() <= r2) {
+                near[i].push_back(j);
+                near[j].push_back(i);
+            }
+        }
+    }
+    std::vector<std::size_t> count(n);
+    for (std::size_t i = 0; i < n; ++i) {
+        count[i] = near[i].size() + 1;
+    }
+    std::vector<bool> alive(n, true);
     std::vector<std::vector<std::size_t>> out;
     while (true) {
         std::size_t best = 0;
         std::size_t best_count = 0;
-        for (std::size_t i = 0; i < points.size(); ++i) {
-            if (!alive[i]) {
-                continue;
-            }
-            std::size_t count = 0;
-            for (std::size_t j = 0; j < points.size(); ++j) {
-                count +=
-                    alive[j] && (points[i] - points[j]).squaredNorm() <= r2;
-            }
-            if (count > best_count) {
+        for (std::size_t i = 0; i < n; ++i) {
+            if (alive[i] && count[i] > best_count) {
                 best = i;
-                best_count = count;
+                best_count = count[i];
             }
         }
         if (best_count < min_size || best_count == 0) {
             return out;
         }
-        std::vector<std::size_t> members;
-        for (std::size_t j = 0; j < points.size(); ++j) {
-            if (alive[j] && (points[best] - points[j]).squaredNorm() <= r2) {
+        std::vector<std::size_t> members{best};
+        for (const std::size_t j : near[best]) {
+            if (alive[j]) {
                 members.push_back(j);
-                alive[j] = false;
+            }
+        }
+        std::sort(members.begin(), members.end());
+        for (const std::size_t m : members) {
+            alive[m] = false;
+        }
+        for (const std::size_t m : members) {
+            for (const std::size_t k : near[m]) {
+                if (alive[k]) {
+                    --count[k];
+                }
             }
         }
         out.push_back(std::move(members));

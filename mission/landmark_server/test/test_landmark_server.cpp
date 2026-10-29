@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <cmath>
+#include <random>
 
 #include "landmark_server/detection_check.hpp"
 #include "landmark_server/map.hpp"
@@ -56,6 +58,62 @@ TEST(Cluster, NeighbouringObjectsAreNotChained) {
 TEST(Cluster, SmallClustersAreDropped) {
     std::vector<Eigen::Vector3d> pts(4, Eigen::Vector3d::Zero());
     EXPECT_TRUE(cluster(pts, 0.5, 5).empty());
+}
+
+// Recount every round: what cluster() must still give.
+std::vector<std::vector<std::size_t>> cluster_by_recounting(
+    const std::vector<Eigen::Vector3d>& p,
+    double r,
+    std::size_t min_size) {
+    std::vector<bool> alive(p.size(), true);
+    std::vector<std::vector<std::size_t>> out;
+    while (true) {
+        std::size_t best = 0, best_count = 0;
+        for (std::size_t i = 0; i < p.size(); ++i) {
+            std::size_t c = 0;
+            for (std::size_t j = 0; j < p.size(); ++j) {
+                c += alive[i] && alive[j] && (p[i] - p[j]).norm() <= r;
+            }
+            if (c > best_count) {
+                best = i;
+                best_count = c;
+            }
+        }
+        if (best_count < min_size || best_count == 0) {
+            return out;
+        }
+        std::vector<std::size_t> m;
+        for (std::size_t j = 0; j < p.size(); ++j) {
+            if (alive[j] && (p[best] - p[j]).norm() <= r) {
+                m.push_back(j);
+                alive[j] = false;
+            }
+        }
+        out.push_back(m);
+    }
+}
+
+TEST(Cluster, SameAsRecountingAndFast) {
+    std::mt19937 rng(3);
+    std::normal_distribution<double> noise(0.0, 0.3);
+    std::uniform_real_distribution<double> spread(0.0, 6.0);
+    std::vector<Eigen::Vector3d> pts;
+    for (int k = 0; k < 9; ++k) {  // 9 objects and scattered false hits
+        const Eigen::Vector3d c(spread(rng), spread(rng), 1.0);
+        for (int i = 0; i < 80; ++i) {
+            pts.emplace_back(c + Eigen::Vector3d(noise(rng), noise(rng), 0.0));
+        }
+    }
+    for (int i = 0; i < 300; ++i) {
+        pts.emplace_back(spread(rng), spread(rng), 1.0);
+    }
+    EXPECT_EQ(cluster(pts, 0.5, 5), cluster_by_recounting(pts, 0.5, 5));
+    const auto t0 = std::chrono::steady_clock::now();
+    cluster(pts, 0.5, 5);
+    const double ms = std::chrono::duration<double, std::milli>(
+                          std::chrono::steady_clock::now() - t0)
+                          .count();
+    EXPECT_LT(ms, 50.0);  // 1020 hits, twice a second
 }
 
 TEST(SymmetricMeanYaw, WrapsAroundTheSymmetry) {
@@ -206,6 +264,66 @@ TEST(Measure, SlalomRowWithOnlyRedPointsFromTheVehicle) {
     hits.clear();
     add_hits(hits, red, -3.0, 0.0);
     EXPECT_FALSE(measure_slalom_row(hits, Pose::Identity(), MeasureSettings{}).ok);
+}
+
+// Three rows 2 m apart turned 20 deg, red pipes shifted sideways, whites
+// 1.5 m each side, like the sim course. Row k's red at (along, lateral).
+std::vector<Eigen::Vector2d> slalom_reds(double th) {
+    const Eigen::Vector2d n(std::cos(th), std::sin(th)), u(-std::sin(th), std::cos(th));
+    const Eigen::Vector2d c0(6.0, 0.7);
+    return {c0, c0 + 2.0 * n + 0.7 * u, c0 + 4.0 * n - 0.3 * u};
+}
+
+void add_row(std::vector<Hit>& hits, const ClassConfig& red, const ClassConfig& white,
+             const Eigen::Vector2d& r, double th, bool whites = true) {
+    const Eigen::Vector2d u(-std::sin(th), std::cos(th));
+    add_hits(hits, red, r.x(), r.y());
+    if (whites) {
+        add_hits(hits, white, (r - 1.5 * u).x(), (r - 1.5 * u).y());
+        add_hits(hits, white, (r + 1.5 * u).x(), (r + 1.5 * u).y());
+    }
+}
+
+TEST(Measure, SlalomGivesEveryRowFromTheFirstInFront) {
+    using LS = vortex_msgs::msg::LandmarkSubtype;
+    const ClassConfig red = slalom_class(LS::SLALOM_PIPE_RED);
+    const ClassConfig white = slalom_class(LS::SLALOM_PIPE_WHITE);
+    const double th = 20.0 * M_PI / 180.0;
+    const auto reds = slalom_reds(th);
+    std::vector<Hit> hits;
+    for (const auto& r : reds) {
+        add_row(hits, red, white, r, th);
+    }
+    const Pose T = yaw_pose(0.0, Eigen::Vector3d(3.0, 0.5, 1.0));
+    const auto m = measure_slalom(hits, T, MeasureSettings{});
+    ASSERT_TRUE(m.ok) << m.message;
+    ASSERT_EQ(m.rows.size(), 3u);
+    for (int k = 0; k < 3; ++k) {
+        EXPECT_LT((m.rows[k].translation().head<2>() - reds[k]).norm(), 0.05) << k;
+        EXPECT_NEAR(yaw_of(m.rows[k].rotation()), th, 0.03) << k;
+    }
+    // Past the first row, the second is the first in front.
+    const auto past = measure_slalom(hits, yaw_pose(th, Eigen::Vector3d(7.0, 1.4, 1.0)),
+                                     MeasureSettings{});
+    ASSERT_TRUE(past.ok);
+    EXPECT_LT((past.rows[0].translation().head<2>() - reds[1]).norm(), 0.05);
+}
+
+TEST(Measure, SlalomRowNotSeenFollowsTheOthers) {
+    using LS = vortex_msgs::msg::LandmarkSubtype;
+    const ClassConfig red = slalom_class(LS::SLALOM_PIPE_RED);
+    const ClassConfig white = slalom_class(LS::SLALOM_PIPE_WHITE);
+    const double th = 20.0 * M_PI / 180.0;
+    const auto reds = slalom_reds(th);
+    std::vector<Hit> hits;
+    add_row(hits, red, white, reds[0], th);
+    add_row(hits, red, white, reds[1], th, false);  // only its red
+    const auto m = measure_slalom(hits, yaw_pose(0.0, Eigen::Vector3d(3.0, 0.5, 1.0)),
+                                  MeasureSettings{});
+    ASSERT_TRUE(m.ok) << m.message;
+    EXPECT_LT((m.rows[1].translation().head<2>() - reds[1]).norm(), 0.05);
+    // Row 2 unseen: 2 m on, at row 1's side shift; the real one is 1 m off.
+    EXPECT_LT((m.rows[2].translation().head<2>() - reds[2]).norm(), 1.05);
 }
 
 TEST(GateFrames, TwoPanelsGiveTheGateDirection) {

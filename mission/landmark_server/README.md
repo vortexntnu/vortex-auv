@@ -78,13 +78,14 @@ puts each detection in `odom` with TF at that stamp. Detections already in
 
 | Frame | Parent | |
 |---|---|---|
-| `<class>` | `odom` | The most observed landmark of the class. Until the class is seen: its `prior_<task>`, under `map` |
+| `<class>` | `odom` | The most observed landmark of the class. Until the class is seen: its `prior_<task>/corrected` |
 | `<class>/live` | `odom` | The newest detection, for 1 s after it |
 | `<class>/measured`, or the action's `out_frame` | `odom` | The last successful measurement |
 | `<parent>/<target>` | the parent | Target frames from the config |
 | `gate_middle`, `<panel>_entrance`, `<panel>_exit` | `odom` | Gate, from the two role panels |
 | `start` | `map` | Where the map started |
 | `prior_<task>` | `map` | Where the prior map puts the task |
+| `prior_<task>/corrected` | `odom` | The same, moved by the prior offset when it is on (see below) |
 
 `map -> odom` is fixed when the map starts (`wipe`, `set_heading`, or the
 first odometry): `map` is the start pose turned to the course heading.
@@ -96,7 +97,18 @@ seen. Frames from best to worst for the final approach:
 
 Frame axes: +X forward, +Y right, +Z down. Objects with a front (the board,
 bins, the table) have +X out of the front. Objects without a yaw get +X from
-the vehicle to the object when measured, and no yaw in the map.
+the vehicle to the object when measured, and their prior's heading in the
+map, so a target on `<class>` points the same way before and after it is seen.
+
+### Prior offset
+
+Off by default (`prior_offset.enabled`). On, every `prior_<task>/corrected`
+moves by how far the last successful measurement was from its own prior, in
+x and y. The drift since the start then drops out of the search points, but
+the error of that one prior moves all the others with it. Use it when the
+prior map is good relative to itself (made from measurements, or a known
+layout) and only shifted as a whole. A measurement farther than the class's
+`prior_radius_m` from its prior is ignored.
 
 ## How a detection becomes a landmark
 
@@ -164,6 +176,25 @@ from the red and white pipes:
 | Direction | Across the line of the pipes. With only the red pipe seen: from the vehicle to it |
 | Rows | Each red pipe is one row. A white pipe belongs to the nearest red one |
 
+### slalom
+
+`class_name: slalom` measures the whole slalom at once. It finds the heading
+where all pipes seen fall best on rows `measure.slalom_spacing_m` apart, each
+row free to shift sideways, and gives a frame per row like `slalom_row`'s:
+`<out_frame>/row0`, `row1`, ... (`measure.slalom_rows` of them), from the
+first row with a pipe in front of the vehicle. `<out_frame>` itself is row 0.
+
+| | |
+|---|---|
+| Origin | The row's red pipe. No red seen: the middle of its white pipes, else the row before's sideways shift |
+| +X | The slalom's heading, away from the vehicle |
+| Rows not seen | Placed on, from the rows that were |
+| Range | `max_range_m` when the goal gives 0, as the slalom is longer than one object |
+
+Measured from in front of the slalom it gives every gap; measured again 1 m
+before a gap it gives that row with the heading from all the pipes it sees,
+not from where the vehicle stands.
+
 ### Example
 
 ```bash
@@ -193,13 +224,16 @@ ros2 param set /nautilus/landmark_server_node targets.standoff.x 1.5
 | Target | Parents | |
 |---|---|---|
 | `entry`, `exit` | `gate_middle`, a measured gate panel | 1.5 m before and after the gate, 0.8 m below the panels |
-| `gap_left_entry`, `gap_left_exit`, `gap_right_*` | `slalom_row/measured`, `.../next` | 1 m before and after the middle of each gap |
+| `gap_left_entry`, `gap_left_exit`, `gap_right_*` | `slalom_row/measured`, `.../next`, `slalom/measured/row0..2`, `slalom/refined` | 1 m before and after the middle of each gap |
 | `next` | `slalom_row/measured` | Where the next row should be |
 | `standoff` | board, table | 2 m in front, facing it |
 | `shoot` | each opening | The gripper (`grip_point`) 0.4 m in front, facing it |
 | `above` | bins, table | 1 m above |
 | `centre` | octagon | |
 | `home` | `start` | |
+| `search_gate`, `search_torpedo` | the class frame | Where the search starts. Follows the object as soon as it is seen |
+| `search_slalom` | `prior_slalom/corrected` | The slalom rows all share one class, so this one stays on the prior |
+| `around_start`, `around_end` | `prior_slalom/corrected` | A way past the slalom on its left, for when it fails half way |
 
 The numbers are from the simulator course.
 
@@ -210,7 +244,8 @@ ros2 service call /nautilus/landmark_server/reset vortex_msgs/srv/ResetLandmarks
 ```
 
 Drops the stored hits and landmarks of the class, `""` for all. Measured
-frames stay. `mission/wipe` also starts a new `map`.
+frames stay. `mission/wipe` also starts a new `map` and drops the measured
+frames and the prior offset.
 
 ## Debug mode
 
@@ -304,6 +339,7 @@ All in `config/landmark_server.yaml`.
 | `map.max_hits_per_class` | Hits kept per class, the newest | Landmarks out of view disappear | Clustering is slow |
 | `map.max_hit_age_s` | Hits older than this are forgotten, 0 keeps all | | The map lags behind after a lot of drift. Landmarks out of view then disappear |
 | `measure.*` | Defaults for the action | | |
+| `prior_offset.enabled` | Priors move with the last measurement | The prior map is good relative to itself and drift is large | The priors are eyeballed one by one |
 
 ### Debug box
 

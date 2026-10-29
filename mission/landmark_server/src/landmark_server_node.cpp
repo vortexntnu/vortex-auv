@@ -105,6 +105,7 @@ std::array<double, 36> to_ros_cov(const Landmark& l) {
 }
 
 constexpr const char* kSlalomRow = "slalom_row";
+constexpr const char* kSlalom = "slalom";
 
 using MeasureLandmark = vortex_msgs::action::MeasureLandmark;
 using MeasureHandle = rclcpp_action::ServerGoalHandle<MeasureLandmark>;
@@ -236,6 +237,8 @@ class LandmarkServerNode : public rclcpp::Node {
         read("measure.max_range_m", p.measure_max_range_m);
         read("measure.min_hits", p.measure_min_hits);
         read("measure.max_spread_m", p.measure_max_spread_m);
+        read("measure.slalom_rows", p.slalom_rows);
+        read("measure.slalom_spacing_m", p.slalom_spacing_m);
         read("gate.panel_classes", p.gate.panel_classes);
         read("gate.min_separation_m", p.gate.min_separation_m);
         read("gate.max_separation_m", p.gate.max_separation_m);
@@ -465,7 +468,48 @@ class LandmarkServerNode : public rclcpp::Node {
         map_.clear();
         last_hit_.clear();
         pending_.clear();
+        measured_.clear();
+        prior_offset_ = Eigen::Vector3d::Zero();
         publish_map();
+    }
+
+    /// prior_offset.enabled: every prior moves by how far the last measured
+    /// task was from its own prior (x and y only), so the drift since the
+    /// start drops out. Off by default: an eyeballed prior moves the others.
+    void update_prior_offset(const std::string& cls, const Pose& measured) {
+        const auto c =
+            std::find_if(cfg_.classes.begin(), cfg_.classes.end(),
+                         [&](const ClassConfig& k) { return k.name == cls; });
+        if (c == cfg_.classes.end()) {
+            return;
+        }
+        const auto prior = premap_.objects.find(c->prior);
+        if (prior == premap_.objects.end()) {
+            return;
+        }
+        Eigen::Vector3d d =
+            measured.translation() -
+            (T_map_odom_.inverse() * prior->second).translation();
+        d.z() = 0.0;
+        if (d.norm() > c->prior_radius_m) {
+            spdlog::warn(
+                "landmark_server: {} measured {:.1f} m from its prior, offset "
+                "left as it is",
+                cls, d.norm());
+            return;
+        }
+        prior_offset_ = d;
+        spdlog::info("landmark_server: prior offset from {}: ({:.2f}, {:.2f})",
+                     cls, d.x(), d.y());
+    }
+
+    /// prior_<task> in odom, moved by the prior offset when it is on.
+    Pose corrected_prior(const Pose& T_map_prior) const {
+        Pose p = T_map_odom_.inverse() * T_map_prior;
+        if (get_parameter_or<bool>("prior_offset.enabled", false)) {
+            p.translation() += prior_offset_;
+        }
+        return p;
     }
 
     void on_wipe() {
@@ -649,7 +693,8 @@ class LandmarkServerNode : public rclcpp::Node {
             if (measuring_ && t >= measuring_->start_t &&
                 range <= measuring_->max_range_m &&
                 (measuring_->cls == cls->name ||
-                 (measuring_->cls == kSlalomRow &&
+                 ((measuring_->cls == kSlalomRow ||
+                   measuring_->cls == kSlalom) &&
                   cls->type == vortex_msgs::msg::LandmarkType::SLALOM_PIPE))) {
                 measuring_->hits.push_back(h);
             }
@@ -681,7 +726,7 @@ class LandmarkServerNode : public rclcpp::Node {
     rclcpp_action::GoalResponse accept_measure(
         const MeasureLandmark::Goal& goal) {
         if (measuring_ || !odom_ ||
-            (goal.class_name != kSlalomRow &&
+            (goal.class_name != kSlalomRow && goal.class_name != kSlalom &&
              !cfg_.find_class(goal.class_name))) {
             spdlog::warn(
                 "landmark_server: measure '{}' rejected: {}", goal.class_name,
@@ -705,12 +750,16 @@ class LandmarkServerNode : public rclcpp::Node {
         m.start_t = odom_->t;
         m.end_t = odom_->t +
                   (g.duration_s > 0.0 ? g.duration_s : p.measure_duration_s);
-        m.max_range_m =
-            g.max_range_m > 0.0 ? g.max_range_m : p.measure_max_range_m;
+        // The whole slalom is longer than one object: up to max_range_m.
+        m.max_range_m = g.max_range_m > 0.0       ? g.max_range_m
+                        : g.class_name == kSlalom ? p.max_range_m
+                                                  : p.measure_max_range_m;
         m.settings.cluster_radius_m = p.cluster_radius_m;
         m.settings.min_hits = g.min_hits > 0 ? g.min_hits : p.measure_min_hits;
         m.settings.max_spread_m =
             g.max_spread_m > 0.0 ? g.max_spread_m : p.measure_max_spread_m;
+        m.settings.slalom_rows = p.slalom_rows;
+        m.settings.slalom_spacing_m = p.slalom_spacing_m;
         measuring_ = std::move(m);
         spdlog::info("landmark_server: measuring {} for {:.1f} s", g.class_name,
                      measuring_->end_t - measuring_->start_t);
@@ -738,7 +787,8 @@ class LandmarkServerNode : public rclcpp::Node {
         const Measurement r =
             m.cls == kSlalomRow
                 ? measure_slalom_row(m.hits, odom_->T, m.settings)
-                : measure_object(m.hits, odom_->T, m.settings);
+            : m.cls == kSlalom ? measure_slalom(m.hits, odom_->T, m.settings)
+                               : measure_object(m.hits, odom_->T, m.settings);
         auto result = std::make_shared<MeasureLandmark::Result>();
         result->success = r.ok;
         result->hits = r.hits;
@@ -746,6 +796,10 @@ class LandmarkServerNode : public rclcpp::Node {
         result->message = r.message;
         if (r.ok) {
             measured_[m.out_frame] = r.pose;
+            for (std::size_t k = 0; k < r.rows.size(); ++k) {
+                measured_[m.out_frame + "/row" + std::to_string(k)] = r.rows[k];
+            }
+            update_prior_offset(m.cls, r.pose);
         } else if (!m.fallback_from.empty()) {
             try {
                 measured_[m.out_frame] = to_pose(
@@ -925,6 +979,9 @@ class LandmarkServerNode : public rclcpp::Node {
         for (const auto& [label, pose] : premap_.objects) {
             frames_.push_back(
                 frame(map_frame_, frame_prefix_ + "prior_" + label, pose));
+            frames_.push_back(
+                frame(odom, frame_prefix_ + "prior_" + label + "/corrected",
+                      corrected_prior(pose)));
         }
         // The most observed landmark of each class gets the class frame.
         std::set<std::string> classes;
@@ -932,15 +989,24 @@ class LandmarkServerNode : public rclcpp::Node {
             classes.insert(l.cls.name);
         }
         for (const auto& cls : classes) {
-            frames_.push_back(frame(odom, frame_prefix_ + cls,
-                                    landmark_pose(*best_of(shown, cls))));
+            const Landmark& best = *best_of(shown, cls);
+            Pose pose = landmark_pose(best);
+            // Without its own heading it keeps its prior's, so targets on it
+            // point the same way before and after it is seen.
+            const auto prior = premap_.objects.find(best.cls.prior);
+            if (!best.yaw_known && prior != premap_.objects.end()) {
+                pose = yaw_pose(
+                    yaw_of((T_map_odom_.inverse() * prior->second).rotation()),
+                    best.position);
+            }
+            frames_.push_back(frame(odom, frame_prefix_ + cls, pose));
         }
         // Not seen yet: the class frame is its task in the prior map.
         for (const ClassConfig& c : cfg_.classes) {
             const auto prior = premap_.objects.find(c.prior);
             if (!classes.count(c.name) && prior != premap_.objects.end()) {
-                frames_.push_back(
-                    frame(map_frame_, frame_prefix_ + c.name, prior->second));
+                frames_.push_back(frame(odom, frame_prefix_ + c.name,
+                                        corrected_prior(prior->second)));
             }
         }
         for (const auto& [name, h] : last_hit_) {
@@ -1138,6 +1204,7 @@ class LandmarkServerNode : public rclcpp::Node {
     std::map<std::string, Hit> last_hit_;
     // Measured frames in odom, kept until measured again.
     std::map<std::string, Pose> measured_;
+    Eigen::Vector3d prior_offset_ = Eigen::Vector3d::Zero();
     std::vector<vortex_msgs::msg::LandmarkArray::ConstSharedPtr> pending_;
     std::optional<OdomSample> odom_;
     // Odometry yaw that points at the course, kept between wipes.

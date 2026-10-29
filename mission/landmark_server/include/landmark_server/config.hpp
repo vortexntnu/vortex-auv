@@ -52,6 +52,8 @@ struct Params {
     double measure_max_range_m{4.0};
     int measure_min_hits{5};
     double measure_max_spread_m{0.3};
+    int slalom_rows{3};
+    double slalom_spacing_m{2.0};
 
     GateParams gate;
 };
