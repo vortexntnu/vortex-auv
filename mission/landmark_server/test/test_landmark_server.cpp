@@ -253,14 +253,14 @@ TEST(Measure, WhitePipeOfTheNextRowDoesNotTurnTheRow) {
     EXPECT_NEAR(yaw_of(m.pose.rotation()), 0.0, 0.05);
 }
 
-TEST(Measure, SlalomRowWithOnlyRedPointsFromTheVehicle) {
+TEST(Measure, SlalomRowWithOnlyRedKeepsTheVehiclesHeading) {
     using LS = vortex_msgs::msg::LandmarkSubtype;
     const ClassConfig red = slalom_class(LS::SLALOM_PIPE_RED);
     std::vector<Hit> hits;
-    add_hits(hits, red, 3.0, 3.0);
+    add_hits(hits, red, 1.0, 0.75);  // 1 m before the left gap
     const auto m = measure_slalom_row(hits, Pose::Identity(), MeasureSettings{});
     ASSERT_TRUE(m.ok);
-    EXPECT_NEAR(yaw_of(m.pose.rotation()), M_PI / 4, 0.02);
+    EXPECT_NEAR(yaw_of(m.pose.rotation()), 0.0, 0.02);
     hits.clear();
     add_hits(hits, red, -3.0, 0.0);
     EXPECT_FALSE(measure_slalom_row(hits, Pose::Identity(), MeasureSettings{}).ok);
@@ -298,6 +298,7 @@ TEST(Measure, SlalomGivesEveryRowFromTheFirstInFront) {
     const auto m = measure_slalom(hits, T, MeasureSettings{});
     ASSERT_TRUE(m.ok) << m.message;
     ASSERT_EQ(m.rows.size(), 3u);
+    EXPECT_EQ(m.row_seen, std::vector<bool>({true, true, true}));
     for (int k = 0; k < 3; ++k) {
         EXPECT_LT((m.rows[k].translation().head<2>() - reds[k]).norm(), 0.05) << k;
         EXPECT_NEAR(yaw_of(m.rows[k].rotation()), th, 0.03) << k;
@@ -322,11 +323,12 @@ TEST(Measure, SlalomRowNotSeenFollowsTheOthers) {
                                   MeasureSettings{});
     ASSERT_TRUE(m.ok) << m.message;
     EXPECT_LT((m.rows[1].translation().head<2>() - reds[1]).norm(), 0.05);
+    EXPECT_EQ(m.row_seen, std::vector<bool>({true, true, false}));
     // Row 2 unseen: 2 m on, at row 1's side shift; the real one is 1 m off.
     EXPECT_LT((m.rows[2].translation().head<2>() - reds[2]).norm(), 1.05);
 }
 
-TEST(Measure, SlalomThatIsNotEvenRowsFails) {
+TEST(Measure, SlalomFailsOnlyWhenItIsNotEvenRows) {
     using LS = vortex_msgs::msg::LandmarkSubtype;
     const ClassConfig red = slalom_class(LS::SLALOM_PIPE_RED);
     const ClassConfig white = slalom_class(LS::SLALOM_PIPE_WHITE);
@@ -348,10 +350,25 @@ TEST(Measure, SlalomThatIsNotEvenRowsFails) {
         r += Eigen::Vector2d(noise(rng), noise(rng));
     }
     EXPECT_TRUE(measure(noisy, 0.0).ok) << measure(noisy, 0.0).message;
+    std::vector<Hit> with_false;  // one false pipe between the rows
+    for (const auto& r : reds) {
+        add_row(with_false, red, white, r, th);
+    }
+    const Eigen::Vector2d between = reds[0] + 1.0 * n;
+    add_hits(with_false, white, between.x(), between.y());
+    const auto f = measure_slalom(with_false, T, MeasureSettings{});
+    ASSERT_TRUE(f.ok) << f.message;
+    EXPECT_LT((f.rows[1].translation().head<2>() - reds[1]).norm(), 0.05);
     auto uneven = reds;
     uneven[2] += 1.2 * n;  // 2 m, then 3.2 m
     EXPECT_FALSE(measure(uneven, 0.0).ok);
-    EXPECT_FALSE(measure(reds, 25.0 * M_PI / 180.0).ok);  // last row turned
+    // A turned last row still gives every row near its red pipe; measured
+    // again in front of it, that row's own pipes give its heading.
+    const auto turned = measure(reds, 25.0 * M_PI / 180.0);
+    ASSERT_TRUE(turned.ok) << turned.message;
+    for (int k = 0; k < 3; ++k) {
+        EXPECT_LT((turned.rows[k].translation().head<2>() - reds[k]).norm(), 0.4) << k;
+    }
     std::vector<Hit> two_reds;
     add_row(two_reds, red, white, reds[0], th);
     add_hits(two_reds, red, reds[0].x() - 0.8 * std::sin(th), reds[0].y() + 0.8 * std::cos(th));

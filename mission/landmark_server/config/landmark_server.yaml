@@ -41,10 +41,10 @@
     targets:
       entry: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: -1.5, z: 0.8}   # clear of the gate's centre pole
       exit: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: 1.5, z: 0.8}
-      gap_left_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/refined", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: -1.0, y: -0.75}
-      gap_left_exit: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/refined", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: 1.0, y: -0.75}
-      gap_right_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/refined", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: -1.0, y: 0.75}
-      gap_right_exit: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/refined", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: 1.0, y: 0.75}
+      gap_left_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: -1.0, y: -0.75}
+      gap_left_exit: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: 1.0, y: -0.75}
+      gap_right_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: -1.0, y: 0.75}
+      gap_right_exit: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: 1.0, y: 0.75}
       next: {parents: ["slalom_row/measured"], x: 2.0}   # rows are 2 m apart
       standoff: {parents: ["torpedo_board", "torpedo_board/measured", "table", "table/measured"], x: 2.0, yaw: 180.0}
       shoot: {parents: ["torpedo_opening_large_left", "torpedo_opening_large_right", "torpedo_opening_small_top", "torpedo_opening_small_bottom", "torpedo_opening_large_left/measured", "torpedo_opening_large_right/measured", "torpedo_opening_small_top/measured", "torpedo_opening_small_bottom/measured"], x: 0.4, yaw: 180.0, tool: "grip_point"}

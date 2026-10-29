@@ -474,6 +474,44 @@ class LandmarkServerNode : public rclcpp::Node {
         publish_map();
     }
 
+    /// The first slalom measurement numbers the rows. A later one updates the
+    /// rows it saw, each the stored row nearest to it within half a spacing,
+    /// so row K stays the same row wherever it is measured from.
+    void store_rows(const std::string& out,
+                    const Measurement& r,
+                    double spacing) {
+        auto row = [&](std::size_t k) {
+            return out + "/row" + std::to_string(k);
+        };
+        if (!measured_.count(row(0))) {
+            for (std::size_t k = 0; k < r.rows.size(); ++k) {
+                measured_[row(k)] = r.rows[k];
+            }
+            return;
+        }
+        for (std::size_t i = 0; i < r.rows.size(); ++i) {
+            if (!r.row_seen[i]) {
+                continue;
+            }
+            std::string best;
+            double d_best = spacing / 2.0;
+            for (std::size_t k = 0; measured_.count(row(k)); ++k) {
+                const double d =
+                    (measured_[row(k)].translation() - r.rows[i].translation())
+                        .head<2>()
+                        .norm();
+                if (d < d_best) {
+                    d_best = d;
+                    best = row(k);
+                }
+            }
+            if (!best.empty()) {
+                measured_[best] = r.rows[i];
+            }
+        }
+        measured_[out] = measured_[row(0)];
+    }
+
     /// prior_offset.enabled: every prior moves by how far the last measured
     /// task was from its own prior (x and y only), so the drift since the
     /// start drops out. Off by default: an eyeballed prior moves the others.
@@ -798,8 +836,8 @@ class LandmarkServerNode : public rclcpp::Node {
         result->message = r.message;
         if (r.ok) {
             measured_[m.out_frame] = r.pose;
-            for (std::size_t k = 0; k < r.rows.size(); ++k) {
-                measured_[m.out_frame + "/row" + std::to_string(k)] = r.rows[k];
+            if (!r.rows.empty()) {
+                store_rows(m.out_frame, r, m.settings.slalom_spacing_m);
             }
             update_prior_offset(m.cls, r.pose);
         } else if (!m.fallback_from.empty()) {

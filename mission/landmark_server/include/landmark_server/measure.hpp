@@ -25,6 +25,7 @@ struct Measurement {
     double spread_m{0.0};
     std::string message;
     std::vector<Pose> rows;  // measure_slalom: one frame per row, nearest first
+    std::vector<bool> row_seen;  // which of rows had a pipe
 };
 
 /// The largest cluster of the hits. Objects without a yaw get +X from the
@@ -35,8 +36,8 @@ Measurement measure_object(const std::vector<Hit>& hits,
 
 /// The nearest slalom row in front of the vehicle: origin at its red pipe,
 /// +X through the row away from the vehicle. White pipes go to the nearest
-/// red one and give the direction; with only the red pipe, +X points from
-/// the vehicle to it.
+/// red one and give the direction; with only the red pipe, +X is the
+/// vehicle's heading.
 Measurement measure_slalom_row(const std::vector<Hit>& hits,
                                const Pose& T_odom_base,
                                const MeasureSettings& s);

@@ -147,7 +147,10 @@ Measurement measure_slalom_row(const std::vector<Hit>& hits,
 
     const Eigen::Vector2d to_red =
         (red->position - T_odom_base.translation()).head<2>();
-    Eigen::Vector2d x = to_red;
+    // Only the red pipe: the vehicle's heading, as the vehicle is lined up on
+    // the row by then; the line to the pipe can be far off the row's.
+    const double heading = yaw_of(T_odom_base.rotation());
+    Eigen::Vector2d x(std::cos(heading), std::sin(heading));
     if (row.size() > 1) {
         // +X across the line of the pipes, away from the vehicle.
         Eigen::Vector2d mean = Eigen::Vector2d::Zero();
@@ -242,35 +245,56 @@ Measurement measure_slalom(const std::vector<Hit>& hits,
     };
     double theta = heading;
     double a0 = 0.0;
-    double best = std::numeric_limits<double>::max();
-    for (int deg = -90; deg <= 90; ++deg) {
-        const double th = wrap(heading + deg * M_PI / 180.0);
-        double c = 0.0;
-        const double a = row_offset(th, &c);
-        c += 1e-3 * std::pow(deg * M_PI / 180.0, 2);
-        if (c < best) {
-            best = c;
-            theta = th;
-            a0 = a;
+    auto fit = [&] {
+        double best = std::numeric_limits<double>::max();
+        for (int deg = -90; deg <= 90; ++deg) {
+            const double th = wrap(heading + deg * M_PI / 180.0);
+            double c = 0.0;
+            const double a = row_offset(th, &c);
+            c += 1e-3 * std::pow(deg * M_PI / 180.0, 2);
+            if (c < best) {
+                best = c;
+                theta = th;
+                a0 = a;
+            }
         }
-    }
+    };
+    fit();
 
     // Does the slalom look like evenly spaced rows? Every pipe close to its
-    // row, at most one red pipe per row.
+    // row, at most one red pipe per row. One pipe may be off (a false
+    // detection) and is left out; two or more and it is not this slalom.
+    std::vector<Pipe> kept;
     double worst = 0.0;
-    std::map<std::int64_t, int> reds_in_row;
+    int off = 0;
     for (const Pipe& q : pipes) {
         const double a = along(q.p, theta) - a0;
-        const std::int64_t k = std::lround(a / D);
-        worst = std::max(worst, std::abs(a - k * D));
-        reds_in_row[k] += q.red;
+        const double r = std::abs(a - D * std::round(a / D));
+        if (r > s.slalom_max_row_error_m) {
+            ++off;
+            continue;
+        }
+        worst = std::max(worst, r);
+        kept.push_back(q);
     }
-    if (worst > s.slalom_max_row_error_m) {
-        return failed(
-            fmt::format("a pipe is {:.2f} m off its row (> {:.2f} m): "
-                        "not evenly spaced rows",
-                        worst, s.slalom_max_row_error_m),
-            n);
+    if (off > 1) {
+        return failed(fmt::format("{} pipes more than {:.2f} m off their rows: "
+                                  "not evenly spaced rows",
+                                  off, s.slalom_max_row_error_m),
+                      n);
+    }
+    if (off == 1) {
+        pipes = std::move(kept);
+        fit();
+    }
+    std::map<std::int64_t, int> reds_in_row;
+    for (const Pipe& q : pipes) {
+        reds_in_row[std::lround((along(q.p, theta) - a0) / D)] += q.red;
+    }
+    if (reds_in_row.empty() ||
+        std::none_of(pipes.begin(), pipes.end(),
+                     [](const Pipe& q) { return q.red; })) {
+        return failed(fmt::format("{} pipe hits, no red pipe on a row", n), n);
     }
     for (const auto& [k, reds] : reds_in_row) {
         if (reds > 1) {
@@ -334,6 +358,7 @@ Measurement measure_slalom(const std::vector<Hit>& hits,
             lateral = sum / count;
         }
         seen += count > 0;
+        m.row_seen.push_back(count > 0);
         const double a = a0 + row * D;
         const Eigen::Vector2d xy =
             a * Eigen::Vector2d(std::cos(theta), std::sin(theta)) +

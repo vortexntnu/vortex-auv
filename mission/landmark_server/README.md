@@ -173,7 +173,7 @@ from the red and white pipes:
 |---|---|
 | Origin | The red pipe |
 | +X | Through the row, away from the vehicle |
-| Direction | Across the line of the pipes. With only the red pipe seen: from the vehicle to it |
+| Direction | Across the line of the pipes. With only the red pipe seen: the vehicle's heading |
 | Rows | Each red pipe is one row. A white pipe belongs to the nearest red one |
 
 ### slalom
@@ -190,11 +190,12 @@ first row with a pipe in front of the vehicle. `<out_frame>` itself is row 0.
 | +X | The slalom's heading, away from the vehicle |
 | Rows not seen | Placed on, from the rows that were |
 | Range | `max_range_m` when the goal gives 0, as the slalom is longer than one object |
-| Fails | A pipe farther than `measure.slalom_max_row_error_m` from its row, or two red pipes in one row: the slalom is not evenly spaced rows. Fall back to `slalom_row` |
+| Fails | Two or more pipes farther than `measure.slalom_max_row_error_m` from their rows (one is left out as a false detection), or two red pipes in one row: the slalom is not evenly spaced rows. Fall back to `slalom_row` |
 
-Measured from in front of the slalom it gives every gap; measured again 1 m
-before a gap it gives that row with the heading from all the pipes it sees,
-not from where the vehicle stands.
+The first measurement numbers the rows. Measuring again (same `out_frame`)
+updates the rows it sees, each the stored row nearest to it within half a
+spacing, so `row1` stays the second row wherever it is measured from. Measure
+from in front of the slalom, then again 1 m before each gap.
 
 ### Example
 
@@ -225,7 +226,7 @@ ros2 param set /nautilus/landmark_server_node targets.standoff.x 1.5
 | Target | Parents | |
 |---|---|---|
 | `entry`, `exit` | `gate_middle`, a measured gate panel | 1.5 m before and after the gate, 0.8 m below the panels |
-| `gap_left_entry`, `gap_left_exit`, `gap_right_*` | `slalom_row/measured`, `.../next`, `slalom/measured/row0..2`, `slalom/refined` | 1 m before and after the middle of each gap |
+| `gap_left_entry`, `gap_left_exit`, `gap_right_*` | `slalom_row/measured`, `.../next`, `slalom/measured/row0..2` | 1 m before and after the middle of each gap |
 | `next` | `slalom_row/measured` | Where the next row should be |
 | `standoff` | board, table | 2 m in front, facing it |
 | `shoot` | each opening | The gripper (`grip_point`) 0.4 m in front, facing it |
