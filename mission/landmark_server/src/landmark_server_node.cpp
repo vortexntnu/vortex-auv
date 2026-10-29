@@ -5,10 +5,9 @@
 
 #include <algorithm>
 #include <array>
-#include <deque>
+#include <chrono>
 #include <map>
 #include <memory>
-#include <numeric>
 #include <set>
 #include <string>
 #include <utility>
@@ -20,7 +19,6 @@
 #include <rclcpp_components/register_node_macro.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
 #include <std_msgs/msg/empty.hpp>
-#include <std_msgs/msg/float64.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <vortex/utils/ros/landmark_names.hpp>
@@ -29,10 +27,10 @@
 #include <vortex_msgs/msg/landmark_track_array.hpp>
 #include <vortex_msgs/srv/set_premap.hpp>
 
-#include "landmark_server/association.hpp"
 #include "landmark_server/config.hpp"
 #include "landmark_server/detection_check.hpp"
-#include "landmark_server/graph.hpp"
+#include "landmark_server/geometry.hpp"
+#include "landmark_server/map.hpp"
 #include "landmark_server/premap.hpp"
 #include "landmark_server/targets.hpp"
 
@@ -40,31 +38,43 @@ namespace vortex::landmark_server {
 
 namespace {
 
-constexpr std::size_t kNisWindow = 50;
 constexpr double kMinRangeM = 0.05;
 constexpr double kFramePeriodS = 0.1;
+constexpr auto kMapPeriod = std::chrono::milliseconds(500);
+constexpr double kTfWaitS = 1.0;
+constexpr double kRetainedAfterS = 1.0;
+constexpr double kNoOrientationVariance = 1000.0;
 constexpr const char* kGuiPrefix = "__gui/";
 constexpr double kPriorWarnPeriodS = 10.0;
 constexpr int kPriorWarnMinCount = 20;
 
-gtsam::Pose3 to_pose3(const geometry_msgs::msg::Pose& p) {
-    return {gtsam::Rot3::Quaternion(p.orientation.w, p.orientation.x,
-                                    p.orientation.y, p.orientation.z),
-            gtsam::Point3(p.position.x, p.position.y, p.position.z)};
+Pose to_pose(const geometry_msgs::msg::Pose& p) {
+    Pose T = Pose::Identity();
+    T.linear() = Eigen::Quaterniond(p.orientation.w, p.orientation.x,
+                                    p.orientation.y, p.orientation.z)
+                     .normalized()
+                     .toRotationMatrix();
+    T.translation() = Eigen::Vector3d(p.position.x, p.position.y, p.position.z);
+    return T;
 }
 
-gtsam::Pose3 to_pose3(const geometry_msgs::msg::Transform& t) {
-    return {gtsam::Rot3::Quaternion(t.rotation.w, t.rotation.x, t.rotation.y,
-                                    t.rotation.z),
-            gtsam::Point3(t.translation.x, t.translation.y, t.translation.z)};
+Pose to_pose(const geometry_msgs::msg::Transform& t) {
+    Pose T = Pose::Identity();
+    T.linear() = Eigen::Quaterniond(t.rotation.w, t.rotation.x, t.rotation.y,
+                                    t.rotation.z)
+                     .normalized()
+                     .toRotationMatrix();
+    T.translation() =
+        Eigen::Vector3d(t.translation.x, t.translation.y, t.translation.z);
+    return T;
 }
 
-geometry_msgs::msg::Pose to_msg(const gtsam::Pose3& T) {
+geometry_msgs::msg::Pose to_msg(const Pose& T) {
     geometry_msgs::msg::Pose p;
-    p.position.x = T.x();
-    p.position.y = T.y();
-    p.position.z = T.z();
-    const gtsam::Quaternion q = T.rotation().toQuaternion();
+    p.position.x = T.translation().x();
+    p.position.y = T.translation().y();
+    p.position.z = T.translation().z();
+    const Eigen::Quaterniond q(T.rotation());
     p.orientation.w = q.w();
     p.orientation.x = q.x();
     p.orientation.y = q.y();
@@ -76,19 +86,21 @@ builtin_interfaces::msg::Time to_stamp(double t) {
     return rclcpp::Time(static_cast<int64_t>(t * 1e9));
 }
 
-/// ROS covariance order: x, y, z, then rotation.
-std::array<double, 36> to_ros_cov(const LandmarkState& l) {
-    const gtsam::Matrix3 R = l.pose.rotation().matrix();
-    gtsam::Matrix6 out = gtsam::Matrix6::Zero();
-    out.block<3, 3>(0, 0) = l.relative_cov;
-    out.block<3, 3>(3, 3) = R * l.cov.block<3, 3>(0, 0) * R.transpose();
+/// ROS covariance order: x, y, z, then rotation. Roll and pitch unknown.
+std::array<double, 36> to_ros_cov(const Landmark& l) {
     std::array<double, 36> a{};
-    for (int r = 0; r < 6; ++r) {
-        for (int c = 0; c < 6; ++c) {
-            a[r * 6 + c] = out(r, c);
+    for (int r = 0; r < 3; ++r) {
+        for (int c = 0; c < 3; ++c) {
+            a[r * 6 + c] = l.cov(r, c);
         }
     }
+    a[21] = a[28] = kNoOrientationVariance;
+    a[35] = l.yaw_known ? l.yaw_var : kNoOrientationVariance;
     return a;
+}
+
+Pose landmark_pose(const Landmark& l) {
+    return yaw_pose(l.yaw_known ? l.yaw : 0.0, l.position);
 }
 
 }  // namespace
@@ -101,7 +113,6 @@ class LandmarkServerNode : public rclcpp::Node {
               rclcpp::NodeOptions(options)
                   .automatically_declare_parameters_from_overrides(true)) {
         load_config();
-
         std::string prefix = get_parameter_or<std::string>("frame_prefix", "");
         if (!prefix.empty() && prefix.back() == '/') {
             prefix.pop_back();
@@ -151,8 +162,6 @@ class LandmarkServerNode : public rclcpp::Node {
                 create_publisher<visualization_msgs::msg::MarkerArray>(
                     "landmark_server/markers",
                     qos::reliable_transient_local_profile(1));
-            nis_pub_ = create_publisher<std_msgs::msg::Float64>(
-                "landmark_server/nis", qos::reliable_profile(10));
             raw_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(
                 "landmark_server/raw_detections", qos::reliable_profile(10));
         }
@@ -171,6 +180,8 @@ class LandmarkServerNode : public rclcpp::Node {
                 res->message = premap_to_yaml(premap_) + prior_radius_yaml();
             });
 
+        map_timer_ = create_wall_timer(kMapPeriod, [this] { update_map(); });
+
         spdlog::info(
             "landmark_server: {} classes, prior map {} ({} tasks), map frame "
             "'{}'",
@@ -186,32 +197,11 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void load_config() {
         Params& p = cfg_.params;
-        read("keyframe_dist_m", p.keyframe_dist_m);
-        read("keyframe_time_s", p.keyframe_time_s);
-        read("max_messages_per_keyframe", p.max_messages_per_keyframe);
         read("max_range_m", p.max_range_m);
-        read("odom.sigma_trans_per_m", p.odom_sigma_trans_per_m);
-        read("odom.sigma_yaw_per_m", p.odom_sigma_yaw_per_m);
-        read("odom.min_sigma_trans", p.odom_min_sigma_trans);
-        read("odom.min_sigma_yaw", p.odom_min_sigma_yaw);
-        read("odom.sigma_roll_pitch", p.odom_sigma_roll_pitch);
-        read("odom.sigma_z", p.odom_sigma_z);
-        read("odom.attitude_sigma", p.attitude_sigma);
-        read("odom.depth_sigma", p.depth_sigma);
-        read("detection.bearing_sigma", p.bearing_sigma);
-        read("detection.range_sigma_a", p.range_sigma_a);
-        read("detection.range_sigma_b", p.range_sigma_b);
-        read("detection.orientation_yaw_sigma", p.orientation_yaw_sigma);
-        read("detection.orientation_roll_pitch_sigma",
-             p.orientation_roll_pitch_sigma);
-        read("detection.dcs_phi", p.dcs_phi);
-        read("detection.max_merged_per_factor", p.max_merged_per_factor);
-        read("association.gate_prob", p.gate_prob);
-        read("association.ambiguity_d2", p.ambiguity_d2);
-        read("new_landmarks.candidate_radius_m", p.candidate_radius_m);
-        read("new_landmarks.confirm_hits", p.confirm_hits);
-        read("new_landmarks.confirm_window_s", p.confirm_window_s);
-        read("upkeep.merge_radius_m", p.merge_radius_m);
+        read("map.cluster_radius_m", p.cluster_radius_m);
+        read("map.confirm_hits", p.confirm_hits);
+        read("map.max_hits_per_class", p.max_hits_per_class);
+        read("map.max_hit_age_s", p.max_hit_age_s);
         read("gate.panel_classes", p.gate.panel_classes);
         read("gate.min_separation_m", p.gate.min_separation_m);
         read("gate.max_separation_m", p.gate.max_separation_m);
@@ -328,20 +318,20 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void on_set_premap(const vortex_msgs::srv::SetPremap::Request& req,
                        vortex_msgs::srv::SetPremap::Response& res) {
-        gtsam::Pose3 T_map_ref;
+        Pose T_map_ref = Pose::Identity();
         if (!is_map_reference(req.reference_frame)) {
             const std::string ref = req.reference_frame == "odom"
                                         ? odom_frame_
                                         : req.reference_frame;
             if (odom_ && ref == odom_frame_) {
-                T_map_ref = graph_.map_to_odom();
+                T_map_ref = T_map_odom_;
             } else {
                 try {
                     T_map_ref =
-                        to_pose3(tf_buffer_
-                                     ->lookupTransform(map_frame_, ref,
-                                                       tf2::TimePointZero)
-                                     .transform);
+                        to_pose(tf_buffer_
+                                    ->lookupTransform(map_frame_, ref,
+                                                      tf2::TimePointZero)
+                                    .transform);
                 } catch (const tf2::TransformException& e) {
                     res.success = false;
                     res.message = fmt::format("no TF {} -> {}: {}", ref,
@@ -381,7 +371,7 @@ class LandmarkServerNode : public rclcpp::Node {
                 }
                 continue;
             }
-            next.objects[label] = T_map_ref * to_pose3(o.pose);
+            next.objects[label] = T_map_ref * to_pose(o.pose);
             if (o.radius > 0.0) {
                 next.radius[label] = o.radius;
             }
@@ -415,35 +405,44 @@ class LandmarkServerNode : public rclcpp::Node {
             backup.empty() ? "" : " (old one: " + backup + ")");
         spdlog::info("landmark_server: {}", res.message);
         if (odom_) {
-            publish_map(odom_->t);
+            publish_map();
         }
     }
 
-    /// The map starts at the vehicle. Its X is the course heading if one is
-    /// set, otherwise the way the vehicle points now.
-    void reset(const gtsam::Pose3& T_odom_base, double t) {
+    /// The map frame starts at the vehicle, levelled. Its X is the course
+    /// heading if one is set, otherwise the way the vehicle points now. It
+    /// stays fixed until the next wipe.
+    void reset(const Pose& T_odom_base) {
+        const double vehicle_yaw = yaw_of(T_odom_base.rotation());
         const double start_yaw =
-            course_yaw_ ? T_odom_base.rotation().yaw() - *course_yaw_ : 0.0;
-        graph_.reset(cfg_.params, T_odom_base, t,
-                     std::atan2(std::sin(start_yaw), std::cos(start_yaw)));
-        candidates_.clear();
+            course_yaw_ ? wrap(vehicle_yaw - *course_yaw_) : 0.0;
+        const Eigen::Matrix3d R = T_odom_base.rotation();
+        // Keep the vehicle's roll and pitch in the start pose, as before.
+        const Eigen::Matrix3d level =
+            Eigen::AngleAxisd(-vehicle_yaw, Eigen::Vector3d::UnitZ()).matrix() *
+            R;
+        T_map_start_ = Pose::Identity();
+        T_map_start_.linear() =
+            Eigen::AngleAxisd(start_yaw, Eigen::Vector3d::UnitZ()).matrix() *
+            level;
+        T_map_start_.translation() =
+            Eigen::Vector3d(0.0, 0.0, T_odom_base.translation().z());
+        T_map_odom_ = T_map_start_ * T_odom_base.inverse();
+        map_.clear();
         pending_.clear();
-        nis_.clear();
-        next_id_ = 1;
-        prev_keyframe_t_ = t;
-        publish_map(t);
+        publish_map();
     }
 
     void on_wipe() {
         if (!odom_) {
             return;
         }
-        reset(odom_->T, odom_->t);
+        reset(odom_->T);
         if (course_yaw_) {
             spdlog::info(
                 "landmark_server: new map at the vehicle, which is turned "
                 "{:.0f} deg from the course heading (mission/wipe)",
-                graph_.keyframe_pose(0).rotation().yaw() * 180.0 / M_PI);
+                yaw_of(T_map_start_.rotation()) * 180.0 / M_PI);
         } else {
             spdlog::info(
                 "landmark_server: new map at the vehicle, facing the way it "
@@ -455,8 +454,8 @@ class LandmarkServerNode : public rclcpp::Node {
         if (!odom_) {
             return;
         }
-        course_yaw_ = odom_->T.rotation().yaw();
-        reset(odom_->T, odom_->t);
+        course_yaw_ = yaw_of(odom_->T.rotation());
+        reset(odom_->T);
         spdlog::info(
             "landmark_server: course heading set to where the vehicle points "
             "now, new map at the vehicle (mission/set_heading)");
@@ -464,23 +463,11 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void on_odom(const nav_msgs::msg::Odometry& msg) {
         const double t = rclcpp::Time(msg.header.stamp).seconds();
-        const gtsam::Pose3 T = to_pose3(msg.pose.pose);
         odom_frame_ = msg.header.frame_id;
         const bool first = !odom_;
-        odom_ = OdomSample{T, t};
+        odom_ = OdomSample{to_pose(msg.pose.pose), t};
         if (first) {
-            reset(T, t);
-        } else {
-            const int kf = graph_.last_keyframe();
-            const double dist =
-                (graph_.keyframe_odom(kf).translation() - T.translation())
-                    .norm();
-            // No keyframes while still and blind, the graph only grows.
-            if (dist >= cfg_.params.keyframe_dist_m ||
-                (!pending_.empty() &&
-                 t - graph_.keyframe_time(kf) >= cfg_.params.keyframe_time_s)) {
-                process_keyframe(T, t);
-            }
+            reset(odom_->T);
         }
         publish_tf(t);
     }
@@ -493,21 +480,7 @@ class LandmarkServerNode : public rclcpp::Node {
         if (debug_) {
             publish_raw_detections(*msg);
         }
-        // Messages are queued per source until the next keyframe.
-        std::string source = msg->header.frame_id;
-        std::set<std::uint16_t> types;
-        for (const auto& l : msg->landmarks) {
-            types.insert(l.type.value);
-        }
-        for (const auto type : types) {
-            source += "/" + std::to_string(type);
-        }
-        auto& q = pending_[source];
-        q.push_back(msg);
-        while (q.size() > static_cast<std::size_t>(
-                              cfg_.params.max_messages_per_keyframe)) {
-            q.pop_front();
-        }
+        pending_.push_back(msg);
     }
 
     /// Every detection as it came in, a small sphere that lives 0.3 s.
@@ -528,95 +501,29 @@ class LandmarkServerNode : public rclcpp::Node {
         raw_pub_->publish(out);
     }
 
-    void process_keyframe(const gtsam::Pose3& T_odom_base, double t) {
+    void update_map() {
+        if (!odom_) {
+            return;
+        }
+        // A message whose TF is not there yet is tried again for a while.
+        std::vector<vortex_msgs::msg::LandmarkArray::ConstSharedPtr> wait;
+        for (const auto& msg : pending_) {
+            if (!add_hits(*msg) &&
+                odom_->t - rclcpp::Time(msg->header.stamp).seconds() <
+                    kTfWaitS) {
+                wait.push_back(msg);
+            }
+        }
+        pending_ = std::move(wait);
         const Params& p = cfg_.params;
-        const int kf = graph_.add_keyframe(T_odom_base, t);
-        graph_.update();
-        const gtsam::Pose3 T_map_base = graph_.keyframe_pose(kf);
-        const auto priors = premap_.positions();
-
-        // Detections matched to one landmark become one averaged factor.
-        std::map<int, std::pair<Measurement, gtsam::Point3>> matched;
-        double t_obs = 0.0;
-        for (const auto& [source, msgs] : pending_) {
-            for (const auto& msg : msgs) {
-                const auto detections = to_detections(*msg, T_odom_base);
-                if (detections.empty()) {
-                    continue;
-                }
-                const double t_det = rclcpp::Time(msg->header.stamp).seconds();
-                const Association a = associate(graph_, kf, detections);
-                for (const Match& m : a.matches) {
-                    const Measurement& z = detections[m.detection].z;
-                    auto [it, first] = matched.try_emplace(
-                        m.landmark, z, gtsam::Point3::Zero());
-                    auto& [agg, sum] = it->second;
-                    if (first) {
-                        agg.merged = 0;
-                    }
-                    sum += z.position;
-                    agg.merged++;
-                    agg.position = sum / static_cast<double>(agg.merged);
-                    if (z.rotation) {
-                        agg.rotation = z.rotation;
-                    }
-                    graph_.vote(m.landmark, *detections[m.detection].cls);
-                    push_nis(m.nis);
-                    t_obs = std::max(t_obs, t_det);
-                }
-                candidates_.add(detections, a.unmatched, kf, T_map_base, t_det,
-                                p, priors, premap_.radius);
-            }
-        }
-        pending_.clear();
-        for (const auto& [id, agg] : matched) {
-            graph_.add_observation(kf, id, agg.first, t_obs);
-        }
-        if (!matched.empty()) {
-            graph_.update();
-        }
-
-        for (const Candidate& c : candidates_.take_confirmed(graph_, t)) {
-            const int id = next_id_++;
-            std::optional<double> yaw;
-            for (const Hit& h : c.hits) {
-                yaw = h.yaw ? h.yaw : yaw;
-            }
-            graph_.add_landmark(
-                id, *c.cls,
-                gtsam::Pose3(gtsam::Rot3::Yaw(yaw.value_or(0.0)), c.position),
-                c.hits.front().t);
-            for (const Hit& h : c.hits) {
-                graph_.add_observation(h.kf, id, h.z, h.t);
-                graph_.vote(id, *h.cls);
-            }
-            graph_.update();
-            spdlog::info(
-                "landmark_server: new landmark {} ({}) at [{:.2f}, {:.2f}, "
-                "{:.2f}] from {} detections",
-                id, c.cls->name, c.position.x(), c.position.y(), c.position.z(),
-                c.hits.size());
-        }
-
-        warn_prior_rejects(t);
-        // Duplicates, e.g. a copy made while the odometry had drifted.
-        for (const auto& [keep, drop] : graph_.retire_duplicates(
-                 p.merge_radius_m, chi2_threshold(p.gate_prob, 3))) {
-            spdlog::info("landmark_server: landmark {} is a duplicate of {}",
-                         drop, keep);
-        }
-        publish_map(t);
-        prev_keyframe_t_ = t;
+        map_.update(p.cluster_radius_m, p.confirm_hits, p.max_hit_age_s,
+                    odom_->t);
+        warn_prior_rejects(odom_->t);
+        publish_map();
     }
 
     /// Warns when the prior map rejects many detections of a class.
     void warn_prior_rejects(double t) {
-        for (const auto& [cls, n] : candidates_.take_prior_rejects()) {
-            auto& [count, nearest] =
-                prior_rejects_.try_emplace(cls, 0, n.second).first->second;
-            count += n.first;
-            nearest = std::min(nearest, n.second);
-        }
         if (t - last_prior_warn_ < kPriorWarnPeriodS) {
             return;
         }
@@ -634,34 +541,44 @@ class LandmarkServerNode : public rclcpp::Node {
         last_prior_warn_ = t;
     }
 
-    std::vector<Detection> to_detections(
-        const vortex_msgs::msg::LandmarkArray& msg,
-        const gtsam::Pose3& T_odom_base) {
-        if ((msg.header.frame_id == odom_frame_ ||
-             msg.header.frame_id == map_frame_) &&
-            world_frame_sources_.insert(msg.header.frame_id).second) {
+    /// Prior radius of a task: the GUI's, else the largest of its classes.
+    double prior_radius(const ClassConfig& cls) const {
+        const auto r = premap_.radius.find(cls.prior);
+        return r != premap_.radius.end() ? r->second : cls.prior_radius_m;
+    }
+
+    /// Stores the detections of a message as hits in odom. False if its TF
+    /// is missing.
+    bool add_hits(const vortex_msgs::msg::LandmarkArray& msg) {
+        const std::string& frame_id = msg.header.frame_id;
+        if ((frame_id == odom_frame_ || frame_id == map_frame_) &&
+            world_frame_sources_.insert(frame_id).second) {
             spdlog::warn(
                 "landmark_server: detections in '{}' are used, but detectors "
                 "should publish in the camera frame with the image stamp",
-                msg.header.frame_id);
+                frame_id);
         }
-        gtsam::Pose3 T_odom_frame;
-        if (msg.header.frame_id != odom_frame_) {
+        Pose T_odom_frame = Pose::Identity();
+        if (frame_id == map_frame_) {
+            T_odom_frame = T_map_odom_.inverse();
+        } else if (frame_id != odom_frame_) {
             try {
-                T_odom_frame = to_pose3(
-                    tf_buffer_
-                        ->lookupTransform(odom_frame_, msg.header.frame_id,
-                                          msg.header.stamp)
-                        .transform);
+                T_odom_frame =
+                    to_pose(tf_buffer_
+                                ->lookupTransform(odom_frame_, frame_id,
+                                                  msg.header.stamp)
+                                .transform);
             } catch (const tf2::TransformException& e) {
-                spdlog::warn("landmark_server: no TF {} -> {}: {}",
-                             msg.header.frame_id, odom_frame_, e.what());
-                return {};
+                spdlog::debug("landmark_server: no TF {} -> {} yet: {}",
+                              frame_id, odom_frame_, e.what());
+                return false;
             }
         }
-        const gtsam::Pose3 T_base_frame = T_odom_base.inverse() * T_odom_frame;
+        const double t = rclcpp::Time(msg.header.stamp).seconds();
+        const Eigen::Vector3d vehicle = odom_->T.translation();
+        const Pose T_odom_map = T_map_odom_.inverse();
+        const auto priors = premap_.positions();
 
-        std::vector<Detection> out;
         for (const auto& l : msg.landmarks) {
             const ClassConfig* cls =
                 cfg_.find_class(l.type.value, l.subtype.value);
@@ -684,38 +601,40 @@ class LandmarkServerNode : public rclcpp::Node {
                 }
                 continue;
             }
-            const auto& q =
-                checked->rotation.value_or(Eigen::Quaterniond::Identity());
-            const gtsam::Pose3 T_base_obj =
-                T_base_frame * gtsam::Pose3(gtsam::Rot3::Quaternion(
-                                                q.w(), q.x(), q.y(), q.z()),
-                                            checked->position);
-            const double range = T_base_obj.translation().norm();
+            Hit h;
+            h.cls = cls;
+            h.t = t;
+            h.position = T_odom_frame * checked->position;
+            const double range = (h.position - vehicle).norm();
             if (range < kMinRangeM || range > cfg_.params.max_range_m) {
                 continue;
             }
-            Detection d;
-            d.cls = cls;
-            d.z.position = T_base_obj.translation();
-            if (checked->rotation) {
-                d.z.rotation = T_base_obj.rotation();
+            if (const auto prior = priors.find(cls->prior);
+                prior != priors.end()) {
+                const double d =
+                    (h.position - T_odom_map * prior->second).head<2>().norm();
+                if (d > prior_radius(*cls)) {
+                    auto& [count, nearest] =
+                        prior_rejects_.try_emplace(cls->name, 0, d)
+                            .first->second;
+                    count++;
+                    nearest = std::min(nearest, d);
+                    continue;
+                }
             }
-            out.push_back(d);
+            if (checked->rotation) {
+                h.yaw = yaw_of(T_odom_frame.rotation() *
+                               checked->rotation->toRotationMatrix());
+            }
+            map_.add(h,
+                     static_cast<std::size_t>(cfg_.params.max_hits_per_class));
         }
-        return out;
-    }
-
-    void push_nis(double nis) {
-        nis_.push_back(nis);
-        if (nis_.size() > kNisWindow) {
-            nis_.pop_front();
-        }
+        return true;
     }
 
     void publish_tf(double t) {
         geometry_msgs::msg::TransformStamped tf =
-            frame(odom_frame_, graph_.map_to_odom());
-        tf.child_frame_id = odom_frame_;
+            frame(map_frame_, odom_frame_, T_map_odom_);
         tf.header.stamp = to_stamp(t);
         tf_broadcaster_->sendTransform(tf);
 
@@ -729,11 +648,12 @@ class LandmarkServerNode : public rclcpp::Node {
         }
     }
 
-    geometry_msgs::msg::TransformStamped frame(const std::string& name,
-                                               const gtsam::Pose3& pose) const {
+    geometry_msgs::msg::TransformStamped frame(const std::string& parent,
+                                               const std::string& child,
+                                               const Pose& pose) const {
         geometry_msgs::msg::TransformStamped f;
-        f.header.frame_id = map_frame_;
-        f.child_frame_id = frame_prefix_ + name;
+        f.header.frame_id = parent;
+        f.child_frame_id = child;
         const auto p = to_msg(pose);
         f.transform.translation.x = p.position.x;
         f.transform.translation.y = p.position.y;
@@ -743,15 +663,15 @@ class LandmarkServerNode : public rclcpp::Node {
     }
 
     /// At most max_instances per class, the most observed first.
-    std::vector<LandmarkState> shown_landmarks() const {
-        std::vector<LandmarkState> all = graph_.landmarks();
+    std::vector<Landmark> shown_landmarks() const {
+        std::vector<Landmark> all = map_.landmarks();
         std::stable_sort(all.begin(), all.end(),
-                         [](const LandmarkState& a, const LandmarkState& b) {
+                         [](const Landmark& a, const Landmark& b) {
                              return a.n_obs > b.n_obs;
                          });
         std::map<std::string, int> count;
-        std::vector<LandmarkState> out;
-        for (const LandmarkState& l : all) {
+        std::vector<Landmark> out;
+        for (const Landmark& l : all) {
             const int n = ++count[l.cls.name];
             if (l.cls.max_instances == 0 || n <= l.cls.max_instances) {
                 out.push_back(l);
@@ -760,47 +680,54 @@ class LandmarkServerNode : public rclcpp::Node {
         return out;
     }
 
-    void publish_map(double t) {
-        graph_.update_covariances();
-        const std::vector<LandmarkState> shown = shown_landmarks();
+    void publish_map() {
+        if (odom_frame_.empty()) {
+            return;
+        }
+        const double t = odom_ ? odom_->t : 0.0;
+        const std::vector<Landmark> shown = shown_landmarks();
+        const std::string odom = odom_frame_;
 
         frames_.clear();
-        frames_.push_back(frame("start", graph_.keyframe_pose(0)));
+        frames_.push_back(
+            frame(map_frame_, frame_prefix_ + "start", T_map_start_));
         for (const auto& [label, pose] : premap_.objects) {
-            frames_.push_back(frame("prior_" + label, pose));
+            frames_.push_back(
+                frame(map_frame_, frame_prefix_ + "prior_" + label, pose));
         }
         // The most observed landmark of each class gets the class frame.
         std::set<std::string> classes;
-        for (const LandmarkState& l : shown) {
+        for (const Landmark& l : shown) {
             classes.insert(l.cls.name);
         }
         for (const auto& cls : classes) {
-            frames_.push_back(frame(cls, best_of(shown, cls)->pose));
+            frames_.push_back(frame(odom, frame_prefix_ + cls,
+                                    landmark_pose(*best_of(shown, cls))));
         }
-        for (const NamedPose& g :
-             gate_frames(shown, cfg_.params.gate,
-                         graph_.keyframe_pose(0).translation())) {
-            frames_.push_back(frame(g.name, g.pose));
+        const Eigen::Vector3d start =
+            (T_map_odom_.inverse() * T_map_start_).translation();
+        for (const NamedPose& g : gate_frames(shown, cfg_.params.gate, start)) {
+            frames_.push_back(frame(odom, frame_prefix_ + g.name, g.pose));
         }
 
         vortex_msgs::msg::LandmarkTrackArray array;
         array.header.stamp = to_stamp(t);
-        array.header.frame_id = map_frame_;
+        array.header.frame_id = odom;
         visualization_msgs::msg::MarkerArray markers;
         visualization_msgs::msg::Marker clear;
         clear.action = visualization_msgs::msg::Marker::DELETEALL;
         markers.markers.push_back(clear);
-        for (const LandmarkState& l : shown) {
+        for (const Landmark& l : shown) {
             vortex_msgs::msg::LandmarkTrack track;
             track.header = array.header;
             track.landmark.header = array.header;
             track.landmark.id = l.id;
             track.landmark.type.value = l.cls.type;
             track.landmark.subtype.value = l.cls.subtype;
-            track.landmark.pose.pose = to_msg(l.pose);
+            track.landmark.pose.pose = to_msg(landmark_pose(l));
             track.landmark.pose.covariance = to_ros_cov(l);
             track.confirmed = true;
-            track.retained = l.last_seen < prev_keyframe_t_;
+            track.retained = t - l.last_seen > kRetainedAfterS;
             track.has_orientation = l.yaw_known;
             track.observations = l.n_obs;
             track.first_seen = to_stamp(l.first_seen);
@@ -811,16 +738,8 @@ class LandmarkServerNode : public rclcpp::Node {
             }
         }
         landmarks_pub_->publish(array);
-        if (!debug_) {
-            return;
-        }
-        markers_pub_->publish(markers);
-
-        if (!nis_.empty()) {
-            std_msgs::msg::Float64 nis;
-            nis.data = std::accumulate(nis_.begin(), nis_.end(), 0.0) /
-                       static_cast<double>(nis_.size());
-            nis_pub_->publish(nis);
+        if (debug_) {
+            markers_pub_->publish(markers);
         }
     }
 
@@ -862,15 +781,14 @@ class LandmarkServerNode : public rclcpp::Node {
 
     /// Per landmark: a cube or its real-size box, a label, and an arrow
     /// along +X when the yaw is known. Grey when not seen lately.
-    void add_markers(const LandmarkState& l,
+    void add_markers(const Landmark& l,
                      const vortex_msgs::msg::LandmarkTrack& track,
                      visualization_msgs::msg::MarkerArray& out) const {
         using visualization_msgs::msg::Marker;
         const float alpha = 0.9F;
-        const gtsam::Rot3 R = l.yaw_known
-                                  ? gtsam::Rot3::Yaw(l.pose.rotation().yaw())
-                                  : gtsam::Rot3();
-        const gtsam::Quaternion q = R.toQuaternion();
+        const Eigen::Matrix3d R =
+            yaw_pose(l.yaw_known ? l.yaw : 0.0, l.position).rotation();
+        const Eigen::Quaterniond q(R);
 
         Marker m;
         m.header = track.header;
@@ -893,9 +811,9 @@ class LandmarkServerNode : public rclcpp::Node {
 
         if (l.cls.box) {
             const MarkerBox& box = *l.cls.box;
-            const gtsam::Point3 centre =
-                l.pose.translation() +
-                R * gtsam::Point3(box.offset[0], box.offset[1], box.offset[2]);
+            const Eigen::Vector3d centre =
+                l.position + R * Eigen::Vector3d(box.offset[0], box.offset[1],
+                                                 box.offset[2]);
             Marker b = m;
             b.ns = "structure";
             b.type = Marker::CUBE;
@@ -924,10 +842,8 @@ class LandmarkServerNode : public rclcpp::Node {
         label.pose.position.z -= 0.35;
         label.scale.z = 0.18;
         label.color.r = label.color.g = label.color.b = label.color.a = 1.0F;
-        const auto& c = track.landmark.pose.covariance;
-        label.text =
-            fmt::format("{} #{} (n {}, sigma {:.2f} m)", l.cls.name, l.id,
-                        l.n_obs, std::sqrt(std::max(c[0], c[7])));
+        label.text = fmt::format("{} #{} (n {}, spread {:.2f} m)", l.cls.name,
+                                 l.id, l.n_obs, l.spread_m);
         out.markers.push_back(label);
 
         if (l.yaw_known) {
@@ -946,31 +862,27 @@ class LandmarkServerNode : public rclcpp::Node {
     }
 
     struct OdomSample {
-        gtsam::Pose3 T;
+        Pose T{Pose::Identity()};
         double t{0.0};
     };
 
     Config cfg_;
     Premap premap_;
     std::string premap_file_;
-    LandmarkGraph graph_;
-    Candidates candidates_;
-    std::map<std::string,
-             std::deque<vortex_msgs::msg::LandmarkArray::ConstSharedPtr>>
-        pending_;
+    DetectionMap map_;
+    std::vector<vortex_msgs::msg::LandmarkArray::ConstSharedPtr> pending_;
     std::optional<OdomSample> odom_;
     // Odometry yaw that points at the course, kept between wipes.
     std::optional<double> course_yaw_;
+    Pose T_map_odom_{Pose::Identity()};
+    Pose T_map_start_{Pose::Identity()};
     std::string odom_frame_;
     std::string map_frame_;
     std::string frame_prefix_;
     std::vector<geometry_msgs::msg::TransformStamped> frames_;
     double last_frames_t_{0.0};
-    double prev_keyframe_t_{0.0};
     std::map<std::string, std::pair<int, double>> prior_rejects_;
     double last_prior_warn_{0.0};
-    int next_id_{1};
-    std::deque<double> nis_;
     std::set<std::pair<std::uint16_t, std::uint16_t>> unknown_;
     std::set<std::pair<std::uint16_t, std::uint16_t>> bad_;
     std::set<std::string> world_frame_sources_;
@@ -987,8 +899,8 @@ class LandmarkServerNode : public rclcpp::Node {
         landmarks_pub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
         markers_pub_;
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr raw_pub_;
+    rclcpp::TimerBase::SharedPtr map_timer_;
     bool debug_{false};
     rclcpp::Service<vortex_msgs::srv::SetPremap>::SharedPtr set_premap_srv_;
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr get_premap_srv_;

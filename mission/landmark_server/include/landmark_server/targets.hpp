@@ -5,26 +5,27 @@
 #include <vector>
 
 #include "landmark_server/config.hpp"
-#include "landmark_server/graph.hpp"
+#include "landmark_server/geometry.hpp"
+#include "landmark_server/map.hpp"
 
 namespace vortex::landmark_server {
 
-/// A TF frame in the map frame.
+/// A TF frame in odom.
 struct NamedPose {
     std::string name;
-    gtsam::Pose3 pose;
+    Pose pose;
 };
 
 /// The most observed landmark of the class, or nullptr.
-const LandmarkState* best_of(const std::vector<LandmarkState>& landmarks,
-                             const std::string& cls);
+const Landmark* best_of(const std::vector<Landmark>& landmarks,
+                        const std::string& cls);
 
 /// gate_middle and <panel>_entrance / <panel>_exit, +X through the gate away
 /// from the start. With one panel mapped: only that panel's two frames, +X
 /// along the line from the start to the panel.
-std::vector<NamedPose> gate_frames(const std::vector<LandmarkState>& landmarks,
+std::vector<NamedPose> gate_frames(const std::vector<Landmark>& landmarks,
                                    const GateParams& gate,
-                                   const gtsam::Point3& start);
+                                   const Eigen::Vector3d& start);
 
 }  // namespace vortex::landmark_server
 

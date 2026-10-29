@@ -3,7 +3,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include <gtsam/geometry/Pose3.h>
+#include "landmark_server/geometry.hpp"
 
 #include <map>
 #include <string>
@@ -12,15 +12,15 @@
 namespace vortex::landmark_server {
 
 /// Where each task should be relative to the start, drawn in
-/// competition_map_gui.py. Not part of the graph. File format in the README.
+/// competition_map_gui.py. File format in the README.
 struct Premap {
     std::string created_at;
-    std::map<std::string, gtsam::Pose3> objects;
+    std::map<std::string, Pose> objects;
     /// Per task, overrides the classes' prior_radius_m.
     std::map<std::string, double> radius;
     YAML::Node gui_state;
 
-    std::map<std::string, gtsam::Point3> positions() const;
+    std::map<std::string, Eigen::Vector3d> positions() const;
 };
 
 bool is_map_reference(const std::string& frame);

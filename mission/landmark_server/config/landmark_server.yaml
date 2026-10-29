@@ -1,51 +1,18 @@
 # Topics come from auv_setup's robot file, premap_file from the launch file.
-# env:=sim loads sim.yaml on top. Write floats with a decimal point.
+# Write floats with a decimal point.
 /**:
   ros__parameters:
-    # A new keyframe is made after this distance, or after this time when
-    # there are detections.
-    keyframe_dist_m: 0.5
-    keyframe_time_s: 1.0
-    max_messages_per_keyframe: 5   # per source, newest first
-    max_range_m: 10.0              # detections beyond this are dropped
+    max_range_m: 10.0   # detections farther from the vehicle are dropped
 
-    # Odometry noise per keyframe step. Too small and loop closures get
-    # rejected, too large and the map ignores the odometry.
-    odom:
-      sigma_trans_per_m: 0.03   # [m per m]
-      # 0.01 broke the map at 0.5 deg/m of yaw drift, 0.03 held to 1 deg/m.
-      sigma_yaw_per_m: 0.03     # [rad per m]
-      min_sigma_trans: 0.01     # [m]
-      min_sigma_yaw: 0.002      # [rad]
-      sigma_roll_pitch: 0.01    # [rad]
-      sigma_z: 0.02             # [m]
-      attitude_sigma: 0.02      # IMU roll/pitch [rad]
-      depth_sigma: 0.05         # pressure sensor [m]
-
-    # sigma_range = a + b * range. Check with the landmark_server/nis topic:
-    # it should stay near 1. Much higher means these are too small.
-    detection:
-      bearing_sigma: 0.03                  # [rad]
-      range_sigma_a: 0.1                   # [m]
-      range_sigma_b: 0.05
-      orientation_yaw_sigma: 0.1           # [rad]
-      orientation_roll_pitch_sigma: 0.5    # [rad]
-      dcs_phi: 1.0                         # robust kernel, smaller = stricter
-      max_merged_per_factor: 4
-
-    association:
-      gate_prob: 0.999     # chi^2 gate, 3 dof
-      ambiguity_d2: 4.6    # drop a match if a second landmark is this close
-
-    # confirm_hits detections within candidate_radius_m and confirm_window_s
-    # make a new landmark.
-    new_landmarks:
-      candidate_radius_m: 0.5   # under half the spacing of same-class objects
+    # Every detection is stored in odom, the newest max_hits_per_class per
+    # class. Twice a second each group is clustered: the densest hit and
+    # those within cluster_radius_m are one landmark if there are at least
+    # confirm_hits, then the next.
+    map:
+      cluster_radius_m: 0.5      # under half the spacing of same-group objects
       confirm_hits: 5
-      confirm_window_s: 3.0
-
-    upkeep:
-      merge_radius_m: 0.5   # same-class landmarks this close are merged
+      max_hits_per_class: 500
+      max_hit_age_s: 0.0         # forget older hits, 0 keeps them all
 
     # Gate target frames. Empty panel_classes turns them off.
     gate:

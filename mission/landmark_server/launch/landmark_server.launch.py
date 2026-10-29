@@ -36,7 +36,6 @@ def launch_setup(context, *args, **kwargs):
             namespace=namespace,
             parameters=[
                 LaunchConfiguration("config_file").perform(context),
-                *([os.path.join(CONFIG_DIR, "sim.yaml")] if env == "sim" else []),
                 drone_params,
                 {
                     "premap_file": premap_file,
@@ -62,7 +61,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "env",
                 default_value="pool",
-                description="pool, or sim (sim.yaml on top, premap_sim.yaml)",
+                description="pool, or sim (premap_sim.yaml)",
             ),
             DeclareLaunchArgument(
                 "premap_file",

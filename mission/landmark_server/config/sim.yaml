@@ -1,7 +1,0 @@
-# Detection noise of robosub_dummy_publisher's realistic profile.
-/**:
-  ros__parameters:
-    detection:
-      bearing_sigma: 0.02
-      range_sigma_a: 0.04
-      range_sigma_b: 0.04

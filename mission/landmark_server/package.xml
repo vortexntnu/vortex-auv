@@ -3,7 +3,7 @@
 <package format="3">
   <name>landmark_server</name>
   <version>0.0.0</version>
-  <description>The landmark map: iSAM2 landmark SLAM with a retained map, a prior map outside the graph and TF frames to navigate by</description>
+  <description>The landmark map: stored detections clustered into landmarks in odom, a prior map and TF frames to navigate by</description>
   <maintainer email="Hinthu5@hotmail.no">hinthujan</maintainer>
   <license>MIT</license>
 
@@ -20,7 +20,6 @@
   <depend>vortex_utils_ros</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
-  <depend>gtsam</depend>
   <depend>yaml-cpp</depend>
   <depend>eigen</depend>
   <depend>spdlog</depend>

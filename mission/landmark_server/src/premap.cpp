@@ -40,8 +40,8 @@ std::string backup_stamp(const std::string& created_at,
 
 }  // namespace
 
-std::map<std::string, gtsam::Point3> Premap::positions() const {
-    std::map<std::string, gtsam::Point3> out;
+std::map<std::string, Eigen::Vector3d> Premap::positions() const {
+    std::map<std::string, Eigen::Vector3d> out;
     for (const auto& [label, pose] : objects) {
         out[label] = pose.translation();
     }
@@ -97,10 +97,12 @@ Premap load_premap(const std::string& path, std::vector<std::string>& skipped) {
                 skipped.push_back(label);
                 continue;
             }
-            premap.objects[label] =
-                gtsam::Pose3(gtsam::Rot3::Quaternion(q[3] / norm, q[0] / norm,
-                                                     q[1] / norm, q[2] / norm),
-                             gtsam::Point3(p[0], p[1], p[2]));
+            Pose pose = Pose::Identity();
+            pose.linear() = Eigen::Quaterniond(q[3] / norm, q[0] / norm,
+                                               q[1] / norm, q[2] / norm)
+                                .toRotationMatrix();
+            pose.translation() = Eigen::Vector3d(p[0], p[1], p[2]);
+            premap.objects[label] = pose;
             if (n["radius"] && n["radius"].as<double>() > 0.0) {
                 premap.radius[label] = n["radius"].as<double>();
             }
@@ -127,10 +129,11 @@ std::string premap_to_yaml(const Premap& premap) {
         << premap.created_at;
     out << YAML::Key << "objects" << YAML::Value << YAML::BeginMap;
     for (const auto& [label, pose] : premap.objects) {
-        const gtsam::Quaternion q = pose.rotation().toQuaternion();
+        const Eigen::Quaterniond q(pose.rotation());
         out << YAML::Key << label << YAML::Value << YAML::BeginMap;
         out << YAML::Key << "position" << YAML::Value << YAML::Flow
-            << clean({pose.x(), pose.y(), pose.z()});
+            << clean({pose.translation().x(), pose.translation().y(),
+                      pose.translation().z()});
         out << YAML::Key << "orientation" << YAML::Value << YAML::Flow
             << clean({q.x(), q.y(), q.z(), q.w()});
         if (const auto r = premap.radius.find(label);

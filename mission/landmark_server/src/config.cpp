@@ -52,15 +52,14 @@ void Config::validate() const {
         }
     }
     const Params& p = params;
-    if (p.gate_prob <= 0.0 || p.gate_prob >= 1.0) {
-        fail("gate_prob must be in (0, 1)");
+    if (p.max_range_m <= 0.0 || p.cluster_radius_m <= 0.0) {
+        fail("max_range_m and cluster_radius_m must be positive");
     }
-    if (p.confirm_hits < 1 || p.confirm_window_s <= 0.0) {
-        fail("confirm_hits >= 1 and confirm_window_s > 0");
+    if (p.confirm_hits < 1 || p.max_hits_per_class < p.confirm_hits) {
+        fail("confirm_hits >= 1 and max_hits_per_class >= confirm_hits");
     }
-    if (p.keyframe_dist_m <= 0.0 || p.keyframe_time_s <= 0.0 ||
-        p.max_messages_per_keyframe < 1 || p.max_merged_per_factor < 1) {
-        fail("keyframe values and message limits must be positive");
+    if (p.max_hit_age_s < 0.0) {
+        fail("max_hit_age_s must be >= 0 (0 keeps every hit)");
     }
     if (!p.gate.panel_classes.empty()) {
         if (p.gate.panel_classes.size() != 2) {

@@ -41,42 +41,13 @@ struct GateParams {
 
 /// Every value is explained in config/landmark_server.yaml.
 struct Params {
-    double keyframe_dist_m{0.5};
-    double keyframe_time_s{1.0};
-    int max_messages_per_keyframe{5};
     double max_range_m{10.0};
-
-    double odom_sigma_trans_per_m{0.03};
-    double odom_sigma_yaw_per_m{0.03};
-    double odom_min_sigma_trans{0.01};
-    double odom_min_sigma_yaw{0.002};
-    double odom_sigma_roll_pitch{0.01};
-    double odom_sigma_z{0.02};
-    double attitude_sigma{0.02};
-    double depth_sigma{0.05};
-
-    double bearing_sigma{0.03};
-    double range_sigma_a{0.1};
-    double range_sigma_b{0.05};
-    double orientation_yaw_sigma{0.1};
-    double orientation_roll_pitch_sigma{0.5};
-    double dcs_phi{1.0};
-    int max_merged_per_factor{4};
-
-    double gate_prob{0.999};
-    double ambiguity_d2{4.6};
-
-    double candidate_radius_m{0.5};
+    double cluster_radius_m{0.5};
     int confirm_hits{5};
-    double confirm_window_s{3.0};
-
-    double merge_radius_m{0.5};
+    int max_hits_per_class{500};
+    double max_hit_age_s{0.0};
 
     GateParams gate;
-
-    double range_sigma(double range) const {
-        return range_sigma_a + range_sigma_b * range;
-    }
 };
 
 struct Config {
