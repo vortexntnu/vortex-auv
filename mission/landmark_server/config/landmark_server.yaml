@@ -14,6 +14,34 @@
       max_hits_per_class: 500
       max_hit_age_s: 0.0         # forget older hits, 0 keeps them all
 
+    # Defaults for the measure action, when the goal gives 0. Only hits that
+    # arrive during the action and within max_range_m of the vehicle count.
+    measure:
+      duration_s: 3.0
+      max_range_m: 4.0
+      min_hits: 5
+      max_spread_m: 0.3
+
+    # <parent>/<name> for every parent that exists in TF, offset in the
+    # parent's axes: x, y, z [m], roll, pitch, yaw [deg]. ros2 param set
+    # works while running. Objects with a front (board, bins, table) have
+    # +X out of the front, so in front of them is +x, facing them yaw 180.
+    # slalom_row/measured has +X through the row, +Y right, from its red
+    # pipe. Numbers are placeholders from the simulator course.
+    targets:
+      entry: {parents: ["gate_middle"], x: -1.5}
+      exit: {parents: ["gate_middle"], x: 1.5}
+      gap_left_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next"], x: -1.0, y: -0.75}
+      gap_left_exit: {parents: ["slalom_row/measured", "slalom_row/measured/next"], x: 1.0, y: -0.75}
+      gap_right_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next"], x: -1.0, y: 0.75}
+      gap_right_exit: {parents: ["slalom_row/measured", "slalom_row/measured/next"], x: 1.0, y: 0.75}
+      next: {parents: ["slalom_row/measured"], x: 2.0}   # rows are 2 m apart
+      standoff: {parents: ["torpedo_board", "torpedo_board/measured", "table", "table/measured"], x: 2.0, yaw: 180.0}
+      shoot: {parents: ["torpedo_opening_large_left", "torpedo_opening_large_right", "torpedo_opening_small_top", "torpedo_opening_small_bottom", "torpedo_opening_large_left/measured", "torpedo_opening_large_right/measured", "torpedo_opening_small_top/measured", "torpedo_opening_small_bottom/measured"], x: 0.6, yaw: 180.0}
+      above: {parents: ["bin_structure", "bin_structure/measured", "bin_search_rescue", "bin_survey_repair", "table", "table/measured"], z: -1.0}
+      centre: {parents: ["octagon", "octagon/measured"], z: 0.5}
+      home: {parents: ["start"]}
+
     # Gate target frames. Empty panel_classes turns them off.
     gate:
       panel_classes: ["gate_search_rescue", "gate_survey_repair"]

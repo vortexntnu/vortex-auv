@@ -16,6 +16,7 @@
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
 #include <std_msgs/msg/empty.hpp>
@@ -23,14 +24,17 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <vortex/utils/ros/landmark_names.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
+#include <vortex_msgs/action/measure_landmark.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include <vortex_msgs/msg/landmark_track_array.hpp>
+#include <vortex_msgs/srv/reset_landmarks.hpp>
 #include <vortex_msgs/srv/set_premap.hpp>
 
 #include "landmark_server/config.hpp"
 #include "landmark_server/detection_check.hpp"
 #include "landmark_server/geometry.hpp"
 #include "landmark_server/map.hpp"
+#include "landmark_server/measure.hpp"
 #include "landmark_server/premap.hpp"
 #include "landmark_server/targets.hpp"
 
@@ -98,6 +102,11 @@ std::array<double, 36> to_ros_cov(const Landmark& l) {
     a[35] = l.yaw_known ? l.yaw_var : kNoOrientationVariance;
     return a;
 }
+
+constexpr const char* kSlalomRow = "slalom_row";
+
+using MeasureLandmark = vortex_msgs::action::MeasureLandmark;
+using MeasureHandle = rclcpp_action::ServerGoalHandle<MeasureLandmark>;
 
 Pose landmark_pose(const Landmark& l) {
     return yaw_pose(l.yaw_known ? l.yaw : 0.0, l.position);
@@ -182,6 +191,26 @@ class LandmarkServerNode : public rclcpp::Node {
 
         map_timer_ = create_wall_timer(kMapPeriod, [this] { update_map(); });
 
+        measure_server_ = rclcpp_action::create_server<MeasureLandmark>(
+            this, "landmark_server/measure",
+            [this](const rclcpp_action::GoalUUID&,
+                   std::shared_ptr<const MeasureLandmark::Goal> goal) {
+                return accept_measure(*goal);
+            },
+            [](const std::shared_ptr<MeasureHandle>&) {
+                return rclcpp_action::CancelResponse::ACCEPT;
+            },
+            [this](const std::shared_ptr<MeasureHandle>& handle) {
+                start_measure(handle);
+            });
+        reset_srv_ = create_service<vortex_msgs::srv::ResetLandmarks>(
+            "landmark_server/reset",
+            [this](
+                const vortex_msgs::srv::ResetLandmarks::Request::SharedPtr req,
+                vortex_msgs::srv::ResetLandmarks::Response::SharedPtr res) {
+                on_reset(*req, *res);
+            });
+
         spdlog::info(
             "landmark_server: {} classes, prior map {} ({} tasks), map frame "
             "'{}'",
@@ -202,6 +231,10 @@ class LandmarkServerNode : public rclcpp::Node {
         read("map.confirm_hits", p.confirm_hits);
         read("map.max_hits_per_class", p.max_hits_per_class);
         read("map.max_hit_age_s", p.max_hit_age_s);
+        read("measure.duration_s", p.measure_duration_s);
+        read("measure.max_range_m", p.measure_max_range_m);
+        read("measure.min_hits", p.measure_min_hits);
+        read("measure.max_spread_m", p.measure_max_spread_m);
         read("gate.panel_classes", p.gate.panel_classes);
         read("gate.min_separation_m", p.gate.min_separation_m);
         read("gate.max_separation_m", p.gate.max_separation_m);
@@ -515,6 +548,7 @@ class LandmarkServerNode : public rclcpp::Node {
             }
         }
         pending_ = std::move(wait);
+        tick_measure();
         const Params& p = cfg_.params;
         map_.update(p.cluster_radius_m, p.confirm_hits, p.max_hit_age_s,
                     odom_->t);
@@ -605,7 +639,18 @@ class LandmarkServerNode : public rclcpp::Node {
             h.cls = cls;
             h.t = t;
             h.position = T_odom_frame * checked->position;
+            if (checked->rotation) {
+                h.yaw = yaw_of(T_odom_frame.rotation() *
+                               checked->rotation->toRotationMatrix());
+            }
             const double range = (h.position - vehicle).norm();
+            if (measuring_ && t >= measuring_->start_t &&
+                range <= measuring_->max_range_m &&
+                (measuring_->cls == cls->name ||
+                 (measuring_->cls == kSlalomRow &&
+                  cls->type == vortex_msgs::msg::LandmarkType::SLALOM_PIPE))) {
+                measuring_->hits.push_back(h);
+            }
             if (range < kMinRangeM || range > cfg_.params.max_range_m) {
                 continue;
             }
@@ -622,14 +667,167 @@ class LandmarkServerNode : public rclcpp::Node {
                     continue;
                 }
             }
-            if (checked->rotation) {
-                h.yaw = yaw_of(T_odom_frame.rotation() *
-                               checked->rotation->toRotationMatrix());
-            }
             map_.add(h,
                      static_cast<std::size_t>(cfg_.params.max_hits_per_class));
         }
         return true;
+    }
+
+    rclcpp_action::GoalResponse accept_measure(
+        const MeasureLandmark::Goal& goal) {
+        if (measuring_ || !odom_ ||
+            (goal.class_name != kSlalomRow &&
+             !cfg_.find_class(goal.class_name))) {
+            spdlog::warn(
+                "landmark_server: measure '{}' rejected: {}", goal.class_name,
+                measuring_ ? "another measurement is running"
+                           : (!odom_ ? "no odometry yet" : "no such class"));
+            return rclcpp_action::GoalResponse::REJECT;
+        }
+        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+    }
+
+    void start_measure(const std::shared_ptr<MeasureHandle>& handle) {
+        const auto& g = *handle->get_goal();
+        const Params& p = cfg_.params;
+        Measuring m;
+        m.handle = handle;
+        m.cls = g.class_name;
+        m.out_frame =
+            frame_prefix_ +
+            (g.out_frame.empty() ? g.class_name + "/measured" : g.out_frame);
+        m.fallback_from = g.fallback_from;
+        m.start_t = odom_->t;
+        m.end_t = odom_->t +
+                  (g.duration_s > 0.0 ? g.duration_s : p.measure_duration_s);
+        m.max_range_m =
+            g.max_range_m > 0.0 ? g.max_range_m : p.measure_max_range_m;
+        m.settings.cluster_radius_m = p.cluster_radius_m;
+        m.settings.min_hits = g.min_hits > 0 ? g.min_hits : p.measure_min_hits;
+        m.settings.max_spread_m =
+            g.max_spread_m > 0.0 ? g.max_spread_m : p.measure_max_spread_m;
+        measuring_ = std::move(m);
+        spdlog::info("landmark_server: measuring {} for {:.1f} s", g.class_name,
+                     measuring_->end_t - measuring_->start_t);
+    }
+
+    void tick_measure() {
+        if (!measuring_) {
+            return;
+        }
+        Measuring& m = *measuring_;
+        if (m.handle->is_canceling()) {
+            auto result = std::make_shared<MeasureLandmark::Result>();
+            result->hits = static_cast<int>(m.hits.size());
+            result->message = "canceled";
+            m.handle->canceled(result);
+            measuring_.reset();
+            return;
+        }
+        if (odom_->t < m.end_t) {
+            auto fb = std::make_shared<MeasureLandmark::Feedback>();
+            fb->hits = static_cast<int>(m.hits.size());
+            m.handle->publish_feedback(fb);
+            return;
+        }
+        const Measurement r =
+            m.cls == kSlalomRow
+                ? measure_slalom_row(m.hits, odom_->T, m.settings)
+                : measure_object(m.hits, odom_->T, m.settings);
+        auto result = std::make_shared<MeasureLandmark::Result>();
+        result->success = r.ok;
+        result->hits = r.hits;
+        result->spread_m = r.spread_m;
+        result->message = r.message;
+        if (r.ok) {
+            measured_[m.out_frame] = r.pose;
+        } else if (!m.fallback_from.empty()) {
+            try {
+                measured_[m.out_frame] = to_pose(
+                    tf_buffer_
+                        ->lookupTransform(odom_frame_,
+                                          frame_prefix_ + m.fallback_from,
+                                          tf2::TimePointZero)
+                        .transform);
+                result->used_fallback = true;
+                result->message += ", copied " + m.fallback_from;
+            } catch (const tf2::TransformException& e) {
+                result->message += ", no fallback: " + std::string(e.what());
+            }
+        }
+        spdlog::info("landmark_server: measure {} -> {}: {}{}", m.cls,
+                     m.out_frame, r.ok ? "ok, " : "failed, ", result->message);
+        if (r.ok) {
+            m.handle->succeed(result);
+        } else {
+            m.handle->abort(result);
+        }
+        measuring_.reset();
+    }
+
+    void on_reset(const vortex_msgs::srv::ResetLandmarks::Request& req,
+                  vortex_msgs::srv::ResetLandmarks::Response& res) {
+        if (req.class_name.empty()) {
+            map_.clear();
+            res.message = "all classes reset";
+        } else if (cfg_.find_class(req.class_name)) {
+            map_.clear_class(req.class_name);
+            res.message = req.class_name + " reset";
+        } else {
+            res.message = "no class '" + req.class_name + "'";
+            return;
+        }
+        res.success = true;
+        spdlog::info("landmark_server: {}", res.message);
+        publish_map();
+    }
+
+    /// targets.<name>: <parent>/<name> for every parent in TF, offset in the
+    /// parent's axes. Read every time, so ros2 param set works.
+    void add_targets() {
+        std::set<std::string> names;
+        for (const auto& full : list_parameters({"targets"}, 3).names) {
+            const auto first = full.find('.');
+            const auto second = full.find('.', first + 1);
+            if (first != std::string::npos && second != std::string::npos) {
+                names.insert(full.substr(first + 1, second - first - 1));
+            }
+        }
+        constexpr double kDeg = M_PI / 180.0;
+        for (const auto& name : names) {
+            const std::string k = "targets." + name + ".";
+            std::vector<std::string> parents;
+            read(k + "parents", parents);
+            double v[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+            const char* keys[6] = {"x", "y", "z", "roll", "pitch", "yaw"};
+            for (int i = 0; i < 6; ++i) {
+                const auto param = get_parameter_or<rclcpp::Parameter>(
+                    k + keys[i], rclcpp::Parameter());
+                if (param.get_type() ==
+                    rclcpp::ParameterType::PARAMETER_DOUBLE) {
+                    v[i] = param.as_double();
+                } else if (param.get_type() ==
+                           rclcpp::ParameterType::PARAMETER_INTEGER) {
+                    v[i] = static_cast<double>(param.as_int());
+                }
+            }
+            Pose offset = Pose::Identity();
+            offset.linear() =
+                (Eigen::AngleAxisd(v[5] * kDeg, Eigen::Vector3d::UnitZ()) *
+                 Eigen::AngleAxisd(v[4] * kDeg, Eigen::Vector3d::UnitY()) *
+                 Eigen::AngleAxisd(v[3] * kDeg, Eigen::Vector3d::UnitX()))
+                    .toRotationMatrix();
+            offset.translation() = Eigen::Vector3d(v[0], v[1], v[2]);
+            for (const auto& parent : parents) {
+                const std::string pf = frame_prefix_ + parent;
+                const bool ours = std::any_of(
+                    frames_.begin(), frames_.end(),
+                    [&](const auto& f) { return f.child_frame_id == pf; });
+                if (ours || tf_buffer_->_frameExists(pf)) {
+                    frames_.push_back(frame(pf, pf + "/" + name, offset));
+                }
+            }
+        }
     }
 
     void publish_tf(double t) {
@@ -709,6 +907,10 @@ class LandmarkServerNode : public rclcpp::Node {
         for (const NamedPose& g : gate_frames(shown, cfg_.params.gate, start)) {
             frames_.push_back(frame(odom, frame_prefix_ + g.name, g.pose));
         }
+        for (const auto& [name, pose] : measured_) {
+            frames_.push_back(frame(odom, name, pose));
+        }
+        add_targets();
 
         vortex_msgs::msg::LandmarkTrackArray array;
         array.header.stamp = to_stamp(t);
@@ -861,6 +1063,18 @@ class LandmarkServerNode : public rclcpp::Node {
         }
     }
 
+    struct Measuring {
+        std::shared_ptr<MeasureHandle> handle;
+        std::string cls;
+        std::string out_frame;
+        std::string fallback_from;
+        double start_t{0.0};
+        double end_t{0.0};
+        double max_range_m{0.0};
+        MeasureSettings settings;
+        std::vector<Hit> hits;
+    };
+
     struct OdomSample {
         Pose T{Pose::Identity()};
         double t{0.0};
@@ -870,6 +1084,9 @@ class LandmarkServerNode : public rclcpp::Node {
     Premap premap_;
     std::string premap_file_;
     DetectionMap map_;
+    std::optional<Measuring> measuring_;
+    // Measured frames in odom, kept until measured again.
+    std::map<std::string, Pose> measured_;
     std::vector<vortex_msgs::msg::LandmarkArray::ConstSharedPtr> pending_;
     std::optional<OdomSample> odom_;
     // Odometry yaw that points at the course, kept between wipes.
@@ -901,6 +1118,8 @@ class LandmarkServerNode : public rclcpp::Node {
         markers_pub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr raw_pub_;
     rclcpp::TimerBase::SharedPtr map_timer_;
+    rclcpp_action::Server<MeasureLandmark>::SharedPtr measure_server_;
+    rclcpp::Service<vortex_msgs::srv::ResetLandmarks>::SharedPtr reset_srv_;
     bool debug_{false};
     rclcpp::Service<vortex_msgs::srv::SetPremap>::SharedPtr set_premap_srv_;
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr get_premap_srv_;

@@ -4,6 +4,10 @@
 
 #include "landmark_server/detection_check.hpp"
 #include "landmark_server/map.hpp"
+#include "landmark_server/measure.hpp"
+
+#include <vortex_msgs/msg/landmark_subtype.hpp>
+#include <vortex_msgs/msg/landmark_type.hpp>
 #include "landmark_server/targets.hpp"
 
 namespace vortex::landmark_server {
@@ -118,6 +122,74 @@ TEST(DetectionMap, OldHitsAreForgottenAndClassesCleared) {
     EXPECT_TRUE(map.landmarks().empty());
     map.update(0.5, 5, 0.0, 20.0);
     EXPECT_TRUE(map.landmarks().empty());
+}
+
+ClassConfig slalom_class(std::uint16_t subtype) {
+    ClassConfig c = pipe_class(subtype == 2 ? "red" : "white");
+    c.type = vortex_msgs::msg::LandmarkType::SLALOM_PIPE;
+    c.subtype = subtype;
+    return c;
+}
+
+void add_hits(std::vector<Hit>& out, const ClassConfig& c, double x, double y) {
+    for (int i = 0; i < 6; ++i) {
+        out.push_back(hit(c, x + 0.01 * i, y));
+    }
+}
+
+TEST(Measure, ObjectWithoutYawFacesFromTheVehicle) {
+    const ClassConfig c = pipe_class();
+    std::vector<Hit> hits;
+    add_hits(hits, c, 0.0, 3.0);
+    const auto m = measure_object(hits, Pose::Identity(), MeasureSettings{});
+    ASSERT_TRUE(m.ok);
+    EXPECT_NEAR(yaw_of(m.pose.rotation()), M_PI / 2, 0.02);
+    EXPECT_EQ(m.hits, 6);
+}
+
+TEST(Measure, TooFewHitsOrTooMuchSpreadFails) {
+    const ClassConfig c = pipe_class();
+    std::vector<Hit> hits{hit(c, 3.0, 0.0)};
+    EXPECT_FALSE(measure_object(hits, Pose::Identity(), MeasureSettings{}).ok);
+    hits.clear();
+    add_hits(hits, c, 3.0, 0.0);
+    hits.push_back(hit(c, 3.0, 0.45));
+    MeasureSettings s;
+    s.max_spread_m = 0.2;
+    const auto m = measure_object(hits, Pose::Identity(), s);
+    EXPECT_FALSE(m.ok);
+    EXPECT_NEAR(m.spread_m, 0.45, 0.01);
+}
+
+TEST(Measure, SlalomRowIsTheNearestInFrontAcrossItsPipes) {
+    using LS = vortex_msgs::msg::LandmarkSubtype;
+    const ClassConfig red = slalom_class(LS::SLALOM_PIPE_RED);
+    const ClassConfig white = slalom_class(LS::SLALOM_PIPE_WHITE);
+    std::vector<Hit> hits;
+    // Row 1 at x 3, slightly turned; row 2 at x 5; a red pipe behind.
+    add_hits(hits, red, 3.0, 0.0);
+    add_hits(hits, white, 3.1, -1.5);
+    add_hits(hits, white, 2.9, 1.5);
+    add_hits(hits, red, 5.0, 0.5);
+    add_hits(hits, red, -2.0, 0.0);
+    const auto m = measure_slalom_row(hits, Pose::Identity(), MeasureSettings{});
+    ASSERT_TRUE(m.ok) << m.message;
+    EXPECT_NEAR(m.pose.translation().x(), 3.025, 0.01);
+    EXPECT_NEAR(yaw_of(m.pose.rotation()), std::atan2(0.2, 3.0), 0.01);
+    EXPECT_EQ(m.hits, 18);
+}
+
+TEST(Measure, SlalomRowWithOnlyRedPointsFromTheVehicle) {
+    using LS = vortex_msgs::msg::LandmarkSubtype;
+    const ClassConfig red = slalom_class(LS::SLALOM_PIPE_RED);
+    std::vector<Hit> hits;
+    add_hits(hits, red, 3.0, 3.0);
+    const auto m = measure_slalom_row(hits, Pose::Identity(), MeasureSettings{});
+    ASSERT_TRUE(m.ok);
+    EXPECT_NEAR(yaw_of(m.pose.rotation()), M_PI / 4, 0.02);
+    hits.clear();
+    add_hits(hits, red, -3.0, 0.0);
+    EXPECT_FALSE(measure_slalom_row(hits, Pose::Identity(), MeasureSettings{}).ok);
 }
 
 TEST(GateFrames, TwoPanelsGiveTheGateDirection) {

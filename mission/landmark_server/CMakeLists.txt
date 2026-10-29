@@ -12,6 +12,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -32,6 +33,7 @@ add_library(${LIB_NAME} SHARED
   src/config.cpp
   src/detection_check.cpp
   src/map.cpp
+  src/measure.cpp
   src/premap.cpp
   src/targets.cpp
   src/landmark_server_node.cpp)
@@ -43,6 +45,7 @@ target_include_directories(${LIB_NAME} PUBLIC
 ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp
   rclcpp_components
+  rclcpp_action
   geometry_msgs
   nav_msgs
   std_msgs

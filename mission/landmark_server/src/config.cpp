@@ -58,6 +58,10 @@ void Config::validate() const {
     if (p.confirm_hits < 1 || p.max_hits_per_class < p.confirm_hits) {
         fail("confirm_hits >= 1 and max_hits_per_class >= confirm_hits");
     }
+    if (p.measure_duration_s <= 0.0 || p.measure_max_range_m <= 0.0 ||
+        p.measure_min_hits < 1 || p.measure_max_spread_m <= 0.0) {
+        fail("measure values must be positive");
+    }
     if (p.max_hit_age_s < 0.0) {
         fail("max_hit_age_s must be >= 0 (0 keeps every hit)");
     }

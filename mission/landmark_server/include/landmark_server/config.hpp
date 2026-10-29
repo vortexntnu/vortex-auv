@@ -47,6 +47,12 @@ struct Params {
     int max_hits_per_class{500};
     double max_hit_age_s{0.0};
 
+    // Measure defaults, used when the goal gives 0.
+    double measure_duration_s{3.0};
+    double measure_max_range_m{4.0};
+    int measure_min_hits{5};
+    double measure_max_spread_m{0.3};
+
     GateParams gate;
 };
 
