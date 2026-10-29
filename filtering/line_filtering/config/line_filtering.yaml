@@ -1,12 +1,12 @@
 /**:
   ros__parameters:
     line_sub_topic: "/line_detection/line_segments"
-    sonar_info_sub_topic: "/orca/sonar_info"
+    sonar_info_sub_topic: "/moby/fls/sonar_info"
     line_pub_topic: "/filtered_lines"
     marker_pub_topic: "/filtered_lines_markers"
 
-    target_frame: "odom"
-    sonar_frame: "Orca/FLS"
+    target_frame: "moby/odom"
+    sonar_frame: "moby/sonar_link"
 
     timer_rate_ms: 200
 
