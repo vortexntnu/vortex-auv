@@ -31,6 +31,7 @@
 
 #include "landmark_server/association.hpp"
 #include "landmark_server/config.hpp"
+#include "landmark_server/detection_check.hpp"
 #include "landmark_server/graph.hpp"
 #include "landmark_server/premap.hpp"
 #include "landmark_server/targets.hpp"
@@ -39,7 +40,6 @@ namespace vortex::landmark_server {
 
 namespace {
 
-constexpr double kNoOrientationVariance = 1000.0;  // perception convention
 constexpr std::size_t kNisWindow = 50;
 constexpr double kMinRangeM = 0.05;
 constexpr double kFramePeriodS = 0.1;
@@ -637,6 +637,14 @@ class LandmarkServerNode : public rclcpp::Node {
     std::vector<Detection> to_detections(
         const vortex_msgs::msg::LandmarkArray& msg,
         const gtsam::Pose3& T_odom_base) {
+        if ((msg.header.frame_id == odom_frame_ ||
+             msg.header.frame_id == map_frame_) &&
+            world_frame_sources_.insert(msg.header.frame_id).second) {
+            spdlog::warn(
+                "landmark_server: detections in '{}' are used, but detectors "
+                "should publish in the camera frame with the image stamp",
+                msg.header.frame_id);
+        }
         gtsam::Pose3 T_odom_frame;
         if (msg.header.frame_id != odom_frame_) {
             try {
@@ -666,8 +674,22 @@ class LandmarkServerNode : public rclcpp::Node {
                 }
                 continue;
             }
+            const auto checked = check_detection(l.pose);
+            if (!checked) {
+                if (bad_.insert({l.type.value, l.subtype.value}).second) {
+                    spdlog::warn(
+                        "landmark_server: type {} subtype {} sent a NaN "
+                        "position or a non-unit quaternion, dropped",
+                        l.type.value, l.subtype.value);
+                }
+                continue;
+            }
+            const auto& q =
+                checked->rotation.value_or(Eigen::Quaterniond::Identity());
             const gtsam::Pose3 T_base_obj =
-                T_base_frame * to_pose3(l.pose.pose);
+                T_base_frame * gtsam::Pose3(gtsam::Rot3::Quaternion(
+                                                q.w(), q.x(), q.y(), q.z()),
+                                            checked->position);
             const double range = T_base_obj.translation().norm();
             if (range < kMinRangeM || range > cfg_.params.max_range_m) {
                 continue;
@@ -675,10 +697,7 @@ class LandmarkServerNode : public rclcpp::Node {
             Detection d;
             d.cls = cls;
             d.z.position = T_base_obj.translation();
-            const auto& c = l.pose.covariance;
-            if (c[21] < kNoOrientationVariance &&
-                c[28] < kNoOrientationVariance &&
-                c[35] < kNoOrientationVariance) {
+            if (checked->rotation) {
                 d.z.rotation = T_base_obj.rotation();
             }
             out.push_back(d);
@@ -953,6 +972,8 @@ class LandmarkServerNode : public rclcpp::Node {
     int next_id_{1};
     std::deque<double> nis_;
     std::set<std::pair<std::uint16_t, std::uint16_t>> unknown_;
+    std::set<std::pair<std::uint16_t, std::uint16_t>> bad_;
+    std::set<std::string> world_frame_sources_;
 
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;

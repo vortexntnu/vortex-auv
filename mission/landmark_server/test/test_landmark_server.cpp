@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "landmark_server/association.hpp"
+#include "landmark_server/detection_check.hpp"
 #include "landmark_server/targets.hpp"
 
 namespace vortex::landmark_server {
@@ -132,6 +133,45 @@ TEST(GateFrames, PanelsTooFarApartGiveNoGateMiddle) {
         {panel("left", 4.0, -3.0), panel("right", 4.0, 3.0)}, gate, {});
     ASSERT_EQ(frames.size(), 4u);
     EXPECT_EQ(frames[0].name, "left_entrance");
+}
+
+geometry_msgs::msg::PoseWithCovariance detection(double qw, double qz) {
+    geometry_msgs::msg::PoseWithCovariance p;
+    p.pose.position.x = 2.0;
+    p.pose.orientation.w = qw;
+    p.pose.orientation.z = qz;
+    return p;
+}
+
+TEST(DetectionCheck, AllZeroCovarianceMeansNoOrientation) {
+    const auto d = check_detection(detection(0.0, 0.0));
+    ASSERT_TRUE(d);
+    EXPECT_FALSE(d->rotation);
+    EXPECT_DOUBLE_EQ(d->position.x(), 2.0);
+}
+
+TEST(DetectionCheck, LargeOrientationVarianceMeansNoOrientation) {
+    auto p = detection(1.0, 0.0);
+    p.covariance[0] = 0.01;
+    p.covariance[21] = p.covariance[28] = p.covariance[35] = 1000.0;
+    EXPECT_FALSE(check_detection(p)->rotation);
+}
+
+TEST(DetectionCheck, NearUnitQuaternionIsNormalised) {
+    auto p = detection(1.02, 0.0);
+    p.covariance[35] = 0.01;
+    const auto d = check_detection(p);
+    ASSERT_TRUE(d && d->rotation);
+    EXPECT_NEAR(d->rotation->norm(), 1.0, 1e-12);
+}
+
+TEST(DetectionCheck, BadQuaternionOrNanPositionIsDropped) {
+    auto p = detection(0.0, 0.0);
+    p.covariance[35] = 0.01;
+    EXPECT_FALSE(check_detection(p));
+    p = detection(1.0, 0.0);
+    p.pose.position.y = std::nan("");
+    EXPECT_FALSE(check_detection(p));
 }
 
 }  // namespace vortex::landmark_server

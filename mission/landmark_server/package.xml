@@ -22,6 +22,7 @@
   <depend>tf2_ros</depend>
   <depend>gtsam</depend>
   <depend>yaml-cpp</depend>
+  <depend>eigen</depend>
   <depend>spdlog</depend>
   <depend>fmt</depend>
   <exec_depend>auv_setup</exec_depend>

@@ -23,6 +23,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(Boost REQUIRED)
@@ -31,6 +32,7 @@ set(LIB_NAME "${PROJECT_NAME}_component")
 
 add_library(${LIB_NAME} SHARED
   src/config.cpp
+  src/detection_check.cpp
   src/graph.cpp
   src/association.cpp
   src/premap.cpp
@@ -56,7 +58,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   spdlog
   fmt
 )
-target_link_libraries(${LIB_NAME} PUBLIC gtsam yaml-cpp Boost::boost)
+target_link_libraries(${LIB_NAME} PUBLIC gtsam yaml-cpp Boost::boost Eigen3::Eigen)
 
 rclcpp_components_register_node(
   ${LIB_NAME}
