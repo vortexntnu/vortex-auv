@@ -1011,11 +1011,18 @@ class CompetitionMapGUI:
             or "reference" not in self.placed_objects
         ):
             return
+        tf = self.lookup_in_map(live.header.frame_id)
+        if tf is None:
+            return
+        origin, q = tf
         r = max(4, int(0.25 * self.scale))
         for track in live.landmark_tracks:
             task, color = self.LIVE_TYPES.get(track.landmark.type.value, ("?", "black"))
             p = track.landmark.pose.pose.position
-            px, py = self.meters_to_pixels(*self.map_to_canvas(p.x, p.y))
+            x, y, _ = rotate(q, (p.x, p.y, p.z))
+            px, py = self.meters_to_pixels(
+                *self.map_to_canvas(origin[0] + x, origin[1] + y)
+            )
             self.canvas.create_line(
                 px - r, py - r, px + r, py + r, fill=color, width=2, tags="live"
             )
