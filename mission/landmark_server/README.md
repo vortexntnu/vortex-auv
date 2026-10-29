@@ -115,21 +115,112 @@ All three are only in the right place on the drawing if the reference is
 where the vehicle was when the map started. The arrow and the dots need
 `map -> odom -> base_link` in TF, and the dots also the detection's frame.
 
-## Adding an object
+## Adding a landmark
 
-1. Add the constants to `LandmarkType.msg` / `LandmarkSubtype.msg` in
-   vortex-msgs.
-2. Add the names to the tables in `src/config.cpp`.
-3. Add a class in `config/landmark_server.yaml`:
+A landmark kind is a **class**: one entry under `classes` in
+`config/landmark_server.yaml`. Perception does not change. It keeps
+publishing `vortex_msgs/LandmarkArray` with a type and subtype, and the
+server picks the class with that type and subtype.
 
-   ```yaml
-   buoy: {type: BUOY, subtype: BUOY_RED, symmetry_deg: 360.0, has_orientation: false, prior: "buoy", prior_radius_m: 3.0, max_instances: 1}
-   ```
+### Where to add it
 
-4. Add `"buoy": ["buoy"]` to `SERVICE_LABEL_MAP` in
-   `scripts/competition_map_gui.py` to place it in the prior map.
+| Step | File | What |
+|---|---|---|
+| 1 | `vortex-msgs/msg/LandmarkType.msg`, `LandmarkSubtype.msg` | The constants, if they do not exist yet |
+| 2 | `vortex-utils/vortex_utils_ros/include/vortex/utils/ros/landmark_names.hpp` | The names in `kLandmarkTypes` / `kLandmarkSubtypes`, so the config can refer to them by name |
+| 3 | `config/landmark_server.yaml` → `classes` | The class, see below |
+| 4 | `config/landmark_server.yaml` → `markers.boxes` | Optional: a real-size box in the debug markers |
+| 5 | `scripts/competition_map_gui.py` → `SERVICE_LABEL_MAP` | Only for a new task label, so it can be placed in the prior map |
 
-The object is now published as the frame `buoy`.
+Rebuild vortex-msgs, vortex-utils and landmark_server after steps 1 and 2.
+A config change only needs a restart.
+
+```yaml
+classes:
+  buoy: {type: BUOY, subtype: BUOY_RED, symmetry_deg: 360.0, has_orientation: false, prior: "buoy", prior_radius_m: 3.0, max_instances: 1}
+```
+
+The object is then published as the TF frame `buoy` and on
+`landmark_server/landmarks`.
+
+The server refuses to start if two classes have the same type and subtype,
+or if a type or subtype name is not in `landmark_names.hpp`. Detections
+whose type and subtype match no class are ignored, with one warning per
+pair.
+
+### How a detection becomes a landmark
+
+```
+detection
+  │  type/subtype not a class ─────────────────────────────▶ ignored
+  │  range > max_range_m ──────────────────────────────────▶ dropped
+  ▼
+match against landmarks of the same group (chi² gate) ──▶ matched: refines that landmark
+  │ unmatched
+  ▼
+prior gate: farther than the task radius from prior_<task> ──▶ rejected
+  ▼
+candidate: within candidate_radius_m of earlier unmatched hits
+  │  confirm_hits within confirm_window_s
+  ▼
+new landmark, unless one of the group is within merge_radius_m
+  ▼
+shown: the max_instances most observed of the class
+```
+
+- The prior gate only stops **new** landmarks. Once a landmark exists,
+  matched detections refine it wherever it ends up.
+- The class of a landmark is a majority vote over its detections. Within a
+  `group`, a landmark first seen as one class can become another.
+- Same-group landmarks that end up within `merge_radius_m` are merged, e.g.
+  a copy made while the odometry had drifted.
+- `max_instances` only limits what is published. Extra landmarks stay in
+  the map and can take over if they get more detections.
+
+### Class fields
+
+| Field | What it does | How to pick it |
+|---|---|---|
+| `type`, `subtype` | Names of the `LandmarkType` / `LandmarkSubtype` constants the detector sends | Must match what perception publishes |
+| `symmetry_deg` | How much of the yaw is known. `0`: the full yaw. `90` / `180`: only modulo that, each detection is snapped to the symmetric yaw closest to the estimate. `360`: no yaw, only position | The smallest turn that makes the object look the same. A pipe or buoy is `360`, a bin seen from above `180`, a board with a front `0` |
+| `has_orientation` | Use the detector's orientation. Without it, or with `symmetry_deg: 360`, a detection only gives bearing and range | `true` only if the detector gives a usable orientation. The detector must also set the orientation variances (covariance diagonal 21, 28, 35) below 1000, else the orientation is ignored anyway |
+| `prior` | Task label in the prior map, e.g. `"torpedo"`. New landmarks must lie near `prior_<task>`. `""` turns the gate off | Several classes can share a task. A class whose task is not in the prior map gets no gate, with a warning at startup |
+| `prior_radius_m` | Horizontal radius of that gate in m. A radius set in the GUI for the task wins over this | Large enough for the error of the prior map plus the size of the task. Too small rejects the real object, too large lets false detections through |
+| `max_instances` | How many landmarks of the class are published, most observed first. `0` = all | How many the course has. The frame `<class>` is always the most observed one |
+| `group` | Classes that can be mistaken for each other share a group: they are matched, merged and voted on together. Default: the class name, alone | Give the same group when the detector mixes the classes up, e.g. red and white slalom pipes |
+
+### Global values that decide what gets in
+
+All in `config/landmark_server.yaml`, shared by every class.
+
+| Value | What it does | Raise it when | Lower it when |
+|---|---|---|---|
+| `max_range_m` | Detections farther away are dropped | Far objects are never mapped | Far detections are noisy |
+| `new_landmarks.confirm_hits` | Detections a candidate needs to become a landmark | False detections become landmarks | Real objects appear late |
+| `new_landmarks.confirm_window_s` | Time those detections must fall in | The detector sees the object only now and then | Brief false detections pile up |
+| `new_landmarks.candidate_radius_m` | How close a detection must be to a candidate to count for it | Hits of one object start several candidates | Two objects of one group are closer than twice this |
+| `upkeep.merge_radius_m` | Landmarks of one group this close become one | Duplicates stay | Real objects of one group are merged |
+| `association.gate_prob` | How far, in sigmas, a detection may lie from a landmark and still match | Detections of a known object start new candidates | Detections match the wrong object |
+| `association.ambiguity_d2` | A match is dropped when a second landmark is almost as close | Objects next to each other steal detections | Detections near two objects are wasted |
+| `detection.*` | Detection noise. Larger trusts each detection less | NIS well above 1 | NIS well below 1, map slow to settle |
+| `detection.orientation_yaw_sigma` | Noise of the detector's yaw | The landmark's yaw jumps | Yaw follows the detector too slowly |
+
+`landmark_server/nis` (debug mode) is the check for the `detection` values.
+Every rejected detection shows as a dot in the GUI and in
+`landmark_server/raw_detections`. A class that keeps hitting the prior gate
+gives a warning with how far its nearest detection was.
+
+### Debug box
+
+```yaml
+markers:
+  boxes:
+    buoy: {size: [0.2, 0.2, 0.2], solid: true, color: [1.0, 0.0, 0.0]}
+```
+
+`size` is [x out of the front, y right, z down], `offset` the box centre
+from the landmark, `solid` draws the object itself instead of an outline.
+Without a box the landmark is a small cube.
 
 ## Target frames
 
