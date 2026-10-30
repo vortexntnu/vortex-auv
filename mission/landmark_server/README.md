@@ -233,7 +233,7 @@ ros2 param set /nautilus/landmark_server_node targets.standoff.x 1.5
 | `above` | bins, table | 1 m above |
 | `centre` | octagon | |
 | `home` | `start` | |
-| `search_gate`, `search_torpedo` | the class frame | Where the search starts. Follows the object as soon as it is seen |
+| `search_gate`, `search_torpedo` | the class frame | Where the search starts. Follows the object as soon as it is seen. A prior more than the class's `prior_radius_m` off can not be saved by searching: the prior gate drops the real detections |
 | `search_slalom` | `prior_slalom/corrected` | The slalom rows all share one class, so this one stays on the prior |
 | `around_start`, `around_end` | `prior_slalom/corrected` | A way past the slalom on its left, for when it fails half way |
 
