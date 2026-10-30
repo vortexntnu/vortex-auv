@@ -198,6 +198,11 @@ Measurement measure_slalom(const std::vector<Hit>& hits,
     for (const auto& [group, red] :
          {std::pair{&red_hits, true}, std::pair{&white_hits, false}}) {
         for (const Landmark& l : clusters_of(*group, s)) {
+            // A far pipe is noisier: too much spread leaves it out, not the
+            // whole measurement.
+            if (l.spread_m > s.max_spread_m) {
+                continue;
+            }
             pipes.push_back({l.position, red});
             m.hits += l.n_obs;
             m.spread_m = std::max(m.spread_m, l.spread_m);
@@ -205,12 +210,10 @@ Measurement measure_slalom(const std::vector<Hit>& hits,
     }
     if (std::none_of(pipes.begin(), pipes.end(),
                      [](const Pipe& q) { return q.red; })) {
-        return failed(fmt::format("{} pipe hits, no red pipe", n), n);
-    }
-    if (m.spread_m > s.max_spread_m) {
-        m.message = fmt::format("spread {:.2f} m > {:.2f} m", m.spread_m,
-                                s.max_spread_m);
-        return m;
+        return failed(
+            fmt::format("{} pipe hits, no red pipe within {:.2f} m spread", n,
+                        s.max_spread_m),
+            n);
     }
 
     // Heading through the rows: the one where the pipes fall best on lines

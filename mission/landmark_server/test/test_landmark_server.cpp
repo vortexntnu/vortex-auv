@@ -356,6 +356,9 @@ TEST(Measure, SlalomFailsOnlyWhenItIsNotEvenRows) {
     }
     const Eigen::Vector2d between = reds[0] + 1.0 * n;
     add_hits(with_false, white, between.x(), between.y());
+    for (int i = 0; i < 6; ++i) {  // and a far pipe too noisy to use
+        with_false.push_back(hit(white, 14.0 + 0.4 * (i % 2), 3.0 + 0.4 * (i / 2 % 2)));
+    }
     const auto f = measure_slalom(with_false, T, MeasureSettings{});
     ASSERT_TRUE(f.ok) << f.message;
     EXPECT_LT((f.rows[1].translation().head<2>() - reds[1]).norm(), 0.05);
