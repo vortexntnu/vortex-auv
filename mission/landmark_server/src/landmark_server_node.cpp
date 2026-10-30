@@ -732,6 +732,7 @@ class LandmarkServerNode : public rclcpp::Node {
             if (measuring_ && t >= measuring_->start_t &&
                 range <= measuring_->max_range_m &&
                 (measuring_->cls == cls->name ||
+                 measuring_->settings.gate_partner == cls->name ||
                  ((measuring_->cls == kSlalomRow ||
                    measuring_->cls == kSlalom) &&
                   cls->type == vortex_msgs::msg::LandmarkType::SLALOM_PIPE))) {
@@ -800,6 +801,14 @@ class LandmarkServerNode : public rclcpp::Node {
         m.settings.slalom_rows = p.slalom_rows;
         m.settings.slalom_spacing_m = p.slalom_spacing_m;
         m.settings.slalom_max_row_error_m = p.slalom_max_row_error_m;
+        const auto& panels = p.gate.panel_classes;
+        if (panels.size() == 2 &&
+            (g.class_name == panels[0] || g.class_name == panels[1])) {
+            m.settings.gate_partner =
+                g.class_name == panels[0] ? panels[1] : panels[0];
+            m.settings.gate_min_separation_m = p.gate.min_separation_m;
+            m.settings.gate_max_separation_m = p.gate.max_separation_m;
+        }
         measuring_ = std::move(m);
         spdlog::info("landmark_server: measuring {} for {:.1f} s", g.class_name,
                      measuring_->end_t - measuring_->start_t);
@@ -824,11 +833,20 @@ class LandmarkServerNode : public rclcpp::Node {
             m.handle->publish_feedback(fb);
             return;
         }
+        if (!m.settings.gate_partner.empty()) {
+            const auto shown = shown_landmarks();
+            if (const Landmark* b = best_of(shown, m.settings.gate_partner)) {
+                m.settings.gate_partner_in_map = b->position;
+            }
+            m.settings.gate_start = gate_behind();
+        }
         const Measurement r =
             m.cls == kSlalomRow
                 ? measure_slalom_row(m.hits, odom_->T, m.settings)
             : m.cls == kSlalom ? measure_slalom(m.hits, odom_->T, m.settings)
-                               : measure_object(m.hits, odom_->T, m.settings);
+            : !m.settings.gate_partner.empty()
+                ? measure_gate_panel(m.hits, odom_->T, m.settings)
+                : measure_object(m.hits, odom_->T, m.settings);
         auto result = std::make_shared<MeasureLandmark::Result>();
         result->success = r.ok;
         result->hits = r.hits;
@@ -988,6 +1006,24 @@ class LandmarkServerNode : public rclcpp::Node {
     }
 
     /// At most max_instances per class, the most observed first.
+    /// The gate is passed away from here: 5 m before the gate's prior along
+    /// its heading, so the same wherever the vehicle started. Without a gate
+    /// prior: the start.
+    Eigen::Vector3d gate_behind() const {
+        const auto& panels = cfg_.params.gate.panel_classes;
+        for (const ClassConfig& c : cfg_.classes) {
+            if (panels.empty() || c.name != panels[0]) {
+                continue;
+            }
+            if (const auto prior = premap_.objects.find(c.prior);
+                prior != premap_.objects.end()) {
+                const Pose p = T_map_odom_.inverse() * prior->second;
+                return p.translation() - 5.0 * p.rotation().col(0);
+            }
+        }
+        return (T_map_odom_.inverse() * T_map_start_).translation();
+    }
+
     std::vector<Landmark> shown_landmarks() const {
         std::vector<Landmark> all = map_.landmarks();
         std::stable_sort(all.begin(), all.end(),
@@ -1023,6 +1059,9 @@ class LandmarkServerNode : public rclcpp::Node {
                 frame(odom, frame_prefix_ + "prior_" + label + "/corrected",
                       corrected_prior(pose)));
         }
+        const std::vector<NamedPose> gate =
+            gate_frames(shown, cfg_.params.gate, gate_behind());
+        const auto& panels = cfg_.params.gate.panel_classes;
         // The most observed landmark of each class gets the class frame.
         std::set<std::string> classes;
         for (const Landmark& l : shown) {
@@ -1038,6 +1077,13 @@ class LandmarkServerNode : public rclcpp::Node {
                 pose = yaw_pose(
                     yaw_of((T_map_odom_.inverse() * prior->second).rotation()),
                     best.position);
+            }
+            // A gate panel turns with the gate: the line between both panels
+            // is far steadier than one small panel.
+            if (!gate.empty() && gate.front().name == "gate_middle" &&
+                std::find(panels.begin(), panels.end(), cls) != panels.end()) {
+                pose = yaw_pose(yaw_of(gate.front().pose.rotation()),
+                                best.position);
             }
             frames_.push_back(frame(odom, frame_prefix_ + cls, pose));
         }
@@ -1058,9 +1104,7 @@ class LandmarkServerNode : public rclcpp::Node {
                                    h.position)));
             }
         }
-        const Eigen::Vector3d start =
-            (T_map_odom_.inverse() * T_map_start_).translation();
-        for (const NamedPose& g : gate_frames(shown, cfg_.params.gate, start)) {
+        for (const NamedPose& g : gate) {
             frames_.push_back(frame(odom, frame_prefix_ + g.name, g.pose));
         }
         for (const auto& [name, pose] : measured_) {

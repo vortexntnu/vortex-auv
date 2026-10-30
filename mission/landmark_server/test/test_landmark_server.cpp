@@ -219,6 +219,81 @@ TEST(Measure, TooFewHitsOrTooMuchSpreadFails) {
     EXPECT_NEAR(m.spread_m, 0.17, 0.01);
 }
 
+ClassConfig gate_panel(const std::string& name) {
+    ClassConfig c;
+    c.name = name;
+    c.group = "gate";
+    c.has_orientation = true;
+    return c;
+}
+
+void add_panel_hits(std::vector<Hit>& out, const ClassConfig& c, double x,
+                    double y, double yaw_deg) {
+    for (int i = 0; i < 6; ++i) {
+        Hit h = hit(c, x + 0.01 * i, y);
+        h.yaw = yaw_deg * M_PI / 180.0;
+        out.push_back(h);
+    }
+}
+
+TEST(Measure, GatePanelTakesItsYawFromBothPanels) {
+    const ClassConfig ours = gate_panel("sos");
+    const ClassConfig other = gate_panel("tools");
+    MeasureSettings s;
+    s.gate_partner = "tools";
+    std::vector<Hit> hits;
+    add_panel_hits(hits, ours, 3.0, -0.9, 25.0);  // its own yaw is off
+    add_panel_hits(hits, other, 3.0, 0.9, -10.0);
+    auto m = measure_gate_panel(hits, Pose::Identity(), s);
+    ASSERT_TRUE(m.ok);
+    EXPECT_NEAR(yaw_of(m.pose.rotation()), 0.0, 0.01);
+    EXPECT_NEAR(m.pose.translation().y(), -0.9, 0.01);
+    EXPECT_EQ(m.hits, 6);
+
+    // Measured from the far side: still away from the start.
+    hits.clear();
+    add_panel_hits(hits, ours, 3.0, -0.9, 160.0);
+    add_panel_hits(hits, other, 3.0, 0.9, 0.0);
+    m = measure_gate_panel(hits, yaw_pose(M_PI, {6.0, 0.0, 1.0}), s);
+    ASSERT_TRUE(m.ok);
+    EXPECT_NEAR(yaw_of(m.pose.rotation()), 0.0, 0.01);
+
+    // The start on the other side: the other way.
+    s.gate_start = Eigen::Vector3d(6.0, 0.0, 0.0);
+    m = measure_gate_panel(hits, Pose::Identity(), s);
+    ASSERT_TRUE(m.ok);
+    EXPECT_NEAR(std::abs(yaw_of(m.pose.rotation())), M_PI, 0.01);
+}
+
+TEST(Measure, GatePanelAloneKeepsItsOwnYaw) {
+    const ClassConfig ours = gate_panel("sos");
+    const ClassConfig other = gate_panel("tools");
+    MeasureSettings s;
+    s.gate_partner = "tools";
+    std::vector<Hit> hits;
+    add_panel_hits(hits, ours, 3.0, -0.9, 25.0);
+    auto m = measure_gate_panel(hits, Pose::Identity(), s);
+    ASSERT_TRUE(m.ok);
+    EXPECT_NEAR(yaw_of(m.pose.rotation()), 25.0 * M_PI / 180.0, 0.01);
+
+    add_panel_hits(hits, other, 3.0, 2.0, 0.0);  // 2.9 m away: not this gate
+    m = measure_gate_panel(hits, Pose::Identity(), s);
+    ASSERT_TRUE(m.ok);
+    EXPECT_NEAR(yaw_of(m.pose.rotation()), 25.0 * M_PI / 180.0, 0.01);
+}
+
+TEST(Measure, GatePanelTakesTheOtherPanelFromTheMap) {
+    const ClassConfig ours = gate_panel("sos");
+    MeasureSettings s;
+    s.gate_partner = "tools";
+    s.gate_partner_in_map = Eigen::Vector3d(3.025, 0.9, 1.0);  // level with the hits
+    std::vector<Hit> hits;
+    add_panel_hits(hits, ours, 3.0, -0.9, 25.0);
+    const auto m = measure_gate_panel(hits, Pose::Identity(), s);
+    ASSERT_TRUE(m.ok);
+    EXPECT_NEAR(yaw_of(m.pose.rotation()), 0.0, 0.01);
+}
+
 TEST(Measure, SlalomRowIsTheNearestInFrontAcrossItsPipes) {
     using LS = vortex_msgs::msg::LandmarkSubtype;
     const ClassConfig red = slalom_class(LS::SLALOM_PIPE_RED);

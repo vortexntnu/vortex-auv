@@ -105,6 +105,13 @@ bins, the table) have +X out of the front. Objects without a yaw get +X from
 the vehicle to the object when measured, and their prior's heading in the
 map, so a target on `<class>` points the same way before and after it is seen.
 
+Gate panels (`gate.panel_classes`) take their yaw from the line between the
+two panels, not from one panel: `<panel>`, `<panel>/measured` and
+`gate_middle`. One 0.3 m panel gives a poor yaw, 1.8 m between two gives
+about 1°. +X always points through the gate away from the start, taken from
+the gate's prior, wherever the vehicle measures from. With only one panel
+seen, the panel keeps its own yaw.
+
 ### Prior offset
 
 Off by default (`prior_offset.enabled`). On, every `prior_<task>/corrected`

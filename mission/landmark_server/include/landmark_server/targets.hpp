@@ -21,8 +21,8 @@ const Landmark* best_of(const std::vector<Landmark>& landmarks,
                         const std::string& cls);
 
 /// gate_middle and <panel>_entrance / <panel>_exit, +X through the gate away
-/// from the start. With one panel mapped: only that panel's two frames, +X
-/// along the line from the start to the panel.
+/// from start (a point on the near side of the gate). With one panel mapped:
+/// only that panel's two frames, +X along the line from start to the panel.
 std::vector<NamedPose> gate_frames(const std::vector<Landmark>& landmarks,
                                    const GateParams& gate,
                                    const Eigen::Vector3d& start);

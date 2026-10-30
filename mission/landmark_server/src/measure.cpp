@@ -88,6 +88,53 @@ Measurement measure_object(const std::vector<Hit>& hits,
     return m;
 }
 
+Measurement measure_gate_panel(const std::vector<Hit>& hits,
+                               const Pose& T_odom_base,
+                               const MeasureSettings& s) {
+    std::vector<Hit> panel_hits;
+    std::vector<const Hit*> other;
+    for (const Hit& h : hits) {
+        if (h.cls->name == s.gate_partner) {
+            other.push_back(&h);
+        } else {
+            panel_hits.push_back(h);
+        }
+    }
+    Measurement m = measure_object(panel_hits, T_odom_base, s);
+    const auto partners = clusters_of(other, s);
+    if (!m.ok || s.gate_partner.empty()) {
+        return m;
+    }
+    if (partners.empty() && !s.gate_partner_in_map) {
+        m.message += ", other panel not seen: the panel's own yaw";
+        return m;
+    }
+    const Eigen::Vector3d a = m.pose.translation();
+    const Eigen::Vector3d b =
+        partners.empty() ? *s.gate_partner_in_map : partners.front().position;
+    const Eigen::Vector2d along = (b - a).head<2>();
+    const double separation = along.norm();
+    if (separation < s.gate_min_separation_m ||
+        separation > s.gate_max_separation_m) {
+        m.message += fmt::format(
+            ", other panel {:.2f} m away: the panel's own yaw", separation);
+        return m;
+    }
+    const double own =
+        std::atan2(m.pose.rotation()(1, 0), m.pose.rotation()(0, 0));
+    double yaw = std::atan2(along.x(), -along.y());
+    const Eigen::Vector3d from_start = a - s.gate_start;
+    if (std::cos(yaw) * from_start.x() + std::sin(yaw) * from_start.y() < 0.0) {
+        yaw = wrap(yaw + M_PI);
+    }
+    m.pose = yaw_pose(yaw, a);
+    m.message += fmt::format(
+        ", yaw {:.1f} deg from the panels {:.2f} m apart (own {:.1f}{})",
+        yaw * 180.0 / M_PI, separation, own * 180.0 / M_PI,
+        partners.empty() ? ", other panel from the map" : "");
+    return m;
+}
+
 Measurement measure_slalom_row(const std::vector<Hit>& hits,
                                const Pose& T_odom_base,
                                const MeasureSettings& s) {

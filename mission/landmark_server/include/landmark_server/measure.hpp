@@ -1,6 +1,7 @@
 #ifndef LANDMARK_SERVER__MEASURE_HPP_
 #define LANDMARK_SERVER__MEASURE_HPP_
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -16,6 +17,15 @@ struct MeasureSettings {
     int slalom_rows{3};
     double slalom_spacing_m{2.0};
     double slalom_max_row_error_m{0.4};
+    // Gate panels: the other panel, and how far apart the two may be.
+    std::string gate_partner;
+    // Where the map has it, for when it gets too few hits while measuring.
+    std::optional<Eigen::Vector3d> gate_partner_in_map;
+    // +X through the gate away from here, wherever it is measured from, like
+    // gate_middle.
+    Eigen::Vector3d gate_start{Eigen::Vector3d::Zero()};
+    double gate_min_separation_m{0.2};
+    double gate_max_separation_m{2.5};
 };
 
 struct Measurement {
@@ -33,6 +43,15 @@ struct Measurement {
 Measurement measure_object(const std::vector<Hit>& hits,
                            const Pose& T_odom_base,
                            const MeasureSettings& s);
+
+/// A gate panel: measure_object on its own hits, with the yaw of the line
+/// between it and gate_partner (its normal, away from gate_start), which
+/// is far steadier than the yaw of one small panel. The partner from its
+/// own hits, else gate_partner_in_map. Without the partner, or
+/// with the two too close or too far apart: the panel's own yaw.
+Measurement measure_gate_panel(const std::vector<Hit>& hits,
+                               const Pose& T_odom_base,
+                               const MeasureSettings& s);
 
 /// The nearest slalom row in front of the vehicle: origin at its red pipe,
 /// +X through the row away from the vehicle. White pipes go to the nearest
