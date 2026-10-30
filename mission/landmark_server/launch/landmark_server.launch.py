@@ -26,6 +26,9 @@ def launch_setup(context, *args, **kwargs):
     premap_file = LaunchConfiguration("premap_file").perform(context) or os.path.join(
         CONFIG_DIR, "premap_sim.yaml" if env == "sim" else "premap.yaml"
     )
+    routes_file = LaunchConfiguration("routes_file").perform(context) or os.path.join(
+        CONFIG_DIR, "routes_sim.yaml" if env == "sim" else "routes.yaml"
+    )
     odom_topic = LaunchConfiguration("odom_topic").perform(context)
     landmarks_topic = LaunchConfiguration("landmarks_topic").perform(context)
     return [
@@ -36,6 +39,7 @@ def launch_setup(context, *args, **kwargs):
             namespace=namespace,
             parameters=[
                 LaunchConfiguration("config_file").perform(context),
+                routes_file,
                 drone_params,
                 {
                     "premap_file": premap_file,
@@ -61,7 +65,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "env",
                 default_value="pool",
-                description="pool, or sim (premap_sim.yaml)",
+                description="pool, or sim (premap_sim.yaml, routes_sim.yaml)",
             ),
             DeclareLaunchArgument(
                 "premap_file",
@@ -69,6 +73,12 @@ def generate_launch_description():
                 description="Prior map (default: config/premap.yaml, "
                 "premap_sim.yaml with env:=sim). set_premap writes it: with "
                 "--symlink-install that is the source file",
+            ),
+            DeclareLaunchArgument(
+                "routes_file",
+                default_value="",
+                description="Way points between tasks (default: config/routes.yaml, "
+                "routes_sim.yaml with env:=sim)",
             ),
             DeclareLaunchArgument(
                 "odom_topic",

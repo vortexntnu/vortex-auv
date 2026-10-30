@@ -1,0 +1,10 @@
+# Way points between tasks for the simulator course, on top of
+# landmark_server.yaml's targets. One file per course; the launch file picks
+# it with env, or routes_file.
+/**:
+  ros__parameters:
+    targets:
+      # Around the slalom on its left, for when it fails half way and on the
+      # way home: straight lines between tasks must not cross it.
+      around_start: {parents: ["prior_slalom/corrected"], x: -2.5, y: -4.0, z: 0.1}   # clear of the gate's left post too
+      around_end: {parents: ["prior_slalom/corrected"], x: 4.0, y: -4.0, z: 0.1}

@@ -1,0 +1,7 @@
+# Way points between tasks for the pool course, on top of
+# landmark_server.yaml's targets. Measure them at the pool.
+/**:
+  ros__parameters:
+    targets:
+      around_start: {parents: ["prior_slalom/corrected"], x: -2.5, y: -4.0, z: 0.1}
+      around_end: {parents: ["prior_slalom/corrected"], x: 4.0, y: -4.0, z: 0.1}
