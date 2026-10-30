@@ -41,6 +41,9 @@
     targets:
       entry: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: -1.5, z: 0.8}   # clear of the gate's centre pole
       exit: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: 1.5, z: 0.8}
+      # The way back through the gate, facing the start
+      exit_back: {parents: ["gate_middle", "gate_search_rescue", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: 1.5, z: 0.8, yaw: 180.0}
+      entry_back: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: -1.5, z: 0.8, yaw: 180.0}
       gap_left_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: -1.0, y: -0.75}
       gap_left_exit: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: 1.0, y: -0.75}
       gap_right_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: -1.0, y: 0.75}
@@ -58,7 +61,7 @@
       search_torpedo: {parents: ["torpedo_board"], x: 3.0, yaw: 180.0}
       # Around the slalom on its left, for when it fails half way: straight
       # lines between tasks must not cross it.
-      around_start: {parents: ["prior_slalom/corrected"], x: -4.0, y: -4.0, z: 0.1}
+      around_start: {parents: ["prior_slalom/corrected"], x: -2.5, y: -4.0, z: 0.1}   # clear of the gate's left post too
       around_end: {parents: ["prior_slalom/corrected"], x: 4.0, y: -4.0, z: 0.1}
 
     # Gate target frames. Empty panel_classes turns them off.

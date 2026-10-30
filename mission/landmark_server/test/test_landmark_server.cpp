@@ -372,6 +372,19 @@ TEST(Measure, SlalomFailsOnlyWhenItIsNotEvenRows) {
     for (int k = 0; k < 3; ++k) {
         EXPECT_LT((turned.rows[k].translation().head<2>() - reds[k]).norm(), 0.4) << k;
     }
+    // White pipes with some of their hits called red stay white.
+    std::vector<Hit> confused;
+    for (const auto& r : reds) {
+        add_row(confused, red, white, r, th);
+    }
+    const Eigen::Vector2d u(-std::sin(th), std::cos(th));
+    const Eigen::Vector2d w0 = reds[0] + 1.5 * u;
+    for (int i = 0; i < 3; ++i) {
+        confused.push_back(hit(red, w0.x() + 0.01 * i, w0.y()));
+    }
+    const auto c = measure_slalom(confused, T, MeasureSettings{});
+    ASSERT_TRUE(c.ok) << c.message;
+    EXPECT_LT((c.rows[0].translation().head<2>() - reds[0]).norm(), 0.05);
     std::vector<Hit> two_reds;
     add_row(two_reds, red, white, reds[0], th);
     add_hits(two_reds, red, reds[0].x() - 0.8 * std::sin(th), reds[0].y() + 0.8 * std::cos(th));

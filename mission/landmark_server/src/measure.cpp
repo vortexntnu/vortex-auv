@@ -91,18 +91,20 @@ Measurement measure_object(const std::vector<Hit>& hits,
 Measurement measure_slalom_row(const std::vector<Hit>& hits,
                                const Pose& T_odom_base,
                                const MeasureSettings& s) {
-    std::vector<const Hit*> red_hits;
-    std::vector<const Hit*> white_hits;
+    // Red and white together, each pipe the colour most of its hits say.
+    std::vector<const Hit*> pipe_hits;
     for (const Hit& h : hits) {
-        if (h.cls->type != LT::SLALOM_PIPE) {
-            continue;
+        if (h.cls->type == LT::SLALOM_PIPE) {
+            pipe_hits.push_back(&h);
         }
-        (h.cls->subtype == LS::SLALOM_PIPE_RED ? red_hits : white_hits)
-            .push_back(&h);
     }
-    const int n = static_cast<int>(red_hits.size() + white_hits.size());
-    const auto reds = clusters_of(red_hits, s);
-    const auto whites = clusters_of(white_hits, s);
+    const int n = static_cast<int>(pipe_hits.size());
+    std::vector<Landmark> reds;
+    std::vector<Landmark> whites;
+    for (Landmark& l : clusters_of(pipe_hits, s)) {
+        (l.cls.subtype == LS::SLALOM_PIPE_RED ? reds : whites)
+            .push_back(std::move(l));
+    }
 
     // The nearest red pipe in front of the vehicle.
     const Pose T_base_odom = T_odom_base.inverse();
@@ -179,34 +181,30 @@ Measurement measure_slalom_row(const std::vector<Hit>& hits,
 Measurement measure_slalom(const std::vector<Hit>& hits,
                            const Pose& T_odom_base,
                            const MeasureSettings& s) {
-    std::vector<const Hit*> red_hits;
-    std::vector<const Hit*> white_hits;
+    // Red and white together, each pipe the colour most of its hits say: a
+    // few white hits called red make no red pipe of their own.
+    std::vector<const Hit*> pipe_hits;
     for (const Hit& h : hits) {
-        if (h.cls->type != LT::SLALOM_PIPE) {
-            continue;
+        if (h.cls->type == LT::SLALOM_PIPE) {
+            pipe_hits.push_back(&h);
         }
-        (h.cls->subtype == LS::SLALOM_PIPE_RED ? red_hits : white_hits)
-            .push_back(&h);
     }
-    const int n = static_cast<int>(red_hits.size() + white_hits.size());
+    const int n = static_cast<int>(pipe_hits.size());
     struct Pipe {
         Eigen::Vector3d p;
         bool red;
     };
     std::vector<Pipe> pipes;
     Measurement m;
-    for (const auto& [group, red] :
-         {std::pair{&red_hits, true}, std::pair{&white_hits, false}}) {
-        for (const Landmark& l : clusters_of(*group, s)) {
-            // A far pipe is noisier: too much spread leaves it out, not the
-            // whole measurement.
-            if (l.spread_m > s.max_spread_m) {
-                continue;
-            }
-            pipes.push_back({l.position, red});
-            m.hits += l.n_obs;
-            m.spread_m = std::max(m.spread_m, l.spread_m);
+    for (const Landmark& l : clusters_of(pipe_hits, s)) {
+        // A far pipe is noisier: too much spread leaves it out, not the
+        // whole measurement.
+        if (l.spread_m > s.max_spread_m) {
+            continue;
         }
+        pipes.push_back({l.position, l.cls.subtype == LS::SLALOM_PIPE_RED});
+        m.hits += l.n_obs;
+        m.spread_m = std::max(m.spread_m, l.spread_m);
     }
     if (std::none_of(pipes.begin(), pipes.end(),
                      [](const Pipe& q) { return q.red; })) {

@@ -226,6 +226,7 @@ ros2 param set /nautilus/landmark_server_node targets.standoff.x 1.5
 | Target | Parents | |
 |---|---|---|
 | `entry`, `exit` | `gate_middle`, a measured gate panel | 1.5 m before and after the gate, 0.8 m below the panels |
+| `exit_back`, `entry_back` | the same, and `gate_search_rescue` for `exit_back` | The way back: after and before the gate, facing the start |
 | `gap_left_entry`, `gap_left_exit`, `gap_right_*` | `slalom_row/measured`, `.../next`, `slalom/measured/row0..2` | 1 m before and after the middle of each gap |
 | `next` | `slalom_row/measured` | Where the next row should be |
 | `standoff` | board, table | 2 m in front, facing it |
@@ -235,7 +236,7 @@ ros2 param set /nautilus/landmark_server_node targets.standoff.x 1.5
 | `home` | `start` | |
 | `search_gate`, `search_torpedo` | the class frame | Where the search starts. Follows the object as soon as it is seen. A prior more than the class's `prior_radius_m` off can not be saved by searching: the prior gate drops the real detections |
 | `search_slalom` | `prior_slalom/corrected` | The slalom rows all share one class, so this one stays on the prior |
-| `around_start`, `around_end` | `prior_slalom/corrected` | A way past the slalom on its left, for when it fails half way |
+| `around_start`, `around_end` | `prior_slalom/corrected` | A way past the slalom on its left: when it fails half way, and on the way home |
 
 The numbers are from the simulator course.
 
