@@ -1,0 +1,8 @@
+# Sim only, on top of nautilus.yaml: the sim's thrusters give up to 100 N.
+/**:
+  ros__parameters:
+    propulsion:
+      thrusters:
+        constraints:
+          max_force: 80.0
+          min_force: -80.0

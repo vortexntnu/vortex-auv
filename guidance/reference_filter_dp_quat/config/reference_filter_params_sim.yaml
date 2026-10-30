@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     zeta: [1., 1., 1., 1., 1., 1.]
-    omega: [0.2, 0.2, 0.2, 0.1, 0.1, 0.2]  # x, y, z and yaw twice as fast as on the vehicle
+    omega: [0.4, 0.4, 0.4, 0.1, 0.1, 0.4]  # x, y, z and yaw four times as fast as on the vehicle
     time_step_ms: 10
     default_position_tolerance: 0.1     # [m], for waypoints that set none
     default_orientation_tolerance: 0.1  # [rad], for waypoints that set none

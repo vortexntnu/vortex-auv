@@ -1,3 +1,5 @@
+import os
+
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 
@@ -35,3 +37,13 @@ def declare_config_type_arg(default_config_type="physical"):
 
 def resolve_config_type(context):
     return LaunchConfiguration("config_type").perform(context)
+
+
+def drone_params(auv_setup_dir, drone, config_type):
+    """robots/<drone>.yaml, then robots/<drone>_sim.yaml on top in the sim."""
+    robots = os.path.join(auv_setup_dir, "config", "robots")
+    files = [os.path.join(robots, f"{drone}.yaml")]
+    sim = os.path.join(robots, f"{drone}_sim.yaml")
+    if config_type == "sim" and os.path.exists(sim):
+        files.append(sim)
+    return files
