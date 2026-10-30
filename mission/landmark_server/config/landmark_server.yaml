@@ -40,7 +40,7 @@
     # pipe. Numbers are placeholders from the simulator course.
     targets:
       entry: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: -1.5, z: 0.8}   # clear of the gate's centre pole
-      exit: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: 1.5, z: 0.8}
+      exit: {parents: ["gate_middle", "gate_search_rescue", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: 1.5, z: 0.8}
       # The way back through the gate, facing the start
       look_back: {parents: ["gate_middle", "gate_search_rescue", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: 1.5, z: 0.1, yaw: 180.0}   # level with the panels, to see them
       exit_back: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: 1.5, z: 0.8, yaw: 180.0}
