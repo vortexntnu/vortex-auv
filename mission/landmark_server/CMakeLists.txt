@@ -80,7 +80,7 @@ install(DIRECTORY config launch foxglove
   DESTINATION share/${PROJECT_NAME}/
 )
 
-install(PROGRAMS scripts/competition_map_gui.py
+install(PROGRAMS scripts/competition_map_gui.py scripts/save_route_point.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

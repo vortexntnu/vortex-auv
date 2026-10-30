@@ -8,3 +8,10 @@
       # way home: straight lines between tasks must not cross it.
       around_start: {parents: ["prior_slalom/corrected"], x: -2.5, y: -4.0, z: 0.1}   # clear of the gate's left post too
       around_end: {parents: ["prior_slalom/corrected"], x: 4.0, y: -4.0, z: 0.1}
+      # The way home from the torpedo board, the last task: where it ends,
+      # facing home, then past the slalom. GoToFrame drives along the target's
+      # X first, then its Y: each of those legs must be clear.
+      leave: {parents: ["torpedo_board", "torpedo_board/measured"], x: 3.0, yaw: 101.0}
+      home_0: {parents: ["torpedo_board", "torpedo_board/measured"], x: 3.0, y: 3.21, z: -0.15}   # beside the board, clear of it on the way back
+      home_1: {parents: ["torpedo_board", "torpedo_board/measured"], x: -3.35, y: 3.21, z: -0.15}
+      home_2: {parents: ["torpedo_board", "torpedo_board/measured"], x: -4.59, y: 9.59, z: -0.15}
