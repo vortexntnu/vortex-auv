@@ -38,6 +38,9 @@ def write_point(path, name, parent, values):
     line = f'      {name}: {{parents: ["{parent}"], {nums}}}\n'
     with open(path) as f:
         lines = f.readlines()
+    # A file with no points yet is "    {}": the server does not take an
+    # empty targets.
+    lines = ["    targets:\n" if l.strip() == "{}" else l for l in lines]
     key = re.compile(rf"^\s+{re.escape(name)}:\s")
     i = next((i for i, l in enumerate(lines) if key.match(l)), None)
     if i is None:
