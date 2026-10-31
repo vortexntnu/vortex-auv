@@ -237,11 +237,12 @@ Change one while running:
 ros2 param set /nautilus/landmark_server_node targets.standoff.x 1.5
 ```
 
-Or in the GUI, under Targets: choose one, change x, y, z or yaw.
+Or in the GUI, under Targets: choose one, change x, y, z or yaw. Every
+button explains itself when the mouse rests on it.
 
 | Button | Server | File |
 |---|---|---|
-| Try on vehicle | at once, until it restarts | not changed |
+| Try (not saved) | at once, until it restarts | not changed |
 | Save to file | at once | the line in the routes file or `landmark_server.yaml`, comment kept |
 
 Try until it is right, then save. A restart only reads the file, and
@@ -295,7 +296,8 @@ ros2 launch landmark_server competition_map_gui.launch.py   # drone:=nautilus
 1. Place the reference where the vehicle starts, pointing at the course.
 2. Place each task. The slider sets the radius its detections must be within.
    Click a placed object to select it, drag it to move it. A click on the
-   water only places an object that is not placed yet.
+   water only places an object that is not placed yet. Next to the mouse:
+   where it is in the pool and from the start.
 3. Send to Vehicle. It is saved to `config/premap.yaml`.
 
 While the vehicle runs the GUI also shows, relative to the reference:

@@ -90,6 +90,88 @@ def call(node, client, request):
     return future.result()
 
 
+# Shown when the mouse rests on a widget with this text.
+TIPS = {
+    "Reference frame:": "Frame the prior map is sent in. Keep 'start'.",
+    "Prior radius (m)": "Detections further than this from the task's prior "
+    "are dropped. Larger if you are unsure where it is.",
+    "Send to Vehicle": "Send the drawing (reference and tasks) to the vehicle "
+    "as its prior map. Saved in premap.yaml.",
+    "Get from Vehicle": "Load the prior map the vehicle has now into the drawing.",
+    "Show live map": "Draw what the vehicle sees on top of the drawing. "
+    "Crosses: objects on its map. Dots: detections of the last 2 s, also "
+    "rejected ones. Arrow: the vehicle. Needs the reference placed.",
+    "Vehicle faces the course": "With the vehicle at the start, pointing the way "
+    "the reference points. Remembers the course heading. Clears the live map.",
+    "New map at the vehicle": "New map where the vehicle is now, with the course "
+    "heading kept. Press before every run.",
+    "Name": "Name of the route point, e.g. home_0. The tree drives to <object>/<name>.",
+    "Nearest object": "The object the point hangs on: the nearest one the "
+    "vehicle has seen. The point moves with it.",
+    "Position only": "Save no heading: the vehicle keeps the one it has.",
+    "Save vehicle here": "Save where the vehicle is now, relative to the object. "
+    "The vehicle uses it at once, and it is written to the routes file.",
+    "Place by click": "Then click on the map where the point goes.",
+    "Targets (offsets):": "Points the tree drives to, as an offset from an "
+    "object, e.g. entry is 1.5 m before the gate. Purple on the map.",
+    "x": "Metres forward of the object (its X axis).",
+    "y": "Metres to the right of the object.",
+    "z": "Metres below the object.",
+    "yaw": "Degrees to turn right from the object's X axis.",
+    "Try (not saved)": "The vehicle uses these numbers at once. Not written to "
+    "the file: gone when landmark_server restarts.",
+    "Save to file": "The vehicle uses these numbers at once, and they are "
+    "written to the yaml file, so they last.",
+    "Clear All": "Clear the drawing. Nothing is sent.",
+}
+
+
+def add_tips(widget):
+    """A tooltip on every widget under this one whose text is in TIPS."""
+    for child in widget.winfo_children():
+        add_tips(child)
+        try:
+            text = (
+                child.cget("label")
+                if isinstance(child, tk.Scale)
+                else child.cget("text")
+            )
+        except tk.TclError:
+            continue
+        if text in TIPS:
+            tip(child, TIPS[text])
+
+
+def tip(widget, text):
+    box = []
+
+    def show(_):
+        win = tk.Toplevel(widget)
+        win.wm_overrideredirect(True)
+        win.geometry(
+            f"+{widget.winfo_rootx() + 20}+{widget.winfo_rooty() + widget.winfo_height()}"
+        )
+        tk.Label(
+            win,
+            text=text,
+            wraplength=280,
+            justify=tk.LEFT,
+            bg="#ffffe0",
+            relief=tk.SOLID,
+            borderwidth=1,
+            font=("Arial", 9),
+        ).pack()
+        box.append(win)
+
+    def hide(_):
+        while box:
+            box.pop().destroy()
+
+    widget.bind("<Enter>", show, add="+")
+    widget.bind("<Leave>", hide, add="+")
+    widget.bind("<ButtonPress>", hide, add="+")
+
+
 class CompetitionMapGUI:
     OBJECTS = [
         ("reference", "green", "frame", 0),
@@ -250,6 +332,7 @@ class CompetitionMapGUI:
         )
 
         self.setup_ui()
+        add_tips(self.root)
         self.root.after(100, self.draw_pool)
         self.root.after(500, self.check_ros_service)
         self.root.after(1000, self.draw_live_map)
@@ -368,7 +451,7 @@ class CompetitionMapGUI:
 
         tk.Checkbutton(
             left_frame,
-            text="Show live map (crosses, detections, vehicle)",
+            text="Show live map",
             variable=self.show_live,
             command=lambda: self.draw_live_map(reschedule=False),
             justify=tk.LEFT,
@@ -385,8 +468,13 @@ class CompetitionMapGUI:
             command=self.new_map,
         ).pack(fill=tk.X, padx=10, pady=2)
 
-        tk.Frame(left_frame, height=2, bg="gray").pack(fill=tk.X, padx=10, pady=8)
-        tk.Label(left_frame, text="Route points:", font=("Arial", 9, "bold")).pack()
+        # Second column: what is done with the vehicle in the water.
+        left_frame = tk.LabelFrame(main_frame, text="Vehicle", width=280)
+        left_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 10))
+        left_frame.pack_propagate(False)
+        tk.Label(left_frame, text="Route points:", font=("Arial", 9, "bold")).pack(
+            pady=(10, 0)
+        )
         row = tk.Frame(left_frame)
         row.pack(fill=tk.X, padx=10, pady=2)
         tk.Label(row, text="Name").pack(side=tk.LEFT)
@@ -437,7 +525,7 @@ class CompetitionMapGUI:
             )
         row = tk.Frame(left_frame)
         row.pack(fill=tk.X, padx=10, pady=2)
-        tk.Button(row, text="Try on vehicle", command=self.try_target).pack(
+        tk.Button(row, text="Try (not saved)", command=self.try_target).pack(
             side=tk.LEFT, fill=tk.X, expand=True
         )
         tk.Button(row, text="Save to file", command=self.save_target).pack(
@@ -487,6 +575,7 @@ class CompetitionMapGUI:
         self.canvas.bind("<ButtonRelease-1>", lambda _: setattr(self, "dragging", None))
         self.canvas.bind("<Motion>", self.on_mouse_move)
         self.canvas.bind("<Configure>", self.on_resize)
+        self.canvas.bind("<Leave>", lambda _: self.canvas.delete("cursor"))
 
     def on_select(self):
         """The slider shows the selected object's yaw: moving it keeps it."""
@@ -674,11 +763,30 @@ class CompetitionMapGUI:
 
     def on_mouse_move(self, event):
         self.canvas.config(cursor="fleur" if self.object_at(event.x, event.y) else "")
+        self.canvas.delete("cursor")
         x_m, y_m = self.pixels_to_meters(event.x, event.y)
-        if 0 <= x_m <= self.POOL_WIDTH and 0 <= y_m <= self.POOL_HEIGHT:
-            self.coord_label.config(text=f"Mouse: X: {x_m:.2f}m  Y: {y_m:.2f}m")
-        else:
+        if not (0 <= x_m <= self.POOL_WIDTH and 0 <= y_m <= self.POOL_HEIGHT):
             self.coord_label.config(text="Mouse: X: -  Y: -")
+            return
+        self.coord_label.config(text=f"Mouse: X: {x_m:.2f}m  Y: {y_m:.2f}m")
+        text = f"X {x_m:.1f}  Y {y_m:.1f}"
+        if "reference" in self.placed_objects:
+            fwd, right = self.canvas_to_map(x_m, y_m)
+            side = "right" if right >= 0 else "left"
+            text += f"\nstart: {fwd:.1f} fwd, {abs(right):.1f} {side}"
+        label = self.canvas.create_text(
+            event.x + 14,
+            event.y + 14,
+            text=text,
+            anchor=tk.NW,
+            font=("Arial", 9),
+            fill="black",
+            tags="cursor",
+        )
+        box = self.canvas.create_rectangle(
+            self.canvas.bbox(label), fill="white", outline="gray", tags="cursor"
+        )
+        self.canvas.tag_lower(box, label)
 
     def on_click(self, event):
         x_m, y_m = self.pixels_to_meters(event.x, event.y)
