@@ -250,6 +250,8 @@ class CompetitionMapGUI:
         self.vehicle_reference = None
         # prior_radius_m per object, from the vehicle.
         self.prior_radius = {}
+        # The classes' prior_radius_m, used when the prior map has none.
+        self.default_radius = {}
         self.object_z = {}
         self.canvas_padding = 40
         self.scale = 1.0
@@ -583,8 +585,11 @@ class CompetitionMapGUI:
         placed = self.placed_objects.get(name)
         if placed and placed[3] in ("line", "frame"):
             self.yaw_var.set(placed[5])
-        if name in self.prior_radius:
-            self.radius_var.set(self.prior_radius[name])
+        if self.radius_of(name):
+            self.radius_var.set(self.radius_of(name))
+
+    def radius_of(self, name):
+        return self.prior_radius.get(name) or self.default_radius.get(name)
 
     def on_radius_change(self, value):
         name = self.selected_object.get()
@@ -830,6 +835,7 @@ class CompetitionMapGUI:
         self.update_positions_text()
 
     def on_drag(self, event):
+        self.on_mouse_move(event)
         if not self.dragging:
             return
         x_m, y_m = self.pixels_to_meters(event.x, event.y)
@@ -930,7 +936,7 @@ class CompetitionMapGUI:
             px, py + 20, text=name, font=("Arial", 9, "bold"), tags="object"
         )
 
-        radius = self.prior_radius.get(name)
+        radius = self.radius_of(name)
         if radius:
             r = radius * self.scale
             self.canvas.create_oval(
@@ -1230,11 +1236,34 @@ class CompetitionMapGUI:
     def load_on_start(self):
         """Load the vehicle's prior map once the service is there (10 s)."""
         if self.get_client.service_is_ready():
+            self.load_default_radii()
             self.get_from_vehicle(quiet=True)
             return
         self._load_attempts += 1
         if self._load_attempts < 10:
             self.root.after(1000, self.load_on_start)
+
+    def load_default_radii(self):
+        """Largest prior_radius_m of the classes of each task, from the server."""
+        try:
+            req = ListParameters.Request(prefixes=["classes"], depth=3)
+            names = call(self.node, self.list_client, req).result.names
+            names = [n for n in names if n.endswith((".prior", ".prior_radius_m"))]
+            req = GetParameters.Request(names=names)
+            values = call(self.node, self.get_params_client, req).values
+        except RuntimeError as e:
+            self.node.get_logger().warn(f"No class radii: {e}")
+            return
+        got = dict(zip(names, values))
+        for name, v in got.items():
+            if not name.endswith(".prior"):
+                continue
+            r = got.get(name + "_radius_m")
+            obj = self.SERVICE_LABEL_TO_OBJECT.get(v.string_value)
+            if obj and r is not None:
+                r = r.double_value if r.type == 3 else float(r.integer_value)
+                self.default_radius[obj] = max(self.default_radius.get(obj, 0.0), r)
+        self.redraw_objects()
 
     def map_to_canvas(self, x, y):
         """Map frame (x forward, y right of the start) -> pool [m]."""
