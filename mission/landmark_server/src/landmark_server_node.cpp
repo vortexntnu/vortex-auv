@@ -122,6 +122,8 @@ class LandmarkServerNode : public rclcpp::Node {
         : rclcpp::Node(
               "landmark_server_node",
               rclcpp::NodeOptions(options)
+                  // New targets can be set live, from the map GUI
+                  .allow_undeclared_parameters(true)
                   .automatically_declare_parameters_from_overrides(true)) {
         load_config();
         std::string prefix = get_parameter_or<std::string>("frame_prefix", "");

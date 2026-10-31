@@ -33,7 +33,9 @@ ros2 launch landmark_server landmark_server.launch.py env:=sim   # simulator, pr
 The way points between tasks depend on the course, so they have their own
 file per course: `config/routes.yaml` for the pool, `routes_sim.yaml` for the
 simulator, or `routes_file:=<path>`. They are targets like the others, each on
-one frame. A new layout means editing that file, not the trees.
+one frame. A new layout means editing that file, not the trees. Save a point
+from the GUI (Route points): drive the vehicle there, choose the nearest
+object it has seen, Save vehicle here. The server takes it at once.
 
 ### Starting a map
 
@@ -234,6 +236,16 @@ Change one while running:
 ```bash
 ros2 param set /nautilus/landmark_server_node targets.standoff.x 1.5
 ```
+
+Or in the GUI, under Targets: choose one, change x, y, z or yaw.
+
+| Button | Server | File |
+|---|---|---|
+| Try on vehicle | at once, until it restarts | not changed |
+| Save to file | at once | the line in the routes file or `landmark_server.yaml`, comment kept |
+
+Try until it is right, then save. A restart only reads the file, and
+forgets what the vehicle has seen.
 
 | Target | Parents | |
 |---|---|---|

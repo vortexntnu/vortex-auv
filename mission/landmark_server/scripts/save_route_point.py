@@ -6,7 +6,7 @@ Drive the vehicle to the spot, then:
     ros2 run landmark_server save_route_point.py home_1 torpedo_board
 
 writes targets.home_1 = the vehicle's pose in torpedo_board's axes into the
-routes file, and sets it on the running server if it already has it.
+routes file, and sets it on the running server.
 """
 
 import argparse
@@ -16,6 +16,7 @@ import re
 import time
 
 import rclpy
+import yaml
 from ament_index_python.packages import get_package_share_directory
 from rcl_interfaces.srv import SetParameters
 from rclpy.node import Node
@@ -52,6 +53,47 @@ def write_point(path, name, parent, values):
     return line
 
 
+def set_values(path, name, values):
+    """Sets the numbers of targets.<name> in the file. The line, or None.
+
+    Keeps its parents, other keys and comment.
+    """
+    with open(path) as f:
+        lines = f.readlines()
+    start = next((i for i, l in enumerate(lines) if l.strip() == "targets:"), None)
+    if start is None:
+        return None
+    indent = len(lines[start]) - len(lines[start].lstrip())
+    key = re.compile(rf"^(\s+{re.escape(name)}:\s*)(\{{.*?\}})(.*)$", re.S)
+    for i in range(start + 1, len(lines)):
+        line = lines[i]
+        if line.strip() and len(line) - len(line.lstrip()) <= indent:
+            break
+        m = key.match(line)
+        if not m:
+            continue
+        target = yaml.safe_load(m[2])
+        for k, v in values.items():
+            if k in target or v != 0:
+                target[k] = float(v)
+        lines[i] = m[1] + flow(target) + m[3]
+        with open(path, "w") as f:
+            f.writelines(lines)
+        return lines[i]
+    return None
+
+
+def flow(target):
+    def text(v):
+        if isinstance(v, list):
+            return "[" + ", ".join(f'"{s}"' for s in v) + "]"
+        if isinstance(v, str):
+            return f'"{v}"'
+        return str(float(v))
+
+    return "{" + ", ".join(f"{k}: {text(v)}" for k, v in target.items()) + "}"
+
+
 def points_in(path):
     """(name, parents) of every target in the routes file."""
     out = []
@@ -63,9 +105,12 @@ def points_in(path):
 
 
 def set_request(name, parent, values):
+    """Parent None leaves the parents as they are."""
     req = SetParameters.Request()
     k = f"targets.{name}."
-    req.parameters = [Parameter(k + "parents", value=[parent]).to_parameter_msg()]
+    req.parameters = (
+        [Parameter(k + "parents", value=[parent]).to_parameter_msg()] if parent else []
+    )
     req.parameters += [
         Parameter(k + n, value=float(v)).to_parameter_msg() for n, v in values.items()
     ]
@@ -117,7 +162,7 @@ def main():
     line = write_point(path, args.name, args.parent, values)
     print(f"{path}:\n{line}", end="")
 
-    # Live too, if the server already has this target.
+    # Live too.
     client = node.create_client(
         SetParameters, f"/{args.drone}/landmark_server_node/set_parameters"
     )
@@ -127,7 +172,7 @@ def main():
     fut = client.call_async(set_request(args.name, args.parent, values))
     rclpy.spin_until_future_complete(node, fut, timeout_sec=3.0)
     ok = fut.result() and all(r.successful for r in fut.result().results)
-    print("set on the server" if ok else "new target: restart landmark_server")
+    print("set on the server" if ok else "not set on the server")
     return 0
 
 

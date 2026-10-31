@@ -9,6 +9,7 @@ tasks. Poses are sent relative to the reference (x forward, y right, z down).
 
 import collections
 import math
+import os
 import signal
 import threading
 import time
@@ -17,7 +18,7 @@ from tkinter import messagebox, ttk
 
 import rclpy
 import yaml
-from rcl_interfaces.srv import SetParameters
+from rcl_interfaces.srv import GetParameters, ListParameters, SetParameters
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import (
@@ -28,7 +29,13 @@ from rclpy.qos import (
 )
 from rclpy.signals import SignalHandlerOptions
 from rclpy.time import Time
-from save_route_point import points_in, routes_path, set_request, write_point
+from save_route_point import (
+    points_in,
+    routes_path,
+    set_request,
+    set_values,
+    write_point,
+)
 from std_msgs.msg import Empty
 from std_srvs.srv import Trigger
 from tf2_ros import Buffer, TransformException, TransformListener
@@ -226,6 +233,21 @@ class CompetitionMapGUI:
         self.placing = False
         self.load_routes()
 
+        # Targets (offsets), read from and set on the server.
+        self.config_file = str(
+            node.declare_parameter(
+                "config_file",
+                os.path.join(os.path.dirname(routes_path()), "landmark_server.yaml"),
+            ).value
+        )
+        self.targets = {}
+        self.list_client = node.create_client(
+            ListParameters, "landmark_server_node/list_parameters"
+        )
+        self.get_params_client = node.create_client(
+            GetParameters, "landmark_server_node/get_parameters"
+        )
+
         self.setup_ui()
         self.root.after(100, self.draw_pool)
         self.root.after(500, self.check_ros_service)
@@ -373,10 +395,9 @@ class CompetitionMapGUI:
         row.pack(fill=tk.X, padx=10, pady=2)
         tk.Label(row, text="Nearest object").pack(side=tk.LEFT)
         self.route_anchor = tk.StringVar(value="torpedo_board")
-        anchors = sorted({p for _, parents in self.route_points for p in parents})
-        ttk.Combobox(
-            row, textvariable=self.route_anchor, values=anchors, width=20
-        ).pack(side=tk.RIGHT)
+        anchors = ttk.Combobox(row, textvariable=self.route_anchor, width=20)
+        anchors.config(postcommand=lambda: anchors.config(values=self.anchors()))
+        anchors.pack(side=tk.RIGHT)
         self.route_position_only = tk.BooleanVar(value=True)
         tk.Checkbutton(
             left_frame, text="Position only", variable=self.route_position_only
@@ -386,6 +407,40 @@ class CompetitionMapGUI:
         ).pack(fill=tk.X, padx=10, pady=2)
         tk.Button(left_frame, text="Place by click", command=self.start_placing).pack(
             fill=tk.X, padx=10, pady=2
+        )
+
+        tk.Frame(left_frame, height=2, bg="gray").pack(fill=tk.X, padx=10, pady=8)
+        tk.Label(
+            left_frame, text="Targets (offsets):", font=("Arial", 9, "bold")
+        ).pack()
+        self.target_name = tk.StringVar()
+        box = ttk.Combobox(
+            left_frame,
+            textvariable=self.target_name,
+            postcommand=lambda: box.config(values=self.load_targets()),
+        )
+        box.pack(fill=tk.X, padx=10, pady=2)
+        box.bind("<<ComboboxSelected>>", lambda _: self.show_target())
+        self.target_parents = tk.Label(
+            left_frame, text="", wraplength=250, justify=tk.LEFT, font=("Arial", 7)
+        )
+        self.target_parents.pack(fill=tk.X, padx=10)
+        row = tk.Frame(left_frame)
+        row.pack(fill=tk.X, padx=10, pady=2)
+        self.target_values = {}
+        for k in ("x", "y", "z", "yaw"):
+            tk.Label(row, text=k).pack(side=tk.LEFT)
+            self.target_values[k] = tk.StringVar(value="0.0")
+            tk.Entry(row, textvariable=self.target_values[k], width=6).pack(
+                side=tk.LEFT
+            )
+        row = tk.Frame(left_frame)
+        row.pack(fill=tk.X, padx=10, pady=2)
+        tk.Button(row, text="Try on vehicle", command=self.try_target).pack(
+            side=tk.LEFT, fill=tk.X, expand=True
+        )
+        tk.Button(row, text="Save to file", command=self.save_target).pack(
+            side=tk.LEFT, fill=tk.X, expand=True
         )
 
         self.status_label = tk.Label(left_frame, text="ROS: Checking...", fg="orange")
@@ -411,7 +466,7 @@ class CompetitionMapGUI:
         ).pack(pady=(5, 5))
 
         self.positions_text = tk.Text(
-            left_frame, height=25, width=32, font=("Courier", 9)
+            left_frame, height=10, width=32, font=("Courier", 9)
         )
         self.positions_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         self.positions_text.config(state=tk.DISABLED)
@@ -1109,8 +1164,12 @@ class CompetitionMapGUI:
             self.route_points = []
 
     def draw_routes(self):
-        """Every route point in the file, on the first parent TF has."""
-        for name, parents in self.route_points:
+        """Route points on their first parent in TF, the chosen target on all."""
+        chosen = self.target_name.get().strip()
+        points = [(n, p, "orange", True) for n, p in self.route_points]
+        if chosen in self.targets:
+            points.append((chosen, self.targets[chosen]["parents"], "violet", False))
+        for name, parents, color, first in points:
             for parent in parents:
                 tf = self.lookup_in_map(f"{self.prefix}{parent}/{name}")
                 if tf is None:
@@ -1127,19 +1186,104 @@ class CompetitionMapGUI:
                     py + r,
                     px - r,
                     py,
-                    fill="orange",
+                    fill=color,
                     outline="black",
                     tags="live",
                 )
                 self.canvas.create_text(
                     px + r + 2,
                     py,
-                    text=name,
+                    text=name if first else f"{parent}/{name}",
                     anchor=tk.W,
                     font=("Arial", 8, "bold"),
                     tags="live",
                 )
-                break
+                if first:
+                    break
+
+    def load_targets(self):
+        """Every target the server has, with its parents and offset. Names."""
+        try:
+            req = ListParameters.Request(prefixes=["targets"], depth=3)
+            names = call(self.node, self.list_client, req).result.names
+            req = GetParameters.Request(names=names)
+            values = call(self.node, self.get_params_client, req).values
+        except RuntimeError as e:
+            messagebox.showerror("Targets", str(e))
+            return sorted(self.targets)
+        self.targets = {}
+        for full, v in zip(names, values):
+            _, name, key = full.split(".", 2)
+            t = self.targets.setdefault(
+                name, {"parents": [], "x": 0.0, "y": 0.0, "z": 0.0, "yaw": 0.0}
+            )
+            if key == "parents":
+                t["parents"] = list(v.string_array_value)
+            elif key in t:
+                t[key] = v.double_value if v.type == 3 else float(v.integer_value)
+        return sorted(self.targets)
+
+    def anchors(self):
+        """Frames a point can hang on: every parent the server knows."""
+        self.load_targets()
+        parents = [p for t in self.targets.values() for p in t["parents"]]
+        parents += [p for _, ps in self.route_points for p in ps]
+        return sorted(set(parents))
+
+    def show_target(self):
+        t = self.targets.get(self.target_name.get().strip())
+        if t is None:
+            return
+        self.target_parents.config(text="on: " + ", ".join(t["parents"]))
+        for k, var in self.target_values.items():
+            var.set(f"{t[k]:g}")
+
+    def target_request(self):
+        name = self.target_name.get().strip()
+        if name not in self.targets:
+            messagebox.showerror("Targets", "Choose a target from the list.")
+            return None
+        try:
+            values = {k: float(v.get()) for k, v in self.target_values.items()}
+        except ValueError:
+            messagebox.showerror("Targets", "x, y, z and yaw must be numbers.")
+            return None
+        return name, values
+
+    def set_target(self, name, values):
+        """On the server, until it restarts. True if it took it."""
+        try:
+            result = call(self.node, self.route_client, set_request(name, None, values))
+        except RuntimeError as e:
+            messagebox.showerror("Targets", f"Not on the vehicle: {e}")
+            return False
+        self.targets[name].update(values)
+        return all(r.successful for r in result.results)
+
+    def try_target(self):
+        chosen = self.target_request()
+        if chosen and not self.set_target(*chosen):
+            messagebox.showerror("Targets", "The server did not take it.")
+
+    def save_target(self):
+        chosen = self.target_request()
+        if not chosen:
+            return
+        name, values = chosen
+        live = self.set_target(name, values)
+        for path in (self.routes_file, self.config_file):
+            line = set_values(path, name, values)
+            if line:
+                messagebox.showinfo(
+                    "Targets",
+                    f"Saved in {path}:\n{line.strip()}"
+                    + ("" if live else "\n\nNot set on the vehicle."),
+                )
+                return
+        messagebox.showerror(
+            "Targets",
+            f"{name} is in neither {self.routes_file} nor {self.config_file}.",
+        )
 
     def canvas_to_map(self, cx, cy):
         """Pool [m] -> map frame, the inverse of map_to_canvas."""
@@ -1155,17 +1299,16 @@ class CompetitionMapGUI:
         name = self.route_name.get().strip()
         anchor = self.route_anchor.get().strip()
         line = write_point(self.routes_file, name, anchor, values)
-        known = any(n == name for n, _ in self.route_points)
         self.load_routes()
         text = f"Saved {line.strip()}"
         try:
             result = call(
                 self.node, self.route_client, set_request(name, anchor, values)
             )
-            if known and all(r.successful for r in result.results):
+            if all(r.successful for r in result.results):
                 text += "\nSet on the vehicle."
             else:
-                text += "\nNew point: restart landmark_server to use it."
+                text += "\nThe vehicle did not take it."
         except RuntimeError as e:
             text += f"\nNot on the vehicle: {e}"
         messagebox.showinfo("Route point", text)
