@@ -294,6 +294,8 @@ ros2 launch landmark_server competition_map_gui.launch.py   # drone:=nautilus
 
 1. Place the reference where the vehicle starts, pointing at the course.
 2. Place each task. The slider sets the radius its detections must be within.
+   Click a placed object to select it, drag it to move it. A click on the
+   water only places an object that is not placed yet.
 3. Send to Vehicle. It is saved to `config/premap.yaml`.
 
 While the vehicle runs the GUI also shows, relative to the reference:

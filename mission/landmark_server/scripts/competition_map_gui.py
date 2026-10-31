@@ -231,6 +231,7 @@ class CompetitionMapGUI:
             SetParameters, "landmark_server_node/set_parameters"
         )
         self.placing = False
+        self.dragging = None
         self.load_routes()
 
         # Targets (offsets), read from and set on the server.
@@ -482,6 +483,8 @@ class CompetitionMapGUI:
         self.canvas.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         self.canvas.bind("<Button-1>", self.on_click)
+        self.canvas.bind("<B1-Motion>", self.on_drag)
+        self.canvas.bind("<ButtonRelease-1>", lambda _: setattr(self, "dragging", None))
         self.canvas.bind("<Motion>", self.on_mouse_move)
         self.canvas.bind("<Configure>", self.on_resize)
 
@@ -659,7 +662,18 @@ class CompetitionMapGUI:
         y_m = (self.pool_y_offset + pool_h - py) / self.scale
         return x_m, y_m
 
+    def object_at(self, px, py):
+        """The placed object whose centre is under the mouse, or None."""
+        best = None
+        for name, (x, y, *_) in self.placed_objects.items():
+            ox, oy = self.meters_to_pixels(x, y)
+            d = math.hypot(px - ox, py - oy)
+            if d <= 15 and (best is None or d < best[0]):
+                best = (d, name)
+        return best[1] if best else None
+
     def on_mouse_move(self, event):
+        self.canvas.config(cursor="fleur" if self.object_at(event.x, event.y) else "")
         x_m, y_m = self.pixels_to_meters(event.x, event.y)
         if 0 <= x_m <= self.POOL_WIDTH and 0 <= y_m <= self.POOL_HEIGHT:
             self.coord_label.config(text=f"Mouse: X: {x_m:.2f}m  Y: {y_m:.2f}m")
@@ -676,9 +690,20 @@ class CompetitionMapGUI:
         if not (0 <= x_m <= self.POOL_WIDTH and 0 <= y_m <= self.POOL_HEIGHT):
             return
 
+        # On an object: select it, and drag to move it.
+        hit = self.object_at(event.x, event.y)
+        if hit:
+            self.selected_object.set(hit)
+            self.on_select()
+            self.dragging = hit
+            return
+
         obj_name = self.selected_object.get()
         if not obj_name:
             self.coord_label.config(text="Select an object first")
+            return
+        if obj_name in self.placed_objects:
+            self.coord_label.config(text=f"{obj_name} is placed: drag it to move it")
             return
         obj_color = "black"
         obj_type = "point"
@@ -693,6 +718,20 @@ class CompetitionMapGUI:
 
         yaw = self.yaw_var.get() if obj_type in ("line", "frame") else 0
         self.placed_objects[obj_name] = (x_m, y_m, obj_color, obj_type, obj_length, yaw)
+        self.redraw_objects()
+        self.update_positions_text()
+
+    def on_drag(self, event):
+        if not self.dragging:
+            return
+        x_m, y_m = self.pixels_to_meters(event.x, event.y)
+        x_m = min(max(x_m, 0.0), self.POOL_WIDTH)
+        y_m = min(max(y_m, 0.0), self.POOL_HEIGHT)
+        self.placed_objects[self.dragging] = (
+            x_m,
+            y_m,
+            *self.placed_objects[self.dragging][2:],
+        )
         self.redraw_objects()
         self.update_positions_text()
 
