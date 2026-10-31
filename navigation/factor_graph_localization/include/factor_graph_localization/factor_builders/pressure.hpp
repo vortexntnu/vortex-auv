@@ -8,7 +8,7 @@
 namespace vortex::navigation {
 
 struct PressureMeasurement {
-    /// Temperature-compensated absolute pressure from PressureSensor [Pa].
+    /// Absolute pressure from PressureSensor [Pa].
     double pressure_pa;
     /// Positive effective pressure standard deviation [Pa].
     double sigma_pa;
