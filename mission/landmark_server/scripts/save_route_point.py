@@ -24,6 +24,51 @@ from rclpy.time import Time
 from tf2_ros import Buffer, TransformException, TransformListener
 
 
+def routes_path(sim=False):
+    return os.path.join(
+        get_package_share_directory("landmark_server"),
+        "config",
+        "routes_sim.yaml" if sim else "routes.yaml",
+    )
+
+
+def write_point(path, name, parent, values):
+    """Writes or replaces targets.<name> in the routes file. The line."""
+    nums = ", ".join(f"{k}: {float(v)}" for k, v in values.items())
+    line = f'      {name}: {{parents: ["{parent}"], {nums}}}\n'
+    with open(path) as f:
+        lines = f.readlines()
+    key = re.compile(rf"^\s+{re.escape(name)}:\s")
+    i = next((i for i, l in enumerate(lines) if key.match(l)), None)
+    if i is None:
+        lines.append(line)
+    else:
+        lines[i] = line
+    with open(path, "w") as f:
+        f.writelines(lines)
+    return line
+
+
+def points_in(path):
+    """(name, parents) of every target in the routes file."""
+    out = []
+    for line in open(path):
+        m = re.match(r"^\s+(\w+): \{parents: \[([^\]]*)\]", line)
+        if m:
+            out.append((m[1], re.findall(r'"([^"]+)"', m[2])))
+    return out
+
+
+def set_request(name, parent, values):
+    req = SetParameters.Request()
+    k = f"targets.{name}."
+    req.parameters = [Parameter(k + "parents", value=[parent]).to_parameter_msg()]
+    req.parameters += [
+        Parameter(k + n, value=float(v)).to_parameter_msg() for n, v in values.items()
+    ]
+    return req
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("name", help="target name, e.g. home_1")
@@ -34,11 +79,7 @@ def main():
     ap.add_argument("--file", help="routes file (default: the package's)")
     ap.add_argument("--position-only", action="store_true", help="no yaw")
     args = ap.parse_args()
-    path = args.file or os.path.join(
-        get_package_share_directory("landmark_server"),
-        "config",
-        "routes_sim.yaml" if args.sim else "routes.yaml",
-    )
+    path = args.file or routes_path(args.sim)
 
     rclpy.init()
     node = Node("save_route_point")
@@ -70,19 +111,7 @@ def main():
     }
     if not args.position_only:
         values["yaw"] = round(yaw, 1)
-    nums = ", ".join(f"{k}: {float(v)}" for k, v in values.items())
-    line = f'      {args.name}: {{parents: ["{args.parent}"], {nums}}}\n'
-
-    with open(path) as f:
-        lines = f.readlines()
-    key = re.compile(rf"^\s+{re.escape(args.name)}:\s")
-    i = next((i for i, l in enumerate(lines) if key.match(l)), None)
-    if i is None:
-        lines.append(line)
-    else:
-        lines[i] = line
-    with open(path, "w") as f:
-        f.writelines(lines)
+    line = write_point(path, args.name, args.parent, values)
     print(f"{path}:\n{line}", end="")
 
     # Live too, if the server already has this target.
@@ -92,13 +121,7 @@ def main():
     if not client.wait_for_service(timeout_sec=2.0):
         print("landmark_server is not running: it reads the file at start")
         return 0
-    req = SetParameters.Request()
-    k = f"targets.{args.name}."
-    req.parameters = [Parameter(k + "parents", value=[args.parent]).to_parameter_msg()]
-    req.parameters += [
-        Parameter(k + n, value=float(v)).to_parameter_msg() for n, v in values.items()
-    ]
-    fut = client.call_async(req)
+    fut = client.call_async(set_request(args.name, args.parent, values))
     rclpy.spin_until_future_complete(node, fut, timeout_sec=3.0)
     ok = fut.result() and all(r.successful for r in fut.result().results)
     print("set on the server" if ok else "new target: restart landmark_server")

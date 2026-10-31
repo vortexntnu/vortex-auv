@@ -13,10 +13,11 @@ import signal
 import threading
 import time
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 
 import rclpy
 import yaml
+from rcl_interfaces.srv import SetParameters
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import (
@@ -27,6 +28,7 @@ from rclpy.qos import (
 )
 from rclpy.signals import SignalHandlerOptions
 from rclpy.time import Time
+from save_route_point import points_in, routes_path, set_request, write_point
 from std_msgs.msg import Empty
 from std_srvs.srv import Trigger
 from tf2_ros import Buffer, TransformException, TransformListener
@@ -212,6 +214,18 @@ class CompetitionMapGUI:
             qos_profile_sensor_data,
         )
 
+        # Route points (routes.yaml), drawn where TF has them.
+        self.prefix = prefix
+        self.routes_file = str(
+            node.declare_parameter("routes_file", routes_path()).value
+        )
+        self.route_points = []
+        self.route_client = node.create_client(
+            SetParameters, "landmark_server_node/set_parameters"
+        )
+        self.placing = False
+        self.load_routes()
+
         self.setup_ui()
         self.root.after(100, self.draw_pool)
         self.root.after(500, self.check_ros_service)
@@ -347,6 +361,32 @@ class CompetitionMapGUI:
             text="New map at the vehicle",
             command=self.new_map,
         ).pack(fill=tk.X, padx=10, pady=2)
+
+        tk.Frame(left_frame, height=2, bg="gray").pack(fill=tk.X, padx=10, pady=8)
+        tk.Label(left_frame, text="Route points:", font=("Arial", 9, "bold")).pack()
+        row = tk.Frame(left_frame)
+        row.pack(fill=tk.X, padx=10, pady=2)
+        tk.Label(row, text="Name").pack(side=tk.LEFT)
+        self.route_name = tk.StringVar(value="home_0")
+        tk.Entry(row, textvariable=self.route_name, width=14).pack(side=tk.RIGHT)
+        row = tk.Frame(left_frame)
+        row.pack(fill=tk.X, padx=10, pady=2)
+        tk.Label(row, text="Nearest object").pack(side=tk.LEFT)
+        self.route_anchor = tk.StringVar(value="torpedo_board")
+        anchors = sorted({p for _, parents in self.route_points for p in parents})
+        ttk.Combobox(
+            row, textvariable=self.route_anchor, values=anchors, width=20
+        ).pack(side=tk.RIGHT)
+        self.route_position_only = tk.BooleanVar(value=True)
+        tk.Checkbutton(
+            left_frame, text="Position only", variable=self.route_position_only
+        ).pack(anchor=tk.W, padx=10)
+        tk.Button(
+            left_frame, text="Save vehicle here", command=self.save_vehicle_point
+        ).pack(fill=tk.X, padx=10, pady=2)
+        tk.Button(left_frame, text="Place by click", command=self.start_placing).pack(
+            fill=tk.X, padx=10, pady=2
+        )
 
         self.status_label = tk.Label(left_frame, text="ROS: Checking...", fg="orange")
         self.status_label.pack(pady=5)
@@ -573,6 +613,10 @@ class CompetitionMapGUI:
 
     def on_click(self, event):
         x_m, y_m = self.pixels_to_meters(event.x, event.y)
+        if self.placing:
+            self.placing = False
+            self.place_point(x_m, y_m)
+            return
 
         if not (0 <= x_m <= self.POOL_WIDTH and 0 <= y_m <= self.POOL_HEIGHT):
             return
@@ -1004,12 +1048,11 @@ class CompetitionMapGUI:
         if reschedule:
             self.root.after(LIVE_PERIOD_MS, self.draw_live_map)
         self.canvas.delete("live")
+        if "reference" not in self.placed_objects:
+            return
+        self.draw_routes()
         live = self.live_map
-        if (
-            not self.show_live.get()
-            or live is None
-            or "reference" not in self.placed_objects
-        ):
+        if not self.show_live.get() or live is None:
             return
         tf = self.lookup_in_map(live.header.frame_id)
         if tf is None:
@@ -1057,6 +1100,132 @@ class CompetitionMapGUI:
             "The course heading is kept, so the vehicle may point any way.",
         ):
             self.wipe_pub.publish(Empty())
+
+    def load_routes(self):
+        try:
+            self.route_points = points_in(self.routes_file)
+        except OSError as e:
+            self.node.get_logger().warn(f"No routes file: {e}")
+            self.route_points = []
+
+    def draw_routes(self):
+        """Every route point in the file, on the first parent TF has."""
+        for name, parents in self.route_points:
+            for parent in parents:
+                tf = self.lookup_in_map(f"{self.prefix}{parent}/{name}")
+                if tf is None:
+                    continue
+                (x, y, _), _ = tf
+                px, py = self.meters_to_pixels(*self.map_to_canvas(x, y))
+                r = 6
+                self.canvas.create_polygon(
+                    px,
+                    py - r,
+                    px + r,
+                    py,
+                    px,
+                    py + r,
+                    px - r,
+                    py,
+                    fill="orange",
+                    outline="black",
+                    tags="live",
+                )
+                self.canvas.create_text(
+                    px + r + 2,
+                    py,
+                    text=name,
+                    anchor=tk.W,
+                    font=("Arial", 8, "bold"),
+                    tags="live",
+                )
+                break
+
+    def canvas_to_map(self, cx, cy):
+        """Pool [m] -> map frame, the inverse of map_to_canvas."""
+        ref = self.placed_objects["reference"]
+        heading = math.radians(ref[5] + 90)
+        dx, dy = cx - ref[0], cy - ref[1]
+        return (
+            dx * math.cos(heading) + dy * math.sin(heading),
+            dx * math.sin(heading) - dy * math.cos(heading),
+        )
+
+    def save_route_point(self, values):
+        name = self.route_name.get().strip()
+        anchor = self.route_anchor.get().strip()
+        line = write_point(self.routes_file, name, anchor, values)
+        known = any(n == name for n, _ in self.route_points)
+        self.load_routes()
+        text = f"Saved {line.strip()}"
+        try:
+            result = call(
+                self.node, self.route_client, set_request(name, anchor, values)
+            )
+            if known and all(r.successful for r in result.results):
+                text += "\nSet on the vehicle."
+            else:
+                text += "\nNew point: restart landmark_server to use it."
+        except RuntimeError as e:
+            text += f"\nNot on the vehicle: {e}"
+        messagebox.showinfo("Route point", text)
+
+    def save_vehicle_point(self):
+        """The vehicle's pose in the anchor's axes."""
+        anchor = self.route_anchor.get().strip()
+        try:
+            t = self.tf_buffer.lookup_transform(
+                self.prefix + anchor, self.base_frame, Time()
+            ).transform
+        except TransformException as e:
+            messagebox.showerror("Route point", f"No transform from {anchor}: {e}")
+            return
+        values = {
+            "x": round(t.translation.x, 2),
+            "y": round(t.translation.y, 2),
+            "z": round(t.translation.z, 2),
+        }
+        if not self.route_position_only.get():
+            q = t.rotation
+            values["yaw"] = round(
+                math.degrees(yaw_from_quaternion((q.x, q.y, q.z, q.w))), 1
+            )
+        self.save_route_point(values)
+
+    def start_placing(self):
+        if "reference" not in self.placed_objects:
+            messagebox.showerror("Route point", "Place the reference first.")
+            return
+        self.placing = True
+        self.coord_label.config(text="Click where the route point goes")
+
+    def place_point(self, cx, cy):
+        """A clicked point in the anchor's axes, at its old depth or the vehicle's."""
+        anchor = self.route_anchor.get().strip()
+        tf = self.lookup_in_map(self.prefix + anchor)
+        if tf is None:
+            messagebox.showerror("Route point", f"{anchor} is not in TF.")
+            return
+        (ax, ay, _), q = tf
+        mx, my = self.canvas_to_map(cx, cy)
+        yaw = yaw_from_quaternion(q)
+        dx, dy = mx - ax, my - ay
+        z = 0.0
+        old = self.lookup_in_map(
+            f"{self.prefix}{anchor}/{self.route_name.get().strip()}"
+        )
+        vehicle = self.lookup_in_map(self.base_frame)
+        if old is not None:
+            z = old[0][2] - tf[0][2]
+        elif vehicle is not None:
+            z = vehicle[0][2] - tf[0][2]
+        self.save_route_point(
+            {
+                "x": round(dx * math.cos(yaw) + dy * math.sin(yaw), 2),
+                "y": round(-dx * math.sin(yaw) + dy * math.cos(yaw), 2),
+                "z": round(z, 2),
+            }
+        )
 
     def lookup_in_map(self, frame):
         """Latest (translation, quaternion) of a frame in the map, or None."""
@@ -1267,7 +1436,8 @@ class CompetitionMapGUI:
                 frame_heading_rad
             )
 
-            quat = obj_data.get("orientation", [0.0, 0.0, 0.0, 1.0])
+            # yaml reads 1e-07 (no dot) as a string.
+            quat = [float(v) for v in obj_data.get("orientation", [0.0, 0.0, 0.0, 1.0])]
             obj_yaw = -math.degrees(yaw_from_quaternion(quat)) + ref_yaw
             while obj_yaw > 180:
                 obj_yaw -= 360
