@@ -8,8 +8,8 @@ namespace vortex::navigation {
 
 /**
  * preint_start/end: graph states bounding the preintegration interval.
- * Pose keys: STIM300 poses in GTSAM's fixed reference frame.
- * Velocity keys: STIM300-origin velocities in that fixed frame [m/s].
+ * Pose keys: IMU poses in GTSAM's fixed reference frame.
+ * Velocity keys: IMU-origin velocities in that fixed frame [m/s].
  * IMU bias key: accelerometer [m/s^2] and gyro [rad/s] biases at preint_start,
  * expressed in IMU axes.
  * preintegrated_measurements: accumulated IMU measurements and covariance.
