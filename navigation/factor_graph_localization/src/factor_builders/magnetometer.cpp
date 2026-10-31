@@ -21,9 +21,8 @@ gtsam::MagPoseFactor<gtsam::Pose3> build_magnetometer_factor(
     const auto field_noise_model =
         gtsam::noiseModel::Gaussian::Covariance(covariance_IMU_tesla2);
 
-    // MagPoseFactor converts the reference field vector to a unit vector.
-    // Pass its norm separately as the scale so the factor reconstructs the
-    // full reference field, including its magnitude in tesla.
+    // Preserve the reference field's strength so the predicted and measured
+    // magnetic fields are compared in tesla.
     return gtsam::MagPoseFactor<gtsam::Pose3>(
         IMU_pose_key, field_IMU_tesla, field_STARTUP_tesla.norm(),
         field_STARTUP_tesla, gtsam::Vector3::Zero(), field_noise_model, {});
