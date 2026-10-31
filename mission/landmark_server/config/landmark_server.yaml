@@ -42,7 +42,7 @@
       entry: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: -1.5, z: 0.8}   # clear of the gate's centre pole
       exit: {parents: ["gate_middle", "gate_search_rescue", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: 1.5, z: 0.8}
       # The way back through the gate, facing the start
-      look_back: {parents: ["gate_middle", "gate_search_rescue", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: 2.0, z: 0.1, yaw: 180.0}   # level with the panels, to see them, clear of them with 1 m drift
+      look_back: {parents: ["gate_middle", "gate_search_rescue", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: 1.5, z: 0.1, yaw: 180.0}   # level with the panels, to see them. Halfway to the slalom: 2 m puts the stern 0.4 m from its first row
       exit_back: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: 1.5, z: 0.8, yaw: 180.0}
       entry_back: {parents: ["gate_middle", "gate_search_rescue/measured", "gate_survey_repair/measured"], x: -1.5, z: 0.8, yaw: 180.0}
       gap_left_entry: {parents: ["slalom_row/measured", "slalom_row/measured/next", "slalom/measured/row0", "slalom/measured/row1", "slalom/measured/row2"], x: -1.0, y: -0.75}
