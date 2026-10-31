@@ -8,7 +8,7 @@ gtsam::MagPoseFactor<gtsam::Pose3> build_magnetometer_factor(
     const gtsam::Key IMU_pose_key,
     const MagnetometerMeasurement& magnetometer_measurement,
     const gtsam::Rot3& IMU_R_MAG,
-    const gtsam::Vector3& field_LOCAL_tesla) {
+    const gtsam::Vector3& field_STARTUP_tesla) {
     const gtsam::Vector3 field_IMU_tesla =
         IMU_R_MAG.rotate(magnetometer_measurement.field_MAG_tesla);
 
@@ -23,8 +23,8 @@ gtsam::MagPoseFactor<gtsam::Pose3> build_magnetometer_factor(
 
     // MagPoseFactor normalizes direction; scale retains the field magnitude.
     return gtsam::MagPoseFactor<gtsam::Pose3>(
-        IMU_pose_key, field_IMU_tesla, field_LOCAL_tesla.norm(),
-        field_LOCAL_tesla, gtsam::Vector3::Zero(), field_noise_model, {});
+        IMU_pose_key, field_IMU_tesla, field_STARTUP_tesla.norm(),
+        field_STARTUP_tesla, gtsam::Vector3::Zero(), field_noise_model, {});
 }
 
 }  // namespace vortex::navigation
