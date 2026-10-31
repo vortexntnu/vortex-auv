@@ -10,7 +10,7 @@ namespace vortex::navigation {
 /**
  * @brief DVL beam prediction h(v_IMU) [m/s], assuming a stationary bottom.
  *
- * IMU = STIM300 sensing frame; DVL = Nucleus DVL virtual reference frame.
+ * IMU is the navigation sensing frame; DVL is the measurement reference frame.
  * v_IMU: IMU-origin velocity relative to bottom, in IMU axes [m/s].
  * omega: bias-corrected angular velocity in IMU axes [rad/s].
  * r: IMU -> DVL origin offset in IMU axes [m].

@@ -10,22 +10,22 @@ namespace vortex::navigation {
 
 struct DvlBeamMeasurement {
     double vel_mps;
-    /// Positive Nucleus beam Figure Of Merit (standard deviation).
+    /// Positive DVL beam velocity standard deviation [m/s].
     double sigma_mps;
 };
 
 struct DvlBeamGeometry {
     /// Outward beam direction in DVL axes, configured in sensors.yaml.
     gtsam::Unit3 beam_direction;
-    /// DVL -> STIM300 transform using Nucleus's virtual origin
-    /// STIM300 -> DVL origin, in STIM300 axes [m].
+    /// DVL -> IMU transform using the DVL measurement reference origin.
+    /// Translation: IMU -> DVL origin, in IMU axes [m].
     gtsam::Pose3 IMU_P_DVL;
 };
 
 /**
- * IMU_origin_vel: Vector3 state at the STIM300 origin, in STIM300 axes,
+ * IMU_origin_vel: Vector3 state at the IMU origin, in IMU axes,
  * relative to the stationary bottom [m/s].
- * angular_vel: bias-corrected gyro in STIM300 axes [rad/s].
+ * angular_vel: bias-corrected gyro in IMU axes [rad/s].
  */
 gtsam::ExpressionFactor<double> build_dvl_beam_factor(
     const gtsam::Key IMU_origin_vel,
