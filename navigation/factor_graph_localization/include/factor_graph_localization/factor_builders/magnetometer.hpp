@@ -9,7 +9,7 @@
 namespace vortex::navigation {
 
 struct MagnetometerMeasurement {
-    /// Calibrated MMC5983MA field in MAG axes [T], with bridge-offset and
+    /// Calibrated field in MAG axes [T], with bridge-offset and
     /// hard/soft-iron corrections applied.
     gtsam::Vector3 field_MAG_tesla;
     /// Effective field covariance in calibrated MAG axes [T^2].
@@ -17,9 +17,9 @@ struct MagnetometerMeasurement {
 };
 
 /**
- * IMU_pose_key: STIM300 Pose3 graph variable at the measurement timestamp,
+ * IMU_pose_key: IMU Pose3 graph variable at the measurement timestamp,
  * expressed in the fixed STARTUP reference with z down and startup yaw zero.
- * IMU_R_MAG: MAG -> STIM300 mounting rotation.
+ * IMU_R_MAG: MAG -> IMU mounting rotation.
  * field_STARTUP_tesla: fixed nonzero reference field [T], uniform over the
  * mission.
  */
