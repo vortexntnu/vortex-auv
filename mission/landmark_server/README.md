@@ -238,7 +238,7 @@ ros2 param set /nautilus/landmark_server_node targets.standoff.x 1.5
 | Target | Parents | |
 |---|---|---|
 | `entry`, `exit` | `gate_middle`, a measured gate panel | 1.5 m before and after the gate, 0.8 m below the panels |
-| `look_back` | the same, and `gate_search_rescue` | Where to look at the gate from on the way back: 1.5 m after it, level with the panels. 0.8 m below them they are at the edge of the camera's view |
+| `look_back` | the same, and `gate_search_rescue` | Where to look at the gate from on the way back: 2 m after it, level with the panels. 0.8 m below them they are at the edge of the camera's view |
 | `exit_back`, `entry_back` | the same | The way back: 1.5 m after and before the gate, facing the start |
 | `gap_left_entry`, `gap_left_exit`, `gap_right_*` | `slalom_row/measured`, `.../next`, `slalom/measured/row0..2` | 1 m before and after the middle of each gap |
 | `next` | `slalom_row/measured` | Where the next row should be |
