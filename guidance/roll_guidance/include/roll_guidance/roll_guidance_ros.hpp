@@ -9,6 +9,7 @@
 #include <string>
 
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
@@ -22,6 +23,7 @@
 #include <vortex_msgs/msg/waypoint_mode.hpp>
 
 #include "roll_guidance/roll_guidance.hpp"
+#include "roll_guidance/roll_tracker.hpp"
 
 namespace vortex::guidance {
 
@@ -163,7 +165,7 @@ class ROLLGuidanceNode : public rclcpp::Node {
      * @param current_position Current AUV position.
      * @param gate_position Gate position in the same reference frame.
      * @return true if the AUV is within the trigger distance,
-     *         false otherwise.
+     * false otherwise.
      */
     bool should_start_roll(
         const Eigen::Vector3d& current_position,
@@ -212,7 +214,7 @@ class ROLLGuidanceNode : public rclcpp::Node {
      * allowing pending ROS 2 action messages to be transmitted.
      *
      * @note Calling rclcpp::shutdown() stops the entire ROS 2
-     *       context, not only this node.
+     * context, not only this node.
      */
     void request_shutdown();
 
@@ -235,7 +237,7 @@ class ROLLGuidanceNode : public rclcpp::Node {
 
     rclcpp::CallbackGroup::SharedPtr cb_group_;
 
-    // Gate state
+    //gate state
     Eigen::Vector3d gate_position_{Eigen::Vector3d::Zero()};
     bool gate_received_{false};
 
@@ -243,7 +245,7 @@ class ROLLGuidanceNode : public rclcpp::Node {
      * @brief Normal vector of the gate plane.
      *
      * Defines the direction in which the AUV must cross the gate.
-     * The vector must be normalized before use.
+     * The vector must be normalised before use.
      */
     Eigen::Vector3d gate_normal_{1.0, 0.0, 0.0};
 
@@ -266,6 +268,16 @@ class ROLLGuidanceNode : public rclcpp::Node {
     vortex::utils::types::Pose current_pose_;
     bool pose_received_{false};
 
+    /**
+     * @brief Verifies the measured roll and final AUV orientation.
+     *
+     * @return true if the requested rotation and final orientation
+     *         have both converged within their configured tolerances.
+     *
+     * @note Must be called while holding mutex_.
+     */
+    bool roll_verified() const;
+
     //timing
     std::chrono::milliseconds time_step_{10};
 
@@ -274,7 +286,7 @@ class ROLLGuidanceNode : public rclcpp::Node {
     std::shared_ptr<GoalHandleROLL> goal_handle_;
 
     /**
-     * @brief Prevents the ROLL action from being finalized more than once.
+     * @brief Prevents the ROLL action from being finalised more than once.
      *
      * This atomic flag ensures that only the first terminal event
      * can initiate action completion.
@@ -287,6 +299,45 @@ class ROLLGuidanceNode : public rclcpp::Node {
      * Prevents multiple shutdown requests from being scheduled.
      */
     std::atomic<bool> shutdown_requested_{false};
+
+    /**
+     * @brief Tracks actual signed roll measured from the AUV pose.
+     */
+    RollTracker roll_tracker_;
+
+    /**
+     * @brief Indicates that the roll tracker is currently active.
+     */
+    bool roll_tracking_active_{false};
+
+    /**
+     * @brief Indicates that a roll measurement was rejected.
+     */
+    bool roll_tracking_error_{false};
+
+    /**
+     * @brief Maximum difference between requested and measured
+     * total roll at completion, in radians.
+     */
+    double roll_tolerance_{0.0872664626}; //5 degrees
+
+    /**
+     * @brief Maximum allowed final orientation error in radians.
+     */
+    double orientation_tolerance_{0.0872664626};
+
+    /**
+     * @brief Initial orientation captured when the roll starts.
+     */
+    Eigen::Quaterniond roll_initial_orientation_{
+        Eigen::Quaterniond::Identity()};
+
+    /**
+     * @brief Indicates whether a ROLL action goal has been claimed.
+     *
+     * @note The existing node supports one maneuver per execution.
+     */
+    std::atomic<bool> goal_claimed_{false};
 
     /**
      * @brief Indicates whether a ROLL action goal has already been accepted.

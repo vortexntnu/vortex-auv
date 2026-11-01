@@ -18,7 +18,7 @@ namespace vortex::guidance {
  * @brief Constructs the ROLL guidance ROS 2 node.
  *
  * Initialises subscribers, the ROLL action server, the roll
- * maneuver generator, and the Waypoint Manager action client.
+ * manoeuver generator, and the Waypoint Manager action client.
  *
  * @param options ROS 2 node configuration options.
  */
@@ -138,7 +138,7 @@ void ROLLGuidanceNode::set_waypoint_manager_client() {
 }
 
 /**
- * @brief Configures the roll maneuver generator and gate plane.
+ * @brief Configures the roll manoeuver generator and gate plane.
  *
  * Reads the roll angle, number of steps, trigger distance,
  * and gate-plane normal from ROS 2 parameters.
@@ -189,7 +189,24 @@ void ROLLGuidanceNode::set_roll_guidance() {
             "roll.gate_normal must be finite and nonzero");
     }
 
-    gate_normal_.normalize();
+    gate_normal_.normalise();
+
+    roll_tolerance_ = this->declare_parameter<double>(
+        "roll.roll_tolerance_degrees", 5.0)
+        * M_PI / 180.0;
+
+    orientation_tolerance_ = this->declare_parameter<double>(
+        "roll.orientation_tolerance_degrees", 5.0)
+        * M_PI / 180.0;
+
+    if (!std::isfinite(roll_tolerance_) ||
+        !std::isfinite(orientation_tolerance_) ||
+        roll_tolerance_ <= 0.0 ||
+        orientation_tolerance_ <= 0.0) {
+        throw std::invalid_argument(
+            "ROLL tolerances must be positive and finite");
+    }
+
 }
 
 /**
@@ -245,9 +262,38 @@ void ROLLGuidanceNode::pose_callback(
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
+        
+        const Eigen::Quaterniond measured_q = pose.ori_quaternion();
+
+        if (!measured_q.coeffs().allFinite() ||
+            !std::isfinite(measured_q.norm()) ||
+            measured_q.norm() < 1e-9 ||
+            !pose.pos_vector().allFinite()) {
+
+            roll_tracking_error_ = true;
+            RCLCPP_ERROR(
+                this->get_logger(),
+                "Received invalid AUV pose");
+
+            return;
+        }
 
         current_pose_ = pose;
         pose_received_ = true;
+
+        if (roll_tracking_active_ && !roll_tracking_error_) {
+            try {
+                roll_tracker_.observe(measured_q);
+            } catch (const std::exception& exception) {
+                roll_tracking_error_ = true;
+
+                RCLCPP_ERROR(
+                    this->get_logger(),
+                    "ROLL tracking failed: %s",
+                    exception.what());
+            }
+        }
+
 
         if (gate_received_ && !finishing_.load()) {
             if (has_passed_gate(pose.pos_vector())) {
@@ -269,7 +315,7 @@ void ROLLGuidanceNode::pose_callback(
  * @brief Processes an incoming gate waypoint.
  *
  * Updates the gate position and resets crossing detection
- * before an active maneuver begins.
+ * before an active manoeuver begins.
  *
  * @param msg Incoming gate position message.
  *
@@ -300,7 +346,7 @@ void ROLLGuidanceNode::waypoint_callback(
  * @brief Evaluates an incoming ROLL guidance action goal.
  *
  * Accepts the first goal and rejects subsequent goals.
- * This node is designed to execute one ROLL maneuver before
+ * This node is designed to execute one ROLL manoeuver before
  * shutting down.
  *
  * @param uuid Unique goal identifier.
@@ -362,7 +408,7 @@ rclcpp_action::CancelResponse ROLLGuidanceNode::handle_cancel(
 /**
  * @brief Starts execution of an accepted ROLL goal.
  *
- * Launches a separate thread to execute the maneuver without
+ * Launches a separate thread to execute the manoeuver without
  * blocking the ROS 2 action server callback.
  *
  * @param goal_handle Handle of the accepted goal.
@@ -412,6 +458,41 @@ bool ROLLGuidanceNode::has_passed_gate(
     }
 
     return gate_passed_;
+}
+
+/**
+ * @brief Verifies the measured roll and final AUV orientation.
+ *
+ * @return true if measured roll and final attitude are within
+ *         the configured tolerances.
+ *
+ * @note Must be called while holding mutex_.
+ */
+bool ROLLGuidanceNode::roll_verified() const {
+    if (!roll_tracking_active_ ||
+        roll_tracking_error_ ||
+        !pose_received_ ||
+        !roll_tracker_.initialised()) {
+        return false;
+    }
+
+    if (!roll_tracker_.completed(
+            params_.roll_angle, roll_tolerance_)) {
+        return false;
+    }
+
+    const Eigen::Quaterniond desired_final =
+        roll_initial_orientation_ *
+        Eigen::Quaterniond(
+            Eigen::AngleAxisd(
+                params_.roll_angle,
+                Eigen::Vector3d::UnitX()));
+
+    const Eigen::Quaterniond measured =
+        current_pose_.ori_quaternion().normalized();
+
+    return measured.angularDistance(desired_final) <=
+           orientation_tolerance_;
 }
 
 /**
@@ -518,7 +599,7 @@ void ROLLGuidanceNode::request_shutdown() {
  * Waypoint Manager.
  *
  * The ROLL action terminates when either:
- * - The Waypoint Manager finishes the maneuver.
+ * - The Waypoint Manager finishes the manoeuver.
  * - The AUV passes the gate.
  * - The action is canceled or fails.
  *
@@ -577,11 +658,45 @@ void ROLLGuidanceNode::execute(
             loop_rate.sleep();
             continue;
         }
+        
+        spdlog::info("Starting ROLL manoeuver");
 
-        spdlog::info("Starting ROLL maneuver");
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
 
-        const auto poses =
-            roll_guidance_->generate_waypoints(initial_pose);
+            try {
+                roll_initial_orientation_ =
+                    initial_pose.ori_quaternion().normalized();
+
+                roll_tracker_.reset(roll_initial_orientation_);
+
+                roll_tracking_active_ = true;
+                roll_tracking_error_ = false;
+
+            } catch (const std::exception& exception) {
+                roll_tracking_active_ = false;
+                roll_tracking_error_ = true;
+
+                RCLCPP_ERROR(
+                    this->get_logger(),
+                    "Cannot initialize ROLL tracker: %s",
+                    exception.what());
+            }
+        }
+
+        bool tracker_failed = false;
+
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            tracker_failed = roll_tracking_error_;
+        }
+
+        if (tracker_failed) {
+            finish_roll(goal_handle, FinishReason::Failed);
+            return;
+        }
+
+        const auto poses = roll_guidance_->generate_waypoints(initial_pose);
 
         WaypointManager::Goal waypoint_goal;
         waypoint_goal.convergence_threshold = 0.1;
@@ -683,15 +798,41 @@ void ROLLGuidanceNode::execute(
                         goal_handle,
                         FinishReason::Canceled);
 
+                
                 } else if (succeeded) {
-                    spdlog::info("ROLL maneuver completed");
+                    bool verified = false;
+                    double measured_roll = 0.0;
 
-                    finish_roll(
-                        goal_handle,
-                        FinishReason::Completed);
+                    {
+                        std::lock_guard<std::mutex> lock(mutex_);
+
+                        verified = roll_verified();
+                        measured_roll =
+                            roll_tracker_.completed_roll();
+                    }
+
+                    if (verified) {
+                        spdlog::info(
+                            "ROLL verified: measured {:.2f} degrees",
+                            measured_roll * 180.0 / M_PI);
+
+                        finish_roll(
+                            goal_handle,
+                            FinishReason::Completed);
+
+                    } else {
+                        spdlog::error(
+                            "Waypoint Manager succeeded, but measured "
+                            "ROLL was not verified: {:.2f} degrees",
+                            measured_roll * 180.0 / M_PI);
+
+                        finish_roll(
+                            goal_handle,
+                            FinishReason::Failed);
+                    }
 
                 } else {
-                    spdlog::error("ROLL maneuver failed");
+                    spdlog::error("ROLL manoeuver failed");
 
                     finish_roll(
                         goal_handle,
