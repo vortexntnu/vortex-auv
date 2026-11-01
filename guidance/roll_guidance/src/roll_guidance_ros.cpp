@@ -31,8 +31,6 @@ ROLLGuidanceNode::ROLLGuidanceNode(
     set_roll_guidance();
     set_waypoint_manager_client();
 
-    spdlog::info("ROLL guidance node started");
-
     /**
      * @brief Disables global ROS shutdown during integration tests.
      *
@@ -40,6 +38,16 @@ ROLLGuidanceNode::ROLLGuidanceNode(
      */
     this->declare_parameter<bool>("test.disable_shutdown", false);
 
+    /**
+     * @brief Creates a watchdog timer to monitor pose and gate freshness.
+     */
+    watchdog_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(100),
+        std::bind(
+            &ROLLGuidanceNode::watchdog_callback,
+            this));
+
+    spdlog::info("ROLL guidance node started");
 }
 
 /**
@@ -76,6 +84,19 @@ void ROLLGuidanceNode::set_subscribers() {
             rclcpp::QoS(10),
             std::bind(
                 &ROLLGuidanceNode::waypoint_callback,
+                this,
+                std::placeholders::_1));
+
+    const std::string killswitch_topic =
+        this->declare_parameter<std::string>(
+            "topics.killswitch", "killswitch");
+
+    killswitch_sub_ =
+        this->create_subscription<std_msgs::msg::Bool>(
+            killswitch_topic,
+            rclcpp::QoS(10).reliable(),
+            std::bind(
+                &ROLLGuidanceNode::killswitch_callback,
                 this,
                 std::placeholders::_1));
 }
@@ -189,7 +210,7 @@ void ROLLGuidanceNode::set_roll_guidance() {
             "roll.gate_normal must be finite and nonzero");
     }
 
-    gate_normal_.normalise();
+    gate_normal_.normalize();
 
     roll_tolerance_ = this->declare_parameter<double>(
         "roll.roll_tolerance_degrees", 5.0)
@@ -199,14 +220,32 @@ void ROLLGuidanceNode::set_roll_guidance() {
         "roll.orientation_tolerance_degrees", 5.0)
         * M_PI / 180.0;
 
+    pose_timeout_seconds_ =
+    this->declare_parameter<double>(
+        "roll.pose_timeout_seconds", 0.5);
+
+    trigger_timeout_seconds_ =
+        this->declare_parameter<double>(
+            "roll.trigger_timeout_seconds", 30.0);
+
+    maneuver_timeout_seconds_ =
+        this->declare_parameter<double>(
+            "roll.maneuver_timeout_seconds", 120.0);
+
     if (!std::isfinite(roll_tolerance_) ||
         !std::isfinite(orientation_tolerance_) ||
+        !std::isfinite(pose_timeout_seconds_) ||
+        !std::isfinite(trigger_timeout_seconds_) ||
+        !std::isfinite(maneuver_timeout_seconds_) ||
         roll_tolerance_ <= 0.0 ||
-        orientation_tolerance_ <= 0.0) {
-        throw std::invalid_argument(
-            "ROLL tolerances must be positive and finite");
-    }
+        orientation_tolerance_ <= 0.0 ||
+        pose_timeout_seconds_ <= 0.0 ||
+        trigger_timeout_seconds_ <= 0.0 ||
+        maneuver_timeout_seconds_ <= 0.0) {
 
+        throw std::invalid_argument(
+            "ROLL tolerances and timeouts must be finite and positive");
+    }
 }
 
 /**
@@ -227,84 +266,73 @@ bool ROLLGuidanceNode::should_start_roll(
 }
 
 /**
- * @brief Processes an incoming AUV pose message.
+ * @brief Processes a measured AUV pose.
  *
- * Updates the current AUV pose and detects whether the vehicle
- * has crossed the gate plane.
+ * Validates the measurement, updates the last valid pose time,
+ * tracks accumulated roll, and detects gate crossing.
  *
- * If the gate has been crossed while a ROLL action is active,
- * the action is terminated.
- *
- * @param msg Incoming pose and covariance message.
- *
- * @note Shared state is protected by mutex_.
+ * @param msg Incoming pose measurement.
  */
 void ROLLGuidanceNode::pose_callback(
     const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
 
-    const auto& position = msg->pose.pose.position;
-    const auto& orientation = msg->pose.pose.orientation;
+    const auto& p = msg->pose.pose.position;
+    const auto& o = msg->pose.pose.orientation;
+
+    const Eigen::Vector3d position(p.x, p.y, p.z);
+    const Eigen::Quaterniond orientation(
+        o.w, o.x, o.y, o.z);
+
+    if (!position.allFinite() ||
+        !orientation.coeffs().allFinite() ||
+        !std::isfinite(orientation.norm()) ||
+        orientation.norm() < 1e-9) {
+
+        RCLCPP_WARN(
+            get_logger(),
+            "Ignoring invalid AUV pose");
+
+        return;
+    }
 
     vortex::utils::types::Pose pose;
-
-    pose.set_pos(Eigen::Vector3d(
-        position.x,
-        position.y,
-        position.z));
-
-    pose.set_ori(Eigen::Quaterniond(
-        orientation.w,
-        orientation.x,
-        orientation.y,
-        orientation.z));
+    pose.set_pos(position);
+    pose.set_ori(orientation.normalized());
 
     std::shared_ptr<GoalHandleROLL> goal_to_finish;
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        
-        const Eigen::Quaterniond measured_q = pose.ori_quaternion();
-
-        if (!measured_q.coeffs().allFinite() ||
-            !std::isfinite(measured_q.norm()) ||
-            measured_q.norm() < 1e-9 ||
-            !pose.pos_vector().allFinite()) {
-
-            roll_tracking_error_ = true;
-            RCLCPP_ERROR(
-                this->get_logger(),
-                "Received invalid AUV pose");
-
-            return;
-        }
 
         current_pose_ = pose;
         pose_received_ = true;
+        last_pose_time_ = SteadyClock::now();
 
-        if (roll_tracking_active_ && !roll_tracking_error_) {
+        if (roll_tracking_active_ &&
+            !roll_tracking_error_ &&
+            !finishing_.load()) {
+
             try {
-                roll_tracker_.observe(measured_q);
-            } catch (const std::exception& exception) {
+                roll_tracker_.observe(
+                    pose.ori_quaternion());
+            } catch (const std::exception& e) {
                 roll_tracking_error_ = true;
 
                 RCLCPP_ERROR(
-                    this->get_logger(),
-                    "ROLL tracking failed: %s",
-                    exception.what());
+                    get_logger(),
+                    "Roll tracking failed: %s",
+                    e.what());
             }
         }
 
-
         if (gate_received_ && !finishing_.load()) {
-            if (has_passed_gate(pose.pos_vector())) {
+            if (has_passed_gate(position)) {
                 goal_to_finish = goal_handle_;
             }
         }
     }
 
     if (goal_to_finish) {
-        spdlog::info("AUV passed gate: stopping ROLL guidance");
-
         finish_roll(
             goal_to_finish,
             FinishReason::GatePassed);
@@ -343,6 +371,132 @@ void ROLLGuidanceNode::waypoint_callback(
 }
 
 /**
+ * @brief Aborts the ROLL action when the killswitch is engaged.
+ *
+ * The DP controller is responsible for stopping wrench publication.
+ * This callback only stops the guidance action and requests
+ * cancellation of the downstream Waypoint Manager goal.
+ *
+ * @param msg Current killswitch state.
+ */
+void ROLLGuidanceNode::killswitch_callback(
+    const std_msgs::msg::Bool::SharedPtr msg) {
+
+    std::shared_ptr<GoalHandleROLL> goal_to_abort;
+
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        killswitch_received_ = true;
+        killswitch_on_ = msg->data;
+
+        if (killswitch_on_ && !finishing_.load()) {
+            goal_to_abort = goal_handle_;
+        }
+    }
+
+    if (goal_to_abort) {
+        RCLCPP_WARN(
+            get_logger(),
+            "Killswitch engaged: aborting ROLL guidance");
+
+        finish_roll(
+            goal_to_abort,
+            FinishReason::Failed);
+    }
+}
+
+/**
+ * @brief Monitors the active ROLL action for cancellation,
+ * killswitch activation, stale pose, and timeouts.
+ *
+ * Uses a steady clock for elapsed-time measurements.
+ * Finalises the action outside mutex_.
+ */
+void ROLLGuidanceNode::watchdog_callback() {
+
+    std::shared_ptr<GoalHandleROLL> goal;
+    FinishReason reason = FinishReason::Failed;
+    bool should_finish = false;
+    const auto now = SteadyClock::now();
+
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        goal = goal_handle_;
+
+        if (!goal || finishing_.load()) {
+            return;
+        }
+
+        const double goal_elapsed =
+            std::chrono::duration<double>(
+                now - goal_start_time_).count();
+
+        const double pose_age =
+            pose_received_
+                ? std::chrono::duration<double>(
+                      now - last_pose_time_).count()
+                : goal_elapsed;
+
+        if (cancel_requested_ || goal->is_canceling()) {
+            reason = FinishReason::Canceled;
+            should_finish = true;
+
+        } else if (killswitch_received_ && killswitch_on_) {
+            RCLCPP_ERROR(
+                get_logger(),
+                "ROLL aborted: killswitch engaged");
+
+            should_finish = true;
+
+        } else if (pose_age > pose_timeout_seconds_) {
+            RCLCPP_ERROR(
+                get_logger(),
+                "ROLL aborted: pose timeout (%.2f s)",
+                pose_age);
+
+            should_finish = true;
+
+        } else if (roll_tracking_error_) {
+            RCLCPP_ERROR(
+                get_logger(),
+                "ROLL aborted: invalid roll tracking");
+
+            should_finish = true;
+
+        } else if (!maneuver_started_ &&
+                   goal_elapsed > trigger_timeout_seconds_) {
+
+            RCLCPP_ERROR(
+                get_logger(),
+                "ROLL aborted: trigger timeout");
+
+            should_finish = true;
+
+        } else if (maneuver_started_) {
+            const double maneuver_elapsed =
+                std::chrono::duration<double>(
+                    now - maneuver_start_time_).count();
+
+            if (maneuver_elapsed >
+                maneuver_timeout_seconds_) {
+
+                RCLCPP_ERROR(
+                    get_logger(),
+                    "ROLL aborted: maneuver timeout");
+
+                should_finish = true;
+            }
+        }
+    }
+
+    if (should_finish) {
+        finish_roll(goal, reason);
+    }
+}
+
+/**
  * @brief Evaluates an incoming ROLL guidance action goal.
  *
  * Accepts the first goal and rejects subsequent goals.
@@ -375,32 +529,28 @@ rclcpp_action::GoalResponse ROLLGuidanceNode::handle_goal(
 }
 
 /**
- * @brief Handles cancellation of a ROLL guidance goal.
+ * @brief Accepts cancellation of a ROLL action.
  *
- * Accepts the cancellation request and forwards it to the
- * Waypoint Manager when its goal handle is available.
+ * Marks cancellation as requested. The watchdog then
+ * finalises the ROLL action and requests cancellation
+ * of the downstream Waypoint Manager goal.
  *
- * @param goal_handle ROLL action goal being canceled.
- * @return ACCEPT to allow cancellation.
+ * @param goal_handle ROLL goal being canceled.
+ * @return ACCEPT.
  */
 rclcpp_action::CancelResponse ROLLGuidanceNode::handle_cancel(
     const std::shared_ptr<GoalHandleROLL> goal_handle) {
 
     (void)goal_handle;
 
-    WaypointManagerGoalHandle::SharedPtr manager_handle;
-
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        manager_handle = waypoint_manager_goal_handle_;
+        cancel_requested_ = true;
     }
 
-    if (manager_handle) {
-        waypoint_manager_client_->async_cancel_goal(
-            manager_handle);
-    }
-
-    spdlog::info("ROLL cancellation requested");
+    RCLCPP_INFO(
+        get_logger(),
+        "ROLL cancellation requested");
 
     return rclcpp_action::CancelResponse::ACCEPT;
 }
@@ -461,25 +611,36 @@ bool ROLLGuidanceNode::has_passed_gate(
 }
 
 /**
- * @brief Verifies the measured roll and final AUV orientation.
+ * @brief Verifies that the requested roll was physically completed.
  *
- * @return true if measured roll and final attitude are within
- *         the configured tolerances.
+ * Checks both signed accumulated roll and the final quaternion.
  *
- * @note Must be called while holding mutex_.
+ * @return True if both checks pass.
+ * @note Caller must hold mutex_.
  */
 bool ROLLGuidanceNode::roll_verified() const {
+
     if (!roll_tracking_active_ ||
         roll_tracking_error_ ||
         !pose_received_ ||
-        !roll_tracker_.initialised()) {
+        !roll_tracker_.initialized()) {
         return false;
     }
 
-    if (!roll_tracker_.completed(
-            params_.roll_angle, roll_tolerance_)) {
+    const auto now = SteadyClock::now();
+
+    const double pose_age =
+        std::chrono::duration<double>(
+            now - last_pose_time_).count();
+
+    if (pose_age > pose_timeout_seconds_) {
         return false;
     }
+
+    const bool accumulated_roll_ok =
+        roll_tracker_.completed(
+            params_.roll_angle,
+            roll_tolerance_);
 
     const Eigen::Quaterniond desired_final =
         roll_initial_orientation_ *
@@ -491,8 +652,12 @@ bool ROLLGuidanceNode::roll_verified() const {
     const Eigen::Quaterniond measured =
         current_pose_.ori_quaternion().normalized();
 
-    return measured.angularDistance(desired_final) <=
-           orientation_tolerance_;
+    const bool final_orientation_ok =
+        measured.angularDistance(
+            desired_final.normalized()) <=
+        orientation_tolerance_;
+
+    return accumulated_roll_ok && final_orientation_ok;
 }
 
 /**
@@ -525,8 +690,7 @@ void ROLLGuidanceNode::finish_roll(
         manager_handle = waypoint_manager_goal_handle_;
     }
 
-    if ((reason == FinishReason::GatePassed ||
-         reason == FinishReason::Canceled) &&
+    if (reason != FinishReason::Completed &&
         manager_handle) {
 
         waypoint_manager_client_->async_cancel_goal(
@@ -557,7 +721,6 @@ void ROLLGuidanceNode::finish_roll(
         waypoint_manager_goal_handle_.reset();
     }
 
-    request_shutdown();
 }
 
 /**
@@ -610,7 +773,14 @@ void ROLLGuidanceNode::execute(
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
+
         goal_handle_ = goal_handle;
+        goal_start_time_ = SteadyClock::now();
+
+        maneuver_started_ = false;
+
+        roll_tracking_active_ = false;
+        roll_tracking_error_ = false;
     }
 
     spdlog::info("Executing ROLL guidance goal");
@@ -620,9 +790,8 @@ void ROLLGuidanceNode::execute(
     while (rclcpp::ok() && !finishing_.load()) {
 
         if (goal_handle->is_canceling()) {
-            finish_roll(
-                goal_handle,
-                FinishReason::Canceled);
+            //the watchdog will cancel the Waypoint Manager goal
+            //and finish the ROLL action.
             return;
         }
 
@@ -638,6 +807,8 @@ void ROLLGuidanceNode::execute(
             if (!already_passed &&
                 pose_received_ &&
                 gate_received_ &&
+                killswitch_received_ &&
+                !killswitch_on_ &&
                 should_start_roll(
                     current_pose_.pos_vector(),
                     gate_position_)) {
@@ -658,7 +829,20 @@ void ROLLGuidanceNode::execute(
             loop_rate.sleep();
             continue;
         }
-        
+
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+
+            if (finishing_.load() ||
+                cancel_requested_ ||
+                goal_handle->is_canceling() ||
+                !killswitch_received_ ||
+                killswitch_on_) {
+
+                return;
+            }
+        }
+                
         spdlog::info("Starting ROLL manoeuver");
 
         {
@@ -673,13 +857,16 @@ void ROLLGuidanceNode::execute(
                 roll_tracking_active_ = true;
                 roll_tracking_error_ = false;
 
+                maneuver_started_ = true;
+                maneuver_start_time_ = SteadyClock::now();
+
             } catch (const std::exception& exception) {
                 roll_tracking_active_ = false;
                 roll_tracking_error_ = true;
 
                 RCLCPP_ERROR(
                     this->get_logger(),
-                    "Cannot initialize ROLL tracker: %s",
+                    "Cannot initialise ROLL tracker: %s",
                     exception.what());
             }
         }
@@ -797,9 +984,8 @@ void ROLLGuidanceNode::execute(
                     finish_roll(
                         goal_handle,
                         FinishReason::Canceled);
-
-                
                 } else if (succeeded) {
+
                     bool verified = false;
                     double measured_roll = 0.0;
 
@@ -807,13 +993,15 @@ void ROLLGuidanceNode::execute(
                         std::lock_guard<std::mutex> lock(mutex_);
 
                         verified = roll_verified();
+
                         measured_roll =
-                            roll_tracker_.completed_roll();
+                            roll_tracker_.accumulated_roll();
                     }
 
                     if (verified) {
-                        spdlog::info(
-                            "ROLL verified: measured {:.2f} degrees",
+                        RCLCPP_INFO(
+                            get_logger(),
+                            "ROLL verified: measured %.2f degrees",
                             measured_roll * 180.0 / M_PI);
 
                         finish_roll(
@@ -821,17 +1009,16 @@ void ROLLGuidanceNode::execute(
                             FinishReason::Completed);
 
                     } else {
-                        spdlog::error(
-                            "Waypoint Manager succeeded, but measured "
-                            "ROLL was not verified: {:.2f} degrees",
+                        RCLCPP_ERROR(
+                            get_logger(),
+                            "Waypoint Manager succeeded but ROLL "
+                            "verification failed (measured %.2f degrees)",
                             measured_roll * 180.0 / M_PI);
 
                         finish_roll(
                             goal_handle,
                             FinishReason::Failed);
-                    }
-
-                } else {
+                    } else {
                     spdlog::error("ROLL manoeuver failed");
 
                     finish_roll(

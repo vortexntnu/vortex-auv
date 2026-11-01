@@ -1,21 +1,34 @@
-
 /**:
   ros__parameters:
     roll:
-      # Total requested rotation in radians (360 degrees).
+      # total requested rotation in radians (360 degrees).
       roll_angle: 6.283185307179586
 
-      # Number of orientation waypoints.
+      # number of orientation waypoints.
       number_of_steps: 8
 
-      # Distance from gate at which the roll starts (meters).
+      # distance from gate at which the roll starts (meters).
       trigger_distance: 3.0
 
-      # Gate-plane normal in the pose reference frame.
+      # gate-plane normal in the pose reference frame.
       gate_normal: [1.0, 0.0, 0.0]
 
-      # Maximum measured roll completion error (degrees).
+      # maximum measured roll completion error (degrees).
       roll_tolerance_degrees: 5.0
 
-      # Maximum final quaternion orientation error (degrees).
+      # maximum final quaternion orientation error (degrees).
       orientation_tolerance_degrees: 5.0
+
+      # maximum time to wait for a pose message (seconds).
+      pose_timeout_seconds: 0.5
+
+      # maximum time to wait for a roll trigger (seconds).
+      trigger_timeout_seconds: 30.0
+
+      # maximum time to complete the roll manoeuver (seconds).
+      maneuver_timeout_seconds: 120.0
+
+
+topics:
+  # killswitch topic name
+  killswitch: "killswitch"

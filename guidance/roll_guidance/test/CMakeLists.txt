@@ -23,11 +23,30 @@ ament_target_dependencies(${TEST_BINARY_NAME}
 
 gtest_discover_tests(${TEST_BINARY_NAME})
 
+# Unit tests
+add_executable(test_roll_tracker
+    test_roll_tracker.cpp
+)
 
-# Integration tests: T13–T27
+target_link_libraries(test_roll_tracker
+    PRIVATE
+    ${LIB_NAME}
+    GTest::GTest
+)
+
+ament_target_dependencies(test_roll_tracker
+    PUBLIC
+    Eigen3
+)
+
+gtest_discover_tests(test_roll_tracker)
+
+
+# Integration tests
 foreach(test_name
     test_gate_crossing
     test_roll_guidance_node
+    test_roll_safety
 )
     add_executable(${test_name}
         integration/${test_name}.cpp

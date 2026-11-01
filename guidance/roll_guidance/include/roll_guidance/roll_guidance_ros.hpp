@@ -7,6 +7,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <std_msgs/msg/bool.hpp>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -116,6 +117,18 @@ class ROLLGuidanceNode : public rclcpp::Node {
      */
     void waypoint_callback(
         const geometry_msgs::msg::PointStamped::SharedPtr msg);
+    
+    /**
+     * @brief Receives software killswitch status.
+     * @param msg True when the killswitch is engaged.
+     */
+    void killswitch_callback(
+        const std_msgs::msg::Bool::SharedPtr msg);
+
+    /**
+     * @brief Checks pose freshness, timeouts, and cancellation.
+     */
+    void watchdog_callback();
 
     /**
      * @brief Handles an incoming ROLL guidance action goal request.
@@ -217,8 +230,10 @@ class ROLLGuidanceNode : public rclcpp::Node {
      * context, not only this node.
      */
     void request_shutdown();
-
-    // ROS interfaces
+    
+    /**
+     * @brief ROS interface for the ROLL guidance action server.
+     */
     rclcpp_action::Server<GuidanceWaypoint>::SharedPtr action_server_;
 
     rclcpp_action::Client<WaypointManager>::SharedPtr
@@ -236,9 +251,42 @@ class ROLLGuidanceNode : public rclcpp::Node {
         waypoint_sub_;
 
     rclcpp::CallbackGroup::SharedPtr cb_group_;
+        rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr
+        killswitch_sub_;
 
-    //gate state
+    /**
+     * @brief Indicates whether a killswitch message has been received.
+     */
+    bool killswitch_received_{false};
+
+    /**
+     * @brief Indicates whether the killswitch is currently engaged.
+     */
+    bool killswitch_on_{true};
+
+    /**
+     * @brief Timeouts for pose, trigger, and manoeuver completion.
+     */
+    double pose_timeout_seconds_{0.5};
+
+    /**
+     * @brief Timeouts for trigger and manoeuver completion.
+     */
+    double trigger_timeout_seconds_{30.0};
+
+    /**
+     * @brief Timeouts for manoeuver completion.
+     */
+    double maneuver_timeout_seconds_{120.0};
+
+    /**
+     * @brief Current gate position in the same reference frame as the AUV pose.
+     */
     Eigen::Vector3d gate_position_{Eigen::Vector3d::Zero()};
+
+    /**
+     * @brief Indicates whether a gate waypoint has been received.
+     */
     bool gate_received_{false};
 
     /**
@@ -251,7 +299,7 @@ class ROLLGuidanceNode : public rclcpp::Node {
 
     /**
      * @brief Indicates whether the AUV has been observed
-     *        on the approach side of the gate.
+     * on the approach side of the gate.
      */
     bool gate_approach_seen_{false};
 
@@ -272,7 +320,7 @@ class ROLLGuidanceNode : public rclcpp::Node {
      * @brief Verifies the measured roll and final AUV orientation.
      *
      * @return true if the requested rotation and final orientation
-     *         have both converged within their configured tolerances.
+     * have both converged within their configured tolerances.
      *
      * @note Must be called while holding mutex_.
      */
@@ -283,6 +331,10 @@ class ROLLGuidanceNode : public rclcpp::Node {
 
     //action state
     std::mutex mutex_;
+
+    /**
+     * @brief Handle the currently active ROLL action goal.
+     */
     std::shared_ptr<GoalHandleROLL> goal_handle_;
 
     /**
@@ -301,6 +353,11 @@ class ROLLGuidanceNode : public rclcpp::Node {
     std::atomic<bool> shutdown_requested_{false};
 
     /**
+     * @brief Indicates whether node cancellation has already been requested.
+     */
+    bool cancel_requested_{false};
+
+    /**
      * @brief Tracks actual signed roll measured from the AUV pose.
      */
     RollTracker roll_tracker_;
@@ -314,6 +371,7 @@ class ROLLGuidanceNode : public rclcpp::Node {
      * @brief Indicates that a roll measurement was rejected.
      */
     bool roll_tracking_error_{false};
+    
 
     /**
      * @brief Maximum difference between requested and measured

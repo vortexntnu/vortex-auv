@@ -62,9 +62,7 @@ class RollTracker {
         const double increment =
             wrap(wrapped_roll - previous_wrapped_roll_);
 
-        constexpr double kPi = 3.14159265358979323846;
-
-        if (std::abs(increment) >= kPi / 2.0) {
+        if (std::abs(increment) >= M_PI / 2.0) {
             throw std::invalid_argument(
                 "Roll changed by at least 90 degrees between samples");
         }
@@ -89,6 +87,11 @@ class RollTracker {
      * @return true when measured and requested roll agree.
      */
     bool completed(double requested_roll, double tolerance) const {
+        if (!std::isfinite(requested_roll) ||
+            !std::isfinite(tolerance) ||
+            tolerance < 0.0) {
+            return false;
+        }
         return initialised_ &&
                std::abs(completed_roll_ - requested_roll) <= tolerance;
     }
@@ -118,7 +121,7 @@ class RollTracker {
             throw std::invalid_argument("Invalid orientation quaternion");
         }
 
-        return q.normalised();
+        return q.normalized();
     }
 
     /**

@@ -8,7 +8,7 @@
 
 #include "roll_guidance/roll_guidance.hpp"
 
-namespace vortex::guidance {
+namespace vortex::guidance::test {
 
 class ROLLTests : public ::testing::Test {
    protected:
@@ -326,7 +326,7 @@ TEST_F(ROLLTests, T12_test_negative_step_count) {
         RollManeuverGenerator generator(params),
         std::invalid_argument);
 }
-}  // namespace vortex::guidance
+}  // namespace vortex::guidance::test
 
 
 /**
