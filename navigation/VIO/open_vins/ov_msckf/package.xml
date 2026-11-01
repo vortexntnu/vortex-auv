@@ -33,8 +33,6 @@
     <depend condition="$ROS_VERSION == 1">visualization_msgs</depend>
     <depend condition="$ROS_VERSION == 1">image_transport</depend>
     <depend condition="$ROS_VERSION == 1">cv_bridge</depend>
-    <depend condition="$ROS_VERSION == 1">ov_core</depend>
-    <depend condition="$ROS_VERSION == 1">ov_init</depend>
 
     <!-- ROS2: Dependencies needed to compile this package. -->
     <buildtool_depend condition="$ROS_VERSION == 2">ament_cmake</buildtool_depend>
@@ -47,8 +45,6 @@
     <depend condition="$ROS_VERSION == 2">nav_msgs</depend>
     <depend condition="$ROS_VERSION == 2">cv_bridge</depend>
     <depend condition="$ROS_VERSION == 2">image_transport</depend>
-    <depend condition="$ROS_VERSION == 2">ov_core</depend>
-    <depend condition="$ROS_VERSION == 2">ov_init</depend>
 
     <!-- System dependencies for both versions -->
     <depend>eigen</depend>

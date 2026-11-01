@@ -11,19 +11,16 @@ find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
-find_package(ov_core REQUIRED)
-find_package(ov_init REQUIRED)
 
 # Describe ROS project
 option(ENABLE_ROS "Enable or disable building with ROS (if it is found)" ON)
 if (NOT ENABLE_ROS)
-    message(FATAL_ERROR "Build with ROS1.cmake if you don't have ROS.")
+    message(FATAL_ERROR "Only ROS 2 builds are supported.")
 endif ()
 add_definitions(-DROS_AVAILABLE=2)
 
 # Include our header files
 include_directories(
-        src
         ${EIGEN3_INCLUDE_DIR}
         ${Boost_INCLUDE_DIRS}
         ${CERES_INCLUDE_DIRS}
@@ -45,39 +42,103 @@ list(APPEND ament_libraries
         nav_msgs
         cv_bridge
         image_transport
-        ov_core
-        ov_init
 )
 
 ##################################################
-# Make the shared library
+# Fetch OpenVINS from upstream and build ov_core, ov_init and ov_msckf from it
 ##################################################
 
-list(APPEND LIBRARY_SOURCES
-        src/dummy.cpp
-        src/sim/Simulator.cpp
-        src/state/State.cpp
-        src/state/StateHelper.cpp
-        src/state/Propagator.cpp
-        src/core/VioManager.cpp
-        src/core/VioManagerHelper.cpp
-        src/update/UpdaterHelper.cpp
-        src/update/UpdaterMSCKF.cpp
-        src/update/UpdaterSLAM.cpp
-        src/update/UpdaterZeroVelocity.cpp
+# Pinned to the exact upstream commit we tested with (master, 2025-11-30).
+# Offline builds: pass -DFETCHCONTENT_SOURCE_DIR_OPEN_VINS=/path/to/open_vins to use a local checkout.
+# The patch makes two ROS2Visualizer methods virtual so BenchmarkVisualizer can override them.
+include(FetchContent)
+FetchContent_Declare(open_vins
+        GIT_REPOSITORY https://github.com/rpng/open_vins.git
+        GIT_TAG 69488123ed9362dd44b6f28e7f4680abbff1442b
+        PATCH_COMMAND sed -i
+            -e "s/^  void visualize_odometry(/  virtual void visualize_odometry(/"
+            -e "s/^  void publish_state(/  virtual void publish_state(/"
+            ov_msckf/src/ros/ROS2Visualizer.h
 )
-list(APPEND LIBRARY_SOURCES src/ros/ROS2Visualizer.cpp src/ros/ROSVisualizerHelper.cpp)
-file(GLOB_RECURSE LIBRARY_HEADERS "src/*.h")
-add_library(ov_msckf_lib SHARED ${LIBRARY_SOURCES} ${LIBRARY_HEADERS})
+# Only download the sources; we build the libraries ourselves below
+FetchContent_GetProperties(open_vins)
+if (NOT open_vins_POPULATED)
+    FetchContent_Populate(open_vins)
+endif ()
+set(OV_CORE_SRC ${open_vins_SOURCE_DIR}/ov_core/src)
+set(OV_INIT_SRC ${open_vins_SOURCE_DIR}/ov_init/src)
+set(OV_MSCKF_SRC ${open_vins_SOURCE_DIR}/ov_msckf/src)
+
+# Aruco tags need opencv contrib, we do not use them (keep use_aruco: false in the config)
+add_definitions(-DENABLE_ARUCO_TAGS=0)
+
+# ov_core: feature tracking, camera models, types, utils
+add_library(ov_core_lib STATIC
+        ${OV_CORE_SRC}/cpi/CpiV1.cpp
+        ${OV_CORE_SRC}/cpi/CpiV2.cpp
+        ${OV_CORE_SRC}/sim/BsplineSE3.cpp
+        ${OV_CORE_SRC}/track/TrackBase.cpp
+        ${OV_CORE_SRC}/track/TrackAruco.cpp
+        ${OV_CORE_SRC}/track/TrackDescriptor.cpp
+        ${OV_CORE_SRC}/track/TrackKLT.cpp
+        ${OV_CORE_SRC}/track/TrackSIM.cpp
+        ${OV_CORE_SRC}/types/Landmark.cpp
+        ${OV_CORE_SRC}/feat/Feature.cpp
+        ${OV_CORE_SRC}/feat/FeatureDatabase.cpp
+        ${OV_CORE_SRC}/feat/FeatureInitializer.cpp
+        ${OV_CORE_SRC}/utils/print.cpp
+)
+set_target_properties(ov_core_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(ov_core_lib PUBLIC ${OV_CORE_SRC})
+ament_target_dependencies(ov_core_lib rclcpp cv_bridge)
+target_link_libraries(ov_core_lib ${Boost_LIBRARIES} ${OpenCV_LIBRARIES})
+
+# ov_init: static and dynamic initialization
+add_library(ov_init_lib STATIC
+        ${OV_INIT_SRC}/ceres/Factor_GenericPrior.cpp
+        ${OV_INIT_SRC}/ceres/Factor_ImageReprojCalib.cpp
+        ${OV_INIT_SRC}/ceres/Factor_ImuCPIv1.cpp
+        ${OV_INIT_SRC}/ceres/State_JPLQuatLocal.cpp
+        ${OV_INIT_SRC}/init/InertialInitializer.cpp
+        ${OV_INIT_SRC}/dynamic/DynamicInitializer.cpp
+        ${OV_INIT_SRC}/static/StaticInitializer.cpp
+        ${OV_INIT_SRC}/sim/SimulatorInit.cpp
+)
+set_target_properties(ov_init_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(ov_init_lib PUBLIC ${OV_INIT_SRC} ${CERES_INCLUDE_DIRS})
+ament_target_dependencies(ov_init_lib rclcpp cv_bridge)
+target_link_libraries(ov_init_lib ov_core_lib ${CERES_LIBRARIES})
+
+list(APPEND thirdparty_libraries ov_init_lib ov_core_lib)
+
+##################################################
+# ov_msckf: upstream estimator + our BenchmarkVisualizer
+##################################################
+
+add_library(ov_msckf_lib SHARED
+        ${OV_MSCKF_SRC}/sim/Simulator.cpp
+        ${OV_MSCKF_SRC}/state/State.cpp
+        ${OV_MSCKF_SRC}/state/StateHelper.cpp
+        ${OV_MSCKF_SRC}/state/Propagator.cpp
+        ${OV_MSCKF_SRC}/core/VioManager.cpp
+        ${OV_MSCKF_SRC}/core/VioManagerHelper.cpp
+        ${OV_MSCKF_SRC}/update/UpdaterHelper.cpp
+        ${OV_MSCKF_SRC}/update/UpdaterMSCKF.cpp
+        ${OV_MSCKF_SRC}/update/UpdaterSLAM.cpp
+        ${OV_MSCKF_SRC}/update/UpdaterZeroVelocity.cpp
+        ${OV_MSCKF_SRC}/ros/ROS2Visualizer.cpp
+        ${OV_MSCKF_SRC}/ros/ROSVisualizerHelper.cpp
+        src/BenchmarkVisualizer.cpp
+)
 ament_target_dependencies(ov_msckf_lib ${ament_libraries})
 target_link_libraries(ov_msckf_lib ${thirdparty_libraries})
-target_include_directories(ov_msckf_lib PUBLIC src/)
+target_include_directories(ov_msckf_lib PUBLIC src/ ${OV_MSCKF_SRC})
 install(TARGETS ov_msckf_lib
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin
         PUBLIC_HEADER DESTINATION include
 )
-install(DIRECTORY src/
+install(DIRECTORY src/ ${OV_MSCKF_SRC}/
         DESTINATION include
         FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
 )
@@ -92,21 +153,6 @@ add_executable(run_subscribe_msckf src/run_subscribe_msckf.cpp)
 ament_target_dependencies(run_subscribe_msckf ${ament_libraries})
 target_link_libraries(run_subscribe_msckf ov_msckf_lib ${thirdparty_libraries})
 install(TARGETS run_subscribe_msckf DESTINATION lib/${PROJECT_NAME})
-
-add_executable(run_simulation src/run_simulation.cpp)
-ament_target_dependencies(run_simulation ${ament_libraries})
-target_link_libraries(run_simulation ov_msckf_lib ${thirdparty_libraries})
-install(TARGETS run_simulation DESTINATION lib/${PROJECT_NAME})
-
-add_executable(test_sim_meas src/test_sim_meas.cpp)
-ament_target_dependencies(test_sim_meas ${ament_libraries})
-target_link_libraries(test_sim_meas ov_msckf_lib ${thirdparty_libraries})
-install(TARGETS test_sim_meas DESTINATION lib/${PROJECT_NAME})
-
-add_executable(test_sim_repeat src/test_sim_repeat.cpp)
-ament_target_dependencies(test_sim_repeat ${ament_libraries})
-target_link_libraries(test_sim_repeat ov_msckf_lib ${thirdparty_libraries})
-install(TARGETS test_sim_repeat DESTINATION lib/${PROJECT_NAME})
 
 # Install launch and config directories
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)
