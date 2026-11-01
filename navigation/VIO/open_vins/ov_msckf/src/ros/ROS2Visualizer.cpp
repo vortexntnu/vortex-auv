@@ -174,6 +174,14 @@ void ROS2Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
                                                               std::bind(&ROS2Visualizer::callback_inertial, this, std::placeholders::_1));
   PRINT_INFO("subscribing to IMU: %s\n", topic_imu.c_str());
 
+  // Optional benchmark odometry: VIO output starts at this odometry's pose (empty = start at zero)
+  parser->parse_config("benchmark_topic", benchmark_topic_, false);
+  if (!benchmark_topic_.empty()) {
+    sub_benchmark_ = _node->create_subscription<nav_msgs::msg::Odometry>(
+        benchmark_topic_, rclcpp::QoS(10), std::bind(&ROS2Visualizer::callback_benchmark, this, std::placeholders::_1));
+    PRINT_INFO("subscribing to benchmark odometry: %s\n", benchmark_topic_.c_str());
+  }
+
   // Logic for sync stereo subscriber
   // https://answers.ros.org/question/96346/subscribe-to-two-image_raws-with-one-function/?answer=96491#post-id-96491
   if (_app->get_params().state_options.num_cameras == 2) {
@@ -278,6 +286,17 @@ void ROS2Visualizer::visualize_odometry(double timestamp) {
   Eigen::Matrix<double, 12, 12> cov_plus = Eigen::Matrix<double, 12, 12>::Zero();
   if (!_app->get_propagator()->fast_state_propagate(state, timestamp, state_plus, cov_plus))
     return;
+
+  // Express pose relative to the start pose (velocities are in the IMU frame, so they stay as they are)
+  if (!set_start_pose_if_needed())
+    return;
+  {
+    Eigen::Vector4d q_rel = state_plus.block(0, 0, 4, 1);
+    Eigen::Vector3d p_rel = state_plus.block(4, 0, 3, 1);
+    to_output_frame(q_rel, p_rel);
+    state_plus.block(0, 0, 4, 1) = q_rel;
+    state_plus.block(4, 0, 3, 1) = p_rel;
+  }
 
   // Publish our odometry message if requested
   if (pub_odomimu->get_subscription_count() != 0) {
@@ -588,10 +607,69 @@ void ROS2Visualizer::callback_stereo(const sensor_msgs::msg::Image::ConstSharedP
   std::sort(camera_queue.begin(), camera_queue.end());
 }
 
+bool ROS2Visualizer::set_start_pose_if_needed() {
+  std::lock_guard<std::mutex> lck(start_pose_mtx_);
+  if (have_start_pose_)
+    return true;
+  if (!_app->initialized())
+    return false;
+
+  // Wait for the benchmark odometry so both start at the same moment
+  if (!benchmark_topic_.empty() && !have_bench_latest_) {
+    static bool warned = false;
+    if (!warned)
+      PRINT_WARNING(YELLOW "VIO initialized, waiting for benchmark odometry on %s\n" RESET, benchmark_topic_.c_str());
+    warned = true;
+    return false;
+  }
+
+  std::shared_ptr<State> state = _app->get_state();
+  // JPL q_GtoI has the same xyzw as Hamilton q_ItoG
+  Eigen::Vector4d q = state->_imu->quat();
+  R_start_ = Eigen::Quaterniond(q(3), q(0), q(1), q(2)).normalized().toRotationMatrix();
+  p_start_ = state->_imu->pos();
+
+  // Benchmark pose at the moment VIO starts (identity if no benchmark topic)
+  R_bench_start_ = R_bench_latest_;
+  p_bench_start_ = p_bench_latest_;
+
+  have_start_pose_ = true;
+  PRINT_INFO("Output starts at benchmark pose: p = %.3f %.3f %.3f\n", p_bench_start_(0), p_bench_start_(1), p_bench_start_(2));
+  return true;
+}
+
+void ROS2Visualizer::to_output_frame(Eigen::Vector4d &q_xyzw, Eigen::Vector3d &p) const {
+  Eigen::Matrix3d R = Eigen::Quaterniond(q_xyzw(3), q_xyzw(0), q_xyzw(1), q_xyzw(2)).normalized().toRotationMatrix();
+  // Relative to VIO start
+  Eigen::Matrix3d R_rel = R_start_.transpose() * R;
+  Eigen::Vector3d p_rel = R_start_.transpose() * (p - p_start_);
+  // Placed on top of the benchmark start pose
+  Eigen::Quaterniond q_out(R_bench_start_ * R_rel);
+  q_out.normalize();
+  q_xyzw << q_out.x(), q_out.y(), q_out.z(), q_out.w();
+  p = p_bench_start_ + R_bench_start_ * p_rel;
+}
+
+void ROS2Visualizer::callback_benchmark(const nav_msgs::msg::Odometry::SharedPtr msg) {
+  const auto &o = msg->pose.pose.orientation;
+  const auto &t = msg->pose.pose.position;
+  std::lock_guard<std::mutex> lck(start_pose_mtx_);
+  R_bench_latest_ = Eigen::Quaterniond(o.w, o.x, o.y, o.z).normalized().toRotationMatrix();
+  p_bench_latest_ << t.x, t.y, t.z;
+  have_bench_latest_ = true;
+}
+
 void ROS2Visualizer::publish_state() {
 
   // Get the current state
   std::shared_ptr<State> state = _app->get_state();
+  if (!set_start_pose_if_needed())
+    return;
+
+  // Pose relative to the start pose
+  Eigen::Vector4d q_out = state->_imu->quat();
+  Eigen::Vector3d p_out = state->_imu->pos();
+  to_output_frame(q_out, p_out);
 
   // We want to publish in the IMU clock frame
   // The timestamp in the state will be the last camera time
@@ -602,19 +680,20 @@ void ROS2Visualizer::publish_state() {
   geometry_msgs::msg::PoseWithCovarianceStamped poseIinM;
   poseIinM.header.stamp = ROSVisualizerHelper::get_time_from_seconds(timestamp_inI);
   poseIinM.header.frame_id = "global";
-  poseIinM.pose.pose.orientation.x = state->_imu->quat()(0);
-  poseIinM.pose.pose.orientation.y = state->_imu->quat()(1);
-  poseIinM.pose.pose.orientation.z = state->_imu->quat()(2);
-  poseIinM.pose.pose.orientation.w = state->_imu->quat()(3);
-  poseIinM.pose.pose.position.x = state->_imu->pos()(0);
-  poseIinM.pose.pose.position.y = state->_imu->pos()(1);
-  poseIinM.pose.pose.position.z = state->_imu->pos()(2);
+  poseIinM.pose.pose.orientation.x = q_out(0);
+  poseIinM.pose.pose.orientation.y = q_out(1);
+  poseIinM.pose.pose.orientation.z = q_out(2);
+  poseIinM.pose.pose.orientation.w = q_out(3);
+  poseIinM.pose.pose.position.x = p_out(0);
+  poseIinM.pose.pose.position.y = p_out(1);
+  poseIinM.pose.pose.position.z = p_out(2);
 
   // Finally set the covariance in the message (in the order position then orientation as per ros convention)
   std::vector<std::shared_ptr<Type>> statevars;
   statevars.push_back(state->_imu->pose()->p());
   statevars.push_back(state->_imu->pose()->q());
   Eigen::Matrix<double, 6, 6> covariance_posori = StateHelper::get_marginal_covariance(_app->get_state(), statevars);
+  cov_to_output_frame(covariance_posori);
   for (int r = 0; r < 6; r++) {
     for (int c = 0; c < 6; c++) {
       poseIinM.pose.covariance[6 * r + c] = covariance_posori(r, c);
