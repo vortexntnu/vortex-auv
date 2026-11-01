@@ -89,8 +89,7 @@ downsample_cameras: false # will downsample image in half if true
 num_opencv_threads: 4 # -1: auto, 0-1: serial, >1: number of threads
 histogram_method: "HISTOGRAM" # NONE, HISTOGRAM, CLAHE
 
-# aruco tag tracker for the system
-# DICT_6X6_1000 from https://chev.me/arucogen/
+# aruco tag tracker (built without aruco support, so this must stay false)
 use_aruco: false
 num_aruco: 1024
 downsize_aruco: true
