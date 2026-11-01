@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(los_guidance)
+project(roll_guidance)
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 20)
@@ -21,10 +21,10 @@ find_package(fmt REQUIRED)
 
 include_directories(include)
 
-set(LIB_NAME los_guidance_lib)
+set(LIB_NAME roll_guidance_lib)
 add_library(${LIB_NAME} SHARED
-  src/los_guidance.cpp
-  src/los_guidance_ros.cpp
+  src/roll_guidance.cpp
+  src/roll_guidance_ros.cpp
 )
 
 ament_target_dependencies(${LIB_NAME}
@@ -38,11 +38,11 @@ ament_target_dependencies(${LIB_NAME}
   fmt
 )
 
-add_executable(los_guidance_node
-  src/los_guidance_node.cpp
+add_executable(roll_guidance_node
+  src/roll_guidance_node.cpp
 )
 
-target_link_libraries(los_guidance_node ${LIB_NAME})
+target_link_libraries(roll_guidance_node ${LIB_NAME})
 
 install(TARGETS
   ${LIB_NAME}
@@ -53,7 +53,7 @@ install(TARGETS
 )
 
 install(TARGETS
-  los_guidance_node
+  roll_guidance_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

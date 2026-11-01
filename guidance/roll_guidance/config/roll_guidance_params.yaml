@@ -1,1 +1,7 @@
 /**:
+  ros__parameters:
+    roll:
+      roll_angle: 6.283185307179586 #total roll angle in radians
+      number_of_steps: 8 #number of orientation waypoints
+      trigger_distance: 3.0 #rolling distance from the gate
+      gate_normal: [1.0, 0.0, 0.0]
