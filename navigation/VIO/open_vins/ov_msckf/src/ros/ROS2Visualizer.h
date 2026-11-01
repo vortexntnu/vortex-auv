@@ -53,6 +53,7 @@
 #include <Eigen/Eigen>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem.hpp>
+#include <Eigen/Eigen>
 #include <cv_bridge/cv_bridge.h>
 
 namespace ov_core {
@@ -134,6 +135,39 @@ protected:
 
   /// Publish loop-closure information of current pose and active track information
   void publish_loopclosure_information();
+
+  /// Store the first pose after init. Published poses are relative to it, placed on top of the benchmark start pose.
+  /// Returns false while we are still waiting (not initialized, or no benchmark message yet).
+  bool set_start_pose_if_needed();
+
+  /// Map a pose from the OpenVINS global frame to the output frame:
+  /// out = benchmark_start * (vio_start^-1 * pose). q_xyzw is JPL GtoI (= Hamilton ItoG), p is position in global.
+  void to_output_frame(Eigen::Vector4d &q_xyzw, Eigen::Vector3d &p) const;
+
+  /// Rotate a 6x6 [pos, ori] covariance into the output frame (orientation error is local, so only position changes)
+  template <typename Mat> void cov_to_output_frame(Mat &cov) const {
+    Eigen::Matrix<double, 6, 6> T = Eigen::Matrix<double, 6, 6>::Identity();
+    T.block(0, 0, 3, 3) = R_bench_start_ * R_start_.transpose();
+    cov.block(0, 0, 6, 6) = T * cov.block(0, 0, 6, 6) * T.transpose();
+  }
+
+  /// Benchmark odometry callback (only keeps the latest pose)
+  void callback_benchmark(const nav_msgs::msg::Odometry::SharedPtr msg);
+
+  /// Start pose (IMU in global) that published output is relative to
+  bool have_start_pose_ = false;
+  Eigen::Matrix3d R_start_ = Eigen::Matrix3d::Identity();
+  Eigen::Vector3d p_start_ = Eigen::Vector3d::Zero();
+
+  /// Benchmark odometry: output starts at its pose when VIO starts (empty topic = start at zero)
+  std::string benchmark_topic_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr sub_benchmark_;
+  bool have_bench_latest_ = false;
+  Eigen::Matrix3d R_bench_latest_ = Eigen::Matrix3d::Identity();
+  Eigen::Vector3d p_bench_latest_ = Eigen::Vector3d::Zero();
+  Eigen::Matrix3d R_bench_start_ = Eigen::Matrix3d::Identity();
+  Eigen::Vector3d p_bench_start_ = Eigen::Vector3d::Zero();
+  std::mutex start_pose_mtx_;
 
   /// Global node handler
   std::shared_ptr<rclcpp::Node> _node;
