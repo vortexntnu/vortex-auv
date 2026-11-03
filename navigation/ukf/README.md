@@ -1,12 +1,10 @@
 # Navigation UKF
 
-An unscented Kalman filter for the AUV, built to be compared against the
-[ESKF](../eskf/README.md). Same sensors, same state, same tuning layout, so the
-only thing that differs is how the uncertainty is propagated.
+An unscented Kalman filter for the AUV.
 
 ## State
 
-The state is stored as a `State` struct, the same as `NominalState` in the ESKF.
+The state is stored as a `State` struct.
 The covariance lives in a 15 dimensional tangent space indexed by `StateIndex`.
 
 | block      | `State`      | `StateIndex` |
@@ -17,8 +15,7 @@ The covariance lives in a 15 dimensional tangent space indexed by `StateIndex`.
 | gyro bias  | `gyro_bias`  | 9..11        |
 | accel bias | `accel_bias` | 12..14       |
 
-Attitude error is right-local, `q ⊞ δθ = q * Exp(δθ)`, the same convention as the
-ESKF, and navigation z is down.
+Attitude error is right-local, `q ⊞ δθ = q * Exp(δθ)`, and navigation z is down.
 
 ## Layout
 
@@ -37,7 +34,7 @@ config/ukf_params.yaml
 launch/ukf.launch.py
 ```
 
-Templated code lives in a `.tpp` next to its header, like `eskf.tpp`.
+Templated code lives in a `.tpp` next to its header.
 
 A model is anything that satisfies the concepts in `models/manifold.hpp`: a
 `dimension`, a `Point` type, and `composition_plus` / `composition_minus`. A
@@ -110,6 +107,6 @@ cd ~/ros2_ws/ && chmod +x launch_ukf_sim.sh
 cd ~/ros2_ws/ && ./launch_ukf_sim.sh
 ```
 
-The node reads the same IMU, DVL and pressure topics as the ESKF, plus a
+The node reads the IMU, DVL and pressure topics, plus a
 magnetometer on `topics.magnetometer` (set with `magnetometer_topic:=...`). It
 publishes under `ukf/`, so the two can run side by side on the same data.

@@ -3,7 +3,7 @@
 <package format="3">
   <name>ukf</name>
   <version>0.1.0</version>
-  <description>Unscented Kalman filter, for comparison against the ESKF</description>
+  <description>Unscented Kalman filter for the AUV</description>
   <maintainer email="cyprian.osinski03@gmail.com">Cyprian Osinski</maintainer>
   <license>MIT</license>
 

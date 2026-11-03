@@ -281,7 +281,7 @@ void UKFNode::set_subscribers_and_publishers() {
                 "depth";
         });
 
-    // outputs go under ukf/ when debugging, so they can run beside the eskf
+    // outputs go under ukf/ when debugging
     auto ukf_debug_topic = [](std::string& topic_name) {
         const std::string prefix = "ukf/";
         if (topic_name.rfind(prefix, 0) != 0) {
