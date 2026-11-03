@@ -22,6 +22,9 @@ from joystick_interface_auv.joystick_utils import (
     modes,
 )
 
+# Buttons that switch mode or toggle the killswitch, and so must fire once per press.
+MODE_BUTTONS = ("A", "B", "X", "Y")
+
 start_message = r"""
       _                 _   _      _      ___       _             __
      | | ___  _   _ ___| |_(_) ___| | __ |_ _|_ __ | |_ ___ _ __ / _| __ _  ___ ___
@@ -60,6 +63,7 @@ class JoystickInterface(Node):
         self._joystick_axes_map = []
         self._joystick_buttons_map = []
         self._last_button_press_time = 0
+        self._previous_mode_buttons = dict.fromkeys(MODE_BUTTONS, 0)
 
         self.get_logger().info(start_message)
 
@@ -492,29 +496,30 @@ class JoystickInterface(Node):
         # Timetaking in precise nanoseconds to prevent double triggers on second transitions.
         current_time = self.get_clock().now().nanoseconds / 1e9
 
-        xbox_control_mode_button = buttons.get("A", 0)
-        software_killswitch_button = buttons.get("B", 0)
-        software_control_mode_button = buttons.get("X", 0)
-        reference_mode_button = buttons.get("Y", 0)
-
         self.calculate_movement(axes, buttons)
 
-        if current_time - self._last_button_press_time < self._debounce_duration:
-            software_control_mode_button = False
-            xbox_control_mode_button = False
-            software_killswitch_button = False
-            reference_mode_button = False
+        # Only act on the released -> pressed transition, so that holding a button
+        # triggers it once no matter how long it is held. The joy topic republishes
+        # the button state continuously, so the state alone says nothing about presses.
+        mode_buttons = {name: buttons.get(name, 0) for name in MODE_BUTTONS}
+        newly_pressed = {
+            name
+            for name, pressed in mode_buttons.items()
+            if pressed and not self._previous_mode_buttons[name]
+        }
+        self._previous_mode_buttons = mode_buttons
 
-        # Check if any button is pressed
-        if any(
-            [
-                software_control_mode_button,
-                xbox_control_mode_button,
-                software_killswitch_button,
-                reference_mode_button,
-            ]
-        ):
+        # The window restarts while a button is down, so a short dropout in the middle
+        # of a press (e.g. keyboard auto-repeat) is not mistaken for a second press.
+        if current_time - self._last_button_press_time < self._debounce_duration:
+            newly_pressed.clear()
+        if any(mode_buttons.values()):
             self._last_button_press_time = current_time
+
+        xbox_control_mode_button = "A" in newly_pressed
+        software_killswitch_button = "B" in newly_pressed
+        software_control_mode_button = "X" in newly_pressed
+        reference_mode_button = "Y" in newly_pressed
 
         if software_killswitch_button:
             self.handle_killswitch_button()
