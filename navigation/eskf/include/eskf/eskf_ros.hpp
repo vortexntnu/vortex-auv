@@ -14,6 +14,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/fluid_pressure.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/magnetic_field.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
@@ -43,6 +44,9 @@ class ESKFNode : public rclcpp::Node {
     void pressure_callback(
         const sensor_msgs::msg::FluidPressure::ConstSharedPtr msg);
 
+    void magnetometer_callback(
+        const sensor_msgs::msg::MagneticField::ConstSharedPtr msg);
+
     // @brief Publish the odometry message
     void publish_odom();
 
@@ -71,6 +75,8 @@ class ESKFNode : public rclcpp::Node {
         geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr dvl_sub_;
 
     rclcpp::Subscription<sensor_msgs::msg::FluidPressure>::SharedPtr depth_sub_;
+    rclcpp::Subscription<sensor_msgs::msg::MagneticField>::SharedPtr
+        magnetometer_sub_;
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
 
@@ -83,6 +89,7 @@ class ESKFNode : public rclcpp::Node {
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_dvl_pub_;
 
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_depth_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_magnetometer_pub_;
 
     rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr
         dvl_body_pub_;
@@ -114,6 +121,7 @@ class ESKFNode : public rclcpp::Node {
     double max_aiding_skew_ = 0.05;
     double last_dvl_stamp_ = -1;
     double last_depth_stamp_ = -1;
+    double last_magnetometer_stamp_ = -1;
     Eigen::Vector3d previous_gyro_ = Eigen::Vector3d::Zero();
     Eigen::Matrix3d gyro_covariance_ = Eigen::Matrix3d::Zero();
     bool accept_aiding_stamp(const rclcpp::Time& stamp, double& previous_stamp);
@@ -124,6 +132,10 @@ class ESKFNode : public rclcpp::Node {
     Eigen::Vector3d T_imu_eskf_ = Eigen::Vector3d::Zero();
 
     Eigen::Matrix3d R_dvl_eskf_ = Eigen::Matrix3d::Identity();
+    Eigen::Matrix3d R_magnetometer_eskf_ = Eigen::Matrix3d::Identity();
+    Eigen::Vector3d magnetometer_hard_iron_ = Eigen::Vector3d::Zero();
+    Eigen::Matrix3d magnetometer_noise_ = Eigen::Matrix3d::Identity();
+    Eigen::Vector3d magnetometer_reference_field_ = Eigen::Vector3d::Zero();
     Eigen::Vector3d T_dvl_eskf_ = Eigen::Vector3d::Zero();
 
     Eigen::Vector3d T_depth_eskf_ = Eigen::Vector3d::Zero();
@@ -162,6 +174,7 @@ class ESKFNode : public rclcpp::Node {
     Eigen::Isometry3d Tf_base_dvl_ = Eigen::Isometry3d::Identity();
 
     bool pressure_use_tf_transform_{true};
+    bool magnetometer_use_tf_transform_{true};
     bool pressure_use_msg_noise_{false};
     double pressure_measurement_noise_{40000.0};
     Eigen::Isometry3d Tf_base_depth_ = Eigen::Isometry3d::Identity();

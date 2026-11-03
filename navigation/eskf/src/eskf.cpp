@@ -85,7 +85,7 @@ void ESKF::injection_and_reset() {
     current_nom_state_.accel_bias += current_error_state_.accel_bias;
     Eigen::Matrix15d reset = Eigen::Matrix15d::Identity();
     reset.block<3, 3>(StateIndex::attitude, StateIndex::attitude) =
-        eskf_math::right_jacobian(current_error_state_.rotation);
+        Eigen::Matrix3d::Identity() - skew(0.5 * current_error_state_.rotation);
     const Eigen::Matrix15d transported =
         reset * current_error_state_.covariance * reset.transpose();
     current_error_state_.covariance =
@@ -116,6 +116,10 @@ bool ESKF::dvl_update(const SensorDVL& sensor) {
 bool ESKF::depth_update(const SensorDepth& sensor) {
     return measurement_update(sensor, params_.depth_nis_threshold, nis_depth_);
 }
+bool ESKF::magnetometer_update(const SensorMagnetometer& sensor) {
+    return measurement_update(sensor, params_.magnetometer_nis_threshold,
+                              nis_magnetometer_);
+}
 Eigen::Vector3d SensorDVL::innovation(const NominalState& state) const {
     return measurement - calculate_h(state);
 }
@@ -133,5 +137,16 @@ Eigen::Matrix<double, 1, 15> SensorDepth::jacobian(
     H(0, StateIndex::position + 2) = 1;
     H.block<1, 3>(0, StateIndex::attitude) =
         -(state.quat.toRotationMatrix() * skew(lever_arm)).row(2);
+    return H;
+}
+Eigen::Vector3d SensorMagnetometer::innovation(
+    const NominalState& state) const {
+    return measurement - state.quat.conjugate() * reference_field;
+}
+Eigen::Matrix3x15d SensorMagnetometer::jacobian(
+    const NominalState& state) const {
+    Eigen::Matrix3x15d H = Eigen::Matrix3x15d::Zero();
+    H.block<3, 3>(0, StateIndex::attitude) =
+        skew(state.quat.conjugate() * reference_field);
     return H;
 }

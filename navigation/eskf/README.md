@@ -1,5 +1,10 @@
 # Navigation ESKF
 
+Implements Joan Solà, *Quaternion kinematics for the error-state Kalman filter*
+(2017), Sections 5 and 6, with the local attitude error. Equation numbers below refer
+to that paper. NIS gating, sensor lever arms and the Van Loan discretization are
+additions to it.
+
 This package estimates navigation-frame position/velocity, body-to-navigation
 orientation, and body-frame gyro/accelerometer biases. Its nominal state has 16
 stored scalars and its right-local error covariance has 15 coordinates ordered
@@ -14,8 +19,10 @@ stored scalars and its right-local error covariance has 15 coordinates ordered
   `accel, gyro, gyro-bias random walk, accel-bias random walk`. Bias means have no
   deterministic decay. `diag_p_init` contains variances, not standard deviations.
 - Propagation linearizes covariance at the beginning of the nominal interval.
-  Van Loan discretization is retained; its matrix exponential is a host baseline,
-  not an established deterministic MCU implementation.
+  Van Loan discretization is retained in place of Solà's Euler form (269); its matrix
+  exponential is a host baseline, not an established deterministic MCU implementation.
+  Noise follows Solà's Appendix E, `W = Wc * dt` (433), with the proper noise Jacobian
+  he asks for when the IMU is not isotropic.
 - DVL measures body-frame velocity; its right-local attitude Jacobian is
   `skew(R.transpose() * v)`. The ROS adapter rotates sensor covariance and removes
   rotational lever-arm velocity using the latest bias-corrected gyro.
@@ -25,7 +32,12 @@ stored scalars and its right-local error covariance has 15 coordinates ordered
   and validate extrinsics and noise under vehicle motion.
 - Corrections use positive-definite measurement covariance, a Cholesky solve,
   configurable NIS rejection and Joseph covariance update. Injection transports
-  the entire covariance using the exact SO(3) right Jacobian of the reset chart.
+  the entire covariance with the reset Jacobian `G` of Solà (287).
+- Magnetometer measures the earth field in the body frame, `R^T * reference_field`,
+  after `sensors.magnetometer.hard_iron` is removed in the body frame. Its attitude
+  Jacobian is `skew(R^T * reference_field)`, and it is fused with Solà (273-276).
+- Gravity is fixed instead of estimated. Solà (Section 5.3.1) lists this classical
+  option: known `g`, uncertain initial orientation. The 18th-state block is omitted.
 - Pose covariance maps local attitude error to parent-frame small rotation error.
   Body twist covariance includes velocity/attitude/bias cross terms and gyro noise.
   Gyro sample noise is treated as independent of the state; lever-arm compensation

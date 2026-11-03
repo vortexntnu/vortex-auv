@@ -54,6 +54,21 @@ void derivatives() {
               "DVL local Jacobian");
         check((depth.jacobian(state) - depth_numeric).norm() < 1e-8,
               "Depth lever-arm Jacobian");
+        SensorMagnetometer magnetometer;
+        magnetometer.reference_field = V3(1.427, .087, 4.96);
+        Eigen::Matrix3x15d magnetometer_numeric = Eigen::Matrix3x15d::Zero();
+        for (int axis = 0; axis < 3; ++axis) {
+            NominalState plus = state, minus = state;
+            plus.quat *= eskf_math::exp(eps * V3::Unit(axis));
+            minus.quat *= eskf_math::exp(-eps * V3::Unit(axis));
+            magnetometer_numeric.col(6 + axis) =
+                -(magnetometer.innovation(plus) -
+                  magnetometer.innovation(minus)) /
+                (2 * eps);
+        }
+        check((magnetometer.jacobian(state) - magnetometer_numeric).norm() <
+                  1e-7,
+              "Magnetometer attitude Jacobian");
     }
 }
 void prediction() {
@@ -141,6 +156,8 @@ void corrections() {
                           K * measurement.measurement_noise * K.transpose();
     M15 J = M15::Identity();
     const V3 rotation = delta.segment<3>(6);
+    M15 G = M15::Identity();
+    G.block<3, 3>(6, 6) = M3::Identity() - eskf_math::skew(.5 * rotation);
     for (int axis = 0; axis < 3; ++axis) {
         const auto left = eskf_math::exp(-rotation);
         J.block<3, 1>(6, 6 + axis) =
@@ -149,7 +166,8 @@ void corrections() {
             2e-6;
     }
     check(reset.dvl_update(measurement), "DVL correction accepted");
-    check((reset.get_error_state().covariance - J * posterior * J.transpose())
+    check((J - G).norm() < rotation.squaredNorm(), "Reset Jacobian first order");
+    check((reset.get_error_state().covariance - G * posterior * G.transpose())
                   .norm() < 1e-8,
           "Full reset covariance transport");
     check(reset.get_error_state().as_vector().isZero(), "Error mean reset");

@@ -31,12 +31,17 @@ def main():
         'topics.imu': 'imu',
         'topics.dvl_twist': 'dvl',
         'topics.pressure_sensor': 'pressure',
+        'topics.magnetometer': 'magnetometer',
         'topics.odom': 'odom',
         'topics.pose': 'pose',
         'topics.twist': 'twist',
         'sensors.imu.use_tf_transform': False,
         'sensors.dvl.use_tf_transform': False,
         'sensors.pressure.use_tf_transform': False,
+        'sensors.magnetometer.use_tf_transform': False,
+        'sensors.magnetometer.measurement_noise_std_diag': [5.0e-8, 5.0e-8, 5.0e-8],
+        'sensors.magnetometer.reference_field': [1.427e-5, 8.7e-7, 4.96e-5],
+        'sensors.magnetometer.hard_iron': [0.0, 0.0, 0.0],
         'sensors.dvl.use_msg_noise': True,
         'sensors.pressure.use_msg_noise': True,
         'sensors.pressure.measurement_noise': 40000.0,
@@ -50,7 +55,7 @@ def main():
         'max_estimate_age': 0.3,
         'max_aiding_skew': 0.05,
     }
-    for sensor in ('imu', 'dvl'):
+    for sensor in ('imu', 'dvl', 'magnetometer'):
         parameters[f'sensors.{sensor}.transform.r'] = [
             1.0,
             0.0,

@@ -10,10 +10,12 @@ class ESKF {
     bool imu_update(const ImuMeasurement& measurement, double dt);
     bool dvl_update(const SensorDVL& measurement);
     bool depth_update(const SensorDepth& measurement);
+    bool magnetometer_update(const SensorMagnetometer& measurement);
     NominalState get_nominal_state() const { return current_nom_state_; }
     ErrorState get_error_state() const { return current_error_state_; }
     double get_nis_dvl() const { return nis_dvl_; }
     double get_nis_depth() const { return nis_depth_; }
+    double get_nis_magnetometer() const { return nis_magnetometer_; }
     Eigen::Vector3d get_gravity() const { return params_.g_; }
 
    private:
@@ -29,6 +31,7 @@ class ESKF {
     ErrorState current_error_state_;
     double nis_dvl_ = std::numeric_limits<double>::quiet_NaN();
     double nis_depth_ = std::numeric_limits<double>::quiet_NaN();
+    double nis_magnetometer_ = std::numeric_limits<double>::quiet_NaN();
 };
 Eigen::Vector3d calculate_h(const NominalState& state);
 Eigen::Matrix3x15d calculate_h_jacobian(const NominalState& state);

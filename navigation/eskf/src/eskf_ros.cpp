@@ -51,6 +51,7 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     this->declare_parameter<std::string>("topics.imu");
     this->declare_parameter<std::string>("topics.dvl_twist");
     this->declare_parameter<std::string>("topics.pressure_sensor");
+    this->declare_parameter<std::string>("topics.magnetometer");
     this->declare_parameter<std::string>("topics.odom");
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.twist");
@@ -65,9 +66,12 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
         this->declare_parameter<bool>("sensors.pressure.use_tf_transform");
     pressure_use_msg_noise_ =
         this->declare_parameter<bool>("sensors.pressure.use_msg_noise");
+    magnetometer_use_tf_transform_ =
+        this->declare_parameter<bool>("sensors.magnetometer.use_tf_transform");
 
     const bool any_use_tf = imu_use_tf_transform_ || dvl_use_tf_transform_ ||
-                            pressure_use_tf_transform_;
+                            pressure_use_tf_transform_ ||
+                            magnetometer_use_tf_transform_;
 
     if (any_use_tf) {
         tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
@@ -109,6 +113,15 @@ void ESKFNode::set_subscribers_and_publisher() {
             pressure_callback(msg);
         });
 
+    std::string magnetometer_topic =
+        this->get_parameter("topics.magnetometer").as_string();
+    magnetometer_sub_ =
+        this->create_subscription<sensor_msgs::msg::MagneticField>(
+            magnetometer_topic, qos_sensor_data,
+            [this](const sensor_msgs::msg::MagneticField::ConstSharedPtr msg) {
+                magnetometer_callback(msg);
+            });
+
     validity_pub_ = create_publisher<std_msgs::msg::Bool>("eskf/valid", 1);
     reset_service_ = create_service<std_srvs::srv::Trigger>(
         "eskf/reset",
@@ -117,7 +130,7 @@ void ESKFNode::set_subscribers_and_publisher() {
             eskf_ = std::make_unique<ESKF>(filter_params_);
             first_imu_msg_received_ = propagated_ = dvl_received_ =
                 depth_received_ = faulted_ = false;
-            last_dvl_stamp_ = last_depth_stamp_ = -1;
+            last_dvl_stamp_ = last_depth_stamp_ = last_magnetometer_stamp_ = -1;
             response->success = true;
             response->message =
                 "Navigation reset to configured prior; awaiting IMU, DVL and "
@@ -174,6 +187,8 @@ void ESKFNode::set_subscribers_and_publisher() {
             "eskf/nis_dvl", qos_sensor_data);
         nis_depth_pub_ = create_publisher<std_msgs::msg::Float64>(
             "eskf/nis_depth", qos_sensor_data);
+        nis_magnetometer_pub_ = create_publisher<std_msgs::msg::Float64>(
+            "eskf/nis_magnetometer", qos_sensor_data);
     }
 
     if (publish_debug_) {
@@ -220,6 +235,17 @@ void ESKFNode::set_parameters() {
         T_dvl_eskf_ = Eigen::Map<Eigen::Vector3d>(T_dvl.data());
     }
 
+    if (!magnetometer_use_tf_transform_) {
+        std::vector<double> R_magnetometer =
+            this->declare_parameter<std::vector<double>>(
+                "sensors.magnetometer.transform.r");
+        if (R_magnetometer.size() != 9)
+            throw std::runtime_error("Invalid R_magnetometer transform size");
+        R_magnetometer_eskf_ =
+            Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
+                R_magnetometer.data());
+    }
+
     if (!pressure_use_tf_transform_) {
         std::vector<double> T_depth =
             this->declare_parameter<std::vector<double>>(
@@ -228,6 +254,28 @@ void ESKFNode::set_parameters() {
             throw std::runtime_error("Invalid T_depth transform size");
         T_depth_eskf_ = Eigen::Map<Eigen::Vector3d>(T_depth.data());
     }
+
+    std::vector<double> magnetometer_noise_std =
+        this->declare_parameter<std::vector<double>>(
+            "sensors.magnetometer.measurement_noise_std_diag");
+    std::vector<double> reference_field =
+        this->declare_parameter<std::vector<double>>(
+            "sensors.magnetometer.reference_field");
+    std::vector<double> hard_iron =
+        this->declare_parameter<std::vector<double>>(
+            "sensors.magnetometer.hard_iron");
+    if (magnetometer_noise_std.size() != 3 || reference_field.size() != 3 ||
+        hard_iron.size() != 3)
+        throw std::runtime_error("Invalid magnetometer configuration size");
+    magnetometer_noise_ =
+        Eigen::Map<Eigen::Vector3d>(magnetometer_noise_std.data())
+            .array()
+            .square()
+            .matrix()
+            .asDiagonal();
+    magnetometer_reference_field_ =
+        Eigen::Map<Eigen::Vector3d>(reference_field.data());
+    magnetometer_hard_iron_ = Eigen::Map<Eigen::Vector3d>(hard_iron.data());
 
     if (!dvl_use_msg_noise_) {
         auto diag = this->declare_parameter<std::vector<double>>(
@@ -287,7 +335,7 @@ void ESKFNode::set_parameters() {
         (dvl_measurement_noise_std_.array() <= 0).any())
         throw std::runtime_error(
             "Invalid timing or sensor noise configuration");
-    for (const auto& R : {R_imu_eskf_, R_dvl_eskf_}) {
+    for (const auto& R : {R_imu_eskf_, R_dvl_eskf_, R_magnetometer_eskf_}) {
         if (!R.allFinite() ||
             !(R.transpose() * R).isApprox(Eigen::Matrix3d::Identity(), 1e-6) ||
             std::abs(R.determinant() - 1) > 1e-6)
@@ -301,6 +349,8 @@ void ESKFNode::set_parameters() {
         declare_parameter<double>("dvl_nis_threshold", 16.266);
     eskf_params.depth_nis_threshold =
         declare_parameter<double>("depth_nis_threshold", 10.828);
+    eskf_params.magnetometer_nis_threshold =
+        declare_parameter<double>("magnetometer_nis_threshold", 16.266);
     filter_params_ = eskf_params;
     eskf_ = std::make_unique<ESKF>(filter_params_);
 }
@@ -486,6 +536,36 @@ void ESKFNode::pressure_callback(
     }
 }
 
+void ESKFNode::magnetometer_callback(
+    const sensor_msgs::msg::MagneticField::ConstSharedPtr msg) {
+    if (!accept_aiding_stamp(
+            rclcpp::Time(msg->header.stamp, get_clock()->get_clock_type()),
+            last_magnetometer_stamp_))
+        return;
+
+    SensorMagnetometer sensor;
+    sensor.measurement =
+        R_magnetometer_eskf_ * Eigen::Vector3d(msg->magnetic_field.x,
+                                               msg->magnetic_field.y,
+                                               msg->magnetic_field.z) -
+        magnetometer_hard_iron_;
+    sensor.measurement_noise = magnetometer_noise_;
+    sensor.reference_field = magnetometer_reference_field_;
+    if (!sensor.measurement.allFinite())
+        return;
+
+    if (!eskf_->magnetometer_update(sensor))
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                             "Magnetometer correction rejected (invalid "
+                             "covariance/data or innovation)");
+
+    if (publish_nis_) {
+        std_msgs::msg::Float64 nis_msg;
+        nis_msg.data = eskf_->get_nis_magnetometer();
+        nis_magnetometer_pub_->publish(nis_msg);
+    }
+}
+
 void ESKFNode::publish_odom() {
     std_msgs::msg::Bool validity;
     const double age =
@@ -605,6 +685,13 @@ void ESKFNode::lookup_static_transforms() {
             T_depth_eskf_ = Tf_base_depth_.translation();
         }
 
+        if (magnetometer_use_tf_transform_) {
+            const Eigen::Isometry3d Tf_base_magnetometer =
+                tf2::transformToEigen(tf_buffer_->lookupTransform(
+                    frame("base_link"), frame("dvl_link"), tf2::TimePointZero));
+            R_magnetometer_eskf_ = Tf_base_magnetometer.rotation();
+        }
+
         tf_timer_->cancel();
         spdlog::info("All required static transforms loaded successfully.");
         complete_initialization();
@@ -639,7 +726,8 @@ void ESKFNode::complete_initialization() {
 
     if (publish_nis_) {
         spdlog::info(
-            "NIS publishing enabled on eskf/nis_dvl and eskf/nis_depth");
+            "NIS publishing enabled on eskf/nis_dvl, eskf/nis_depth and "
+            "eskf/nis_magnetometer");
     }
 }
 

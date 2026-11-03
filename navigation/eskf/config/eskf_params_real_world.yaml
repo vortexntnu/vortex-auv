@@ -24,6 +24,12 @@
                   0.0,  0.0,  1.0 ]
             t: [ 0.4, 0.0, 0.2 ]
 
+        magnetometer:
+          use_tf_transform: true
+          measurement_noise_std_diag: [1.5e-7, 1.5e-7, 1.5e-7] # [T]
+          reference_field: [1.4e-5, 0.0, 4.9e-5] # [T]
+          hard_iron: [0.0, 0.0, 0.0] # [T]
+
         pressure: # MS5837 blue robotics pressure sensor
           use_tf_transform: true
           use_msg_noise: false                # MS5837 driver publishes variance=0, use config noise
@@ -43,3 +49,4 @@
       max_aiding_skew: 0.05
       dvl_nis_threshold: 16.266
       depth_nis_threshold: 10.828
+      magnetometer_nis_threshold: 16.266

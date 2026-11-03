@@ -74,8 +74,9 @@ struct EskfParams {
     Eigen::Matrix15d P = Eigen::Matrix15d::Identity();
     Eigen::Vector3d g_{0.0, 0.0, 9.82841};
     double max_imu_dt = 0.1;
-    double dvl_nis_threshold = 16.266;    // chi-square(3), 99.9%.
-    double depth_nis_threshold = 10.828;  // chi-square(1), 99.9%.
+    double dvl_nis_threshold = 16.266;           // chi-square(3), 99.9%.
+    double depth_nis_threshold = 10.828;         // chi-square(1), 99.9%.
+    double magnetometer_nis_threshold = 16.266;  // chi-square(3), 99.9%.
 };
 struct ImuMeasurement {
     Eigen::Vector3d accel = Eigen::Vector3d::Zero();
@@ -99,6 +100,15 @@ struct SensorDepth {
     Eigen::Matrix<double, 1, 1> noise_covariance() const {
         return Eigen::Matrix<double, 1, 1>::Constant(measurement_noise);
     }
+};
+struct SensorMagnetometer {
+    static constexpr int dimension = 3;
+    Eigen::Vector3d measurement = Eigen::Vector3d::Zero();
+    Eigen::Matrix3d measurement_noise = Eigen::Matrix3d::Identity();
+    Eigen::Vector3d reference_field = Eigen::Vector3d::Zero();
+    Eigen::Vector3d innovation(const NominalState& state) const;
+    Eigen::Matrix3x15d jacobian(const NominalState& state) const;
+    Eigen::Matrix3d noise_covariance() const { return measurement_noise; }
 };
 template <typename T>
 concept SensorModelConcept =
