@@ -1,5 +1,6 @@
 import os
 
+import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
@@ -18,11 +19,7 @@ def launch_setup(context, *args, **kwargs):
         LaunchConfiguration('debug_output').perform(context).lower() == 'true'
     )
     use_sim = LaunchConfiguration('use_sim').perform(context).lower() == 'true'
-    environment = (
-        'stonefish_sim'
-        if use_sim
-        else LaunchConfiguration('environment').perform(context)
-    )
+    environment = LaunchConfiguration('environment').perform(context)
 
     drone_params = os.path.join(
         get_package_share_directory('auv_setup'), 'config', 'robots', f'{drone}.yaml'
@@ -41,12 +38,19 @@ def launch_setup(context, *args, **kwargs):
     ukf_params = LaunchConfiguration('params_file').perform(context) or os.path.join(
         get_package_share_directory('ukf'), 'config', default_params
     )
-    env_params = os.path.join(
-        get_package_share_directory('auv_setup'),
-        'config',
-        'environments',
-        f'{environment}.yaml',
-    )
+    env_params = {}
+    if not use_sim:
+        env_file = os.path.join(
+            get_package_share_directory('auv_setup'),
+            'config',
+            'environments',
+            f'{environment}.yaml',
+        )
+        with open(env_file) as f:
+            env_params = {
+                group: {name: float(value) for name, value in values.items()}
+                for group, values in yaml.safe_load(f).items()
+            }
     overrides = {
         'frame_prefix': namespace,
         'publish_debug': debug_output,
