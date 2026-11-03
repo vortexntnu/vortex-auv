@@ -25,8 +25,8 @@ build_ros_workspace() {
     log_info "Sourcing ROS 2 setup..."
     . /opt/ros/humble/setup.sh
 
-    log_info "Building stonefish_ros2 and vortex_utils first (dependencies for other packages)..."
-    colcon build --packages-select stonefish_ros2 vortex_utils
+    log_info "Building stonefish_ros2, vortex_utils and what they depend on first..."
+    colcon build --packages-up-to stonefish_ros2 vortex_utils
 
     log_info "Sourcing workspace..."
     . install/setup.bash

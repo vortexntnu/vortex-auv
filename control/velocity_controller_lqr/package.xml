@@ -15,7 +15,6 @@
   <depend>vortex_msgs</depend>
   <depend>vortex_utils</depend>
   <depend>vortex_utils_ros</depend>
-  <depend>python-control-pip</depend>
   <depend>std_msgs</depend>
 
   <test_depend>ament_cmake_pytest</test_depend>
