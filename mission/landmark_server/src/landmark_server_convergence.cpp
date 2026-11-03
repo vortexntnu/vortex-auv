@@ -294,8 +294,9 @@ vortex_msgs::action::GuidanceWaypoint::Goal LandmarkServerNode::make_rf_goal(
     vortex_msgs::msg::Waypoint wp;
     wp.pose = target;
     wp.waypoint_mode = convergence_mode_;
+    wp.position_tolerance = convergence_threshold;
+    wp.orientation_tolerance = convergence_threshold;
     rf_goal.waypoint = wp;
-    rf_goal.convergence_threshold = convergence_threshold;
     return rf_goal;
 }
 

@@ -65,15 +65,13 @@ Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& reference_in,
                 current_state(5) + ssa(reference_in(5) - current_state(5));
             break;
 
-        case WaypointMode::XY_FORWARD_DIR: {
-            const double dx = reference_in(0) - current_state(0);
-            const double dy = reference_in(1) - current_state(1);
-            reference_out(2) = current_state(2);
-            reference_out(3) = 0.0;
-            reference_out(4) = 0.0;
-            reference_out(5) = ssa(std::atan2(dy, dx));
+        case WaypointMode::ONLY_Z:
+            reference_out(0) = current_state(0);
+            reference_out(1) = current_state(1);
+            reference_out(3) = current_state(3);
+            reference_out(4) = current_state(4);
+            reference_out(5) = current_state(5);
             break;
-        }
     }
 
     return reference_out;
@@ -82,36 +80,41 @@ Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& reference_in,
 bool has_converged(const Eigen::Vector6d& measured_pose,
                    const Eigen::Vector6d& reference,
                    WaypointMode mode,
-                   double convergence_threshold) {
+                   const ConvergenceTolerance& tolerance) {
     using vortex::utils::math::ssa;
-    const Eigen::Vector3d ep = measured_pose.head<3>() - reference.head<3>();
+    const Eigen::Vector3d position_error =
+        measured_pose.head<3>() - reference.head<3>();
 
-    Eigen::Vector3d ea;
-    ea(0) = ssa(measured_pose(3) - reference(3));
-    ea(1) = ssa(measured_pose(4) - reference(4));
-    ea(2) = ssa(measured_pose(5) - reference(5));
+    Eigen::Vector3d orientation_error;
+    orientation_error(0) = ssa(measured_pose(3) - reference(3));
+    orientation_error(1) = ssa(measured_pose(4) - reference(4));
+    orientation_error(2) = ssa(measured_pose(5) - reference(5));
 
-    const double err = [&] {
+    const ControlledError err = [&]() -> ControlledError {
         switch (mode) {
             case WaypointMode::ONLY_POSITION:
-                return ep.norm();
+                return {position_error.norm(), 0.0};
             case WaypointMode::ONLY_ORIENTATION:
-                return ea.norm();
+                return {0.0, orientation_error.norm()};
             case WaypointMode::FORWARD_HEADING:
-                return std::sqrt(ep.squaredNorm() + ea(2) * ea(2));
             case WaypointMode::POSITION_AND_YAW:
-                return std::sqrt(ep.squaredNorm() + ea(2) * ea(2));
+                return {position_error.norm(), std::abs(orientation_error(2))};
             case WaypointMode::XY_AND_YAW:
-                return std::sqrt(ep.head<2>().squaredNorm() + ea(2) * ea(2));
-            case WaypointMode::XY_FORWARD_DIR:
-                return ep.head<2>().norm();
+                return {position_error.head<2>().norm(),
+                        std::abs(orientation_error(2))};
+            case WaypointMode::ONLY_Z:
+                return {std::abs(position_error(2)), 0.0};
             case WaypointMode::FULL_POSE:
             default:
-                return std::sqrt(ep.squaredNorm() + ea.squaredNorm());
+                return {position_error.norm(), orientation_error.norm()};
         }
     }();
 
-    return err < convergence_threshold;
+    const bool position_ok =
+        tolerance.position <= 0.0 || err.position < tolerance.position;
+    const bool orientation_ok =
+        tolerance.orientation <= 0.0 || err.orientation < tolerance.orientation;
+    return position_ok && orientation_ok;
 }
 
 }  // namespace vortex::guidance
