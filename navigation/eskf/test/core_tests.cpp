@@ -66,9 +66,9 @@ void derivatives() {
                   magnetometer.innovation(minus)) /
                 (2 * eps);
         }
-        check((magnetometer.jacobian(state) - magnetometer_numeric).norm() <
-                  1e-7,
-              "Magnetometer attitude Jacobian");
+        check(
+            (magnetometer.jacobian(state) - magnetometer_numeric).norm() < 1e-7,
+            "Magnetometer attitude Jacobian");
     }
 }
 void prediction() {
@@ -166,7 +166,8 @@ void corrections() {
             2e-6;
     }
     check(reset.dvl_update(measurement), "DVL correction accepted");
-    check((J - G).norm() < rotation.squaredNorm(), "Reset Jacobian first order");
+    check((J - G).norm() < rotation.squaredNorm(),
+          "Reset Jacobian first order");
     check((reset.get_error_state().covariance - G * posterior * G.transpose())
                   .norm() < 1e-8,
           "Full reset covariance transport");
