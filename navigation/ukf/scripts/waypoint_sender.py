@@ -148,7 +148,7 @@ class WaypointSender(Node):
         goal.waypoint.pose.orientation.y = qy
         goal.waypoint.pose.orientation.z = qz
         goal.waypoint.waypoint_mode.mode = mode
-        goal.convergence_threshold = threshold
+        goal.waypoint.position_tolerance = threshold
 
         self.get_logger().info(
             f'Sending: pos=({x}, {y}, {z}), '

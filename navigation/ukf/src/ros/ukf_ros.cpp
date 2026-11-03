@@ -32,7 +32,7 @@ UKFNode::UKFNode(const rclcpp::NodeOptions& options)
     this->declare_parameter<std::string>("topics.imu");
     this->declare_parameter<std::string>("topics.dvl_twist");
     this->declare_parameter<std::string>("topics.pressure_sensor");
-    this->declare_parameter<std::string>("topics.magnetometer", "");
+    this->declare_parameter<std::string>("topics.magnetometer");
     this->declare_parameter<std::string>("topics.odom");
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.twist");
@@ -58,9 +58,9 @@ UKFNode::UKFNode(const rclcpp::NodeOptions& options)
         tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
         tf_listener_ =
             std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-        tf_timer_ = this->create_wall_timer(
-            std::chrono::milliseconds(500),
-            [this]() { lookup_static_transforms(); });
+        tf_timer_ =
+            this->create_wall_timer(std::chrono::milliseconds(500),
+                                    [this]() { lookup_static_transforms(); });
     } else {
         spdlog::info(
             "Using parameter-based sensor transforms. TF lookup disabled.");
@@ -193,8 +193,7 @@ void UKFNode::set_parameters() {
         throw std::runtime_error("Invalid sensor translation");
 
     dvl_nis_threshold_ = declare_parameter<double>("dvl_nis_threshold");
-    depth_nis_threshold_ =
-        declare_parameter<double>("depth_nis_threshold");
+    depth_nis_threshold_ = declare_parameter<double>("depth_nis_threshold");
     magnetometer_nis_threshold_ =
         declare_parameter<double>("magnetometer_nis_threshold");
 
@@ -205,9 +204,19 @@ void UKFNode::set_parameters() {
     const std::vector<double> reference_field =
         this->declare_parameter<std::vector<double>>(
             "sensors.magnetometer.reference_field");
-    if (magnetometer_noise_std.size() != 3 || reference_field.size() != 3) {
+    const std::vector<double> hard_iron =
+        this->declare_parameter<std::vector<double>>(
+            "sensors.magnetometer.hard_iron");
+    if (magnetometer_noise_std.size() != 3 || reference_field.size() != 3 ||
+        hard_iron.size() != 3) {
         throw std::runtime_error(
-            "magnetometer noise and reference field must have length 3");
+            "magnetometer noise, reference field and hard iron must have "
+            "length 3");
+    }
+    magnetometer_hard_iron_ =
+        Eigen::Map<const Eigen::Vector3d>(hard_iron.data());
+    if (!magnetometer_hard_iron_.allFinite()) {
+        throw std::runtime_error("Invalid magnetometer hard iron");
     }
     magnetometer_model_ =
         std::make_unique<MagnetometerMeasurementModel>(MagnetometerConfig{
@@ -251,17 +260,14 @@ void UKFNode::set_subscribers_and_publishers() {
             pressure_callback(msg);
         });
 
-    const std::string magnetometer_topic =
+    std::string magnetometer_topic =
         this->get_parameter("topics.magnetometer").as_string();
-    if (!magnetometer_topic.empty()) {
-        magnetometer_sub_ =
-            this->create_subscription<sensor_msgs::msg::MagneticField>(
-                magnetometer_topic, qos_sensor_data,
-                [this](
-                    const sensor_msgs::msg::MagneticField::ConstSharedPtr msg) {
-                    magnetometer_callback(msg);
-                });
-    }
+    magnetometer_sub_ =
+        this->create_subscription<sensor_msgs::msg::MagneticField>(
+            magnetometer_topic, qos_sensor_data,
+            [this](const sensor_msgs::msg::MagneticField::ConstSharedPtr msg) {
+                magnetometer_callback(msg);
+            });
 
     validity_pub_ = create_publisher<std_msgs::msg::Bool>("ukf/valid", 1);
     reset_service_ = create_service<std_srvs::srv::Trigger>(
@@ -368,8 +374,7 @@ void UKFNode::lookup_static_transforms() {
             // the magnetometer is the one in the Nucleus, next to the dvl
             const Eigen::Isometry3d Tf_base_magnetometer =
                 tf2::transformToEigen(tf_buffer_->lookupTransform(
-                    frame("base_link"), frame("dvl_link"),
-                    tf2::TimePointZero));
+                    frame("base_link"), frame("dvl_link"), tf2::TimePointZero));
             R_magnetometer_ukf_ = Tf_base_magnetometer.rotation();
         }
 
@@ -658,7 +663,8 @@ void UKFNode::magnetometer_callback(
     const Eigen::Vector3d field =
         R_magnetometer_ukf_ * Eigen::Vector3d(msg->magnetic_field.x,
                                               msg->magnetic_field.y,
-                                              msg->magnetic_field.z);
+                                              msg->magnetic_field.z) -
+        magnetometer_hard_iron_;
     if (!field.allFinite())
         return;
 

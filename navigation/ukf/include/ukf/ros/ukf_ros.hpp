@@ -235,6 +235,7 @@ class UKFNode : public rclcpp::Node {
     // the magnetometer is the one in the Nucleus, so it follows the dvl frame
     bool magnetometer_use_tf_transform_{true};
     Eigen::Matrix3d R_magnetometer_ukf_ = Eigen::Matrix3d::Identity();
+    Eigen::Vector3d magnetometer_hard_iron_ = Eigen::Vector3d::Zero();
 
     bool pressure_use_tf_transform_{true};
     bool pressure_use_msg_noise_{false};

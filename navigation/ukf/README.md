@@ -62,6 +62,7 @@ Set `sensors.magnetometer` in the params file:
 | parameter                    | meaning                                                  |
 | ---------------------------- | -------------------------------------------------------- |
 | `reference_field`            | earth field for the site in NED [T]                      |
+| `hard_iron`                  | constant field the vehicle adds, in `base_link` [T], removed from the measurement |
 | `measurement_noise_std_diag` | noise std per axis [T], keep it above the datasheet value |
 | `use_tf_transform`           | take the sensor rotation from TF instead of parameters   |
 
@@ -74,9 +75,10 @@ Stonefish has no magnetometer, so `stonefish_sim_interface` makes one from the
 true attitude. It rotates its own earth field into the sensor frame, adds a hard
 iron offset and Gaussian noise, and publishes `sensor_msgs/MagneticField` on
 `nucleus/mag` at the rate of the truth odometry (10 Hz). The values are in
-`stonefish_sim_interface/config/magnetometer.yaml`. They differ from the
-filter's on purpose, so the filter is tested against a mismatch like on the
-real vehicle. The noise seed is fixed so runs are repeatable.
+`stonefish_sim_interface/config/magnetometer.yaml`. `ukf_params.yaml` and
+`ukf_params_calibrated_sim.yaml` use the same earth field and hard iron, the
+hard iron rotated by `sensor_yaw` into `base_link`, so the filter is only tested
+against sensor noise. The noise seed is fixed so runs are repeatable.
 
 ## Build and launch
 

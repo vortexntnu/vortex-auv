@@ -3,11 +3,11 @@
     ros__parameters:
       # Calibrated against the Stonefish noise model in nautilus_no_visual.scn, for consistency
       # testing. Stonefish adds white noise per sample, the filter wants a continuous density:
-      #   sigma_c = sigma_sample * sqrt(dt), dt = 1 / 20 Hz.
+      #   sigma_c = sigma_sample * sqrt(dt), dt = 1 / 100 Hz.
       # The sim has no gyro or accel bias, so the bias random walks are only kept above zero
       # to keep the covariance positive definite.
-      # accel: 0.1 * sqrt(0.05), gyro: 0.05 * sqrt(0.05), gyro-bias RW, accel-bias RW.
-      diag_Q_std: [0.02236, 0.02236, 0.02236, 0.01118, 0.01118, 0.01118, 1.0e-6, 1.0e-6, 1.0e-6, 1.0e-6, 1.0e-6, 1.0e-6]
+      # accel: 0.1 * sqrt(0.01), gyro: 0.05 * sqrt(0.01), gyro-bias RW, accel-bias RW.
+      diag_Q_std: [0.01, 0.01, 0.01, 0.005, 0.005, 0.005, 1.0e-6, 1.0e-6, 1.0e-6, 1.0e-6, 1.0e-6, 1.0e-6]
       # Variances: position, velocity, local rotation, gyro bias, accel bias.
       diag_p_init: [1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
       unscented_transform:
@@ -38,6 +38,7 @@
           measurement_noise_std_diag: [5.0e-8, 5.0e-8, 5.0e-8] # [T] equal to stonefish_sim_interface magnetometer.noise_std
           # equal to stonefish_sim_interface magnetometer.earth_field_ned
           reference_field: [1.427e-5, 8.7e-7, 4.96e-5] # [T]
+          hard_iron: [-3.0e-7, 2.0e-7, 1.0e-7] # [T]
 
         pressure:
           use_tf_transform: true
@@ -53,7 +54,7 @@
       publish_biases: true
       publish_nis: true
       pressure_is_gauge: true # Stonefish publishes gauge pressure
-      max_imu_dt: 0.5 # sim IMU is 20 Hz and the sim stalls under load, one late message is not a fault
+      max_imu_dt: 0.5 # the sim stalls under load, one late message is not a fault
       max_estimate_age: 0.25
       max_aiding_skew: 0.05
       dvl_nis_threshold: 16.266

@@ -1,5 +1,6 @@
 from launch import LaunchDescription
-from launch.actions import OpaqueFunction
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from auv_setup.launch_arg_common import (
@@ -10,6 +11,7 @@ from auv_setup.launch_arg_common import (
 
 def launch_setup(context, *args, **kwargs):
     _, namespace = resolve_drone_and_namespace(context)
+    estimators = LaunchConfiguration('estimators').perform(context).split(',')
     return [
         Node(
             package='ukf',
@@ -26,11 +28,19 @@ def launch_setup(context, *args, **kwargs):
             ],
             output='screen',
         )
-        for estimator in ('ukf',)
+        for estimator in estimators
     ]
 
 
 def generate_launch_description():
     return LaunchDescription(
-        declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
+        declare_drone_and_namespace_args()
+        + [
+            DeclareLaunchArgument(
+                'estimators',
+                default_value='ukf',
+                description='Comma separated estimators to monitor, e.g. ukf,eskf',
+            ),
+            OpaqueFunction(function=launch_setup),
+        ]
     )

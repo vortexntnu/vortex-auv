@@ -106,7 +106,7 @@
           "value": "/nautilus/ukf/nis_dvl.data",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "UKF"
+          "label": "UKF DVL NIS"
         },
         {
           "value": "/nautilus/ukf/bounds/chi2_95_lower_dof3.data",
@@ -143,7 +143,7 @@
           "value": "/nautilus/ukf/nis_depth.data",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "UKF"
+          "label": "UKF depth NIS"
         },
         {
           "value": "/nautilus/ukf/bounds/chi2_95_lower_dof1.data",
@@ -180,7 +180,7 @@
           "value": "/nautilus/ukf/nees_position.data",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "UKF"
+          "label": "UKF Position NEES"
         },
         {
           "value": "/nautilus/ukf/bounds/chi2_95_lower_dof3.data",
@@ -217,7 +217,7 @@
           "value": "/nautilus/ukf/nees_attitude.data",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "UKF"
+          "label": "UKF Attitude NEES"
         },
         {
           "value": "/nautilus/ukf/bounds/chi2_95_lower_dof3.data",
@@ -357,8 +357,13 @@
             "first": {
               "direction": "column",
               "first": "Plot!nis_dvl",
-              "second": "Plot!nis_depth",
-              "splitPercentage": 50
+              "second": {
+                "direction": "column",
+                "first": "Plot!nis_depth",
+                "second": "Plot!nis_magnetometer",
+                "splitPercentage": 50
+              },
+              "splitPercentage": 33.33
             },
             "second": {
               "direction": "column",
@@ -416,7 +421,7 @@
           "value": "/nautilus/ukf/odom.pose.pose.position.x",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "UKF estimate",
+          "label": "UKF x",
           "color": "#4e9bff"
         },
         {
@@ -445,7 +450,7 @@
           "value": "/nautilus/ukf/odom.pose.pose.position.y",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "UKF estimate",
+          "label": "UKF y",
           "color": "#4e9bff"
         },
         {
@@ -474,7 +479,7 @@
           "value": "/nautilus/ukf/odom.pose.pose.position.z",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "UKF estimate",
+          "label": "UKF z",
           "color": "#4e9bff"
         },
         {
@@ -503,7 +508,7 @@
           "value": "/nautilus/ukf/odom.pose.pose.orientation.w",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "UKF estimate",
+          "label": "UKF qw",
           "color": "#4e9bff"
         },
         {
@@ -532,7 +537,7 @@
           "value": "/nautilus/ukf/odom.pose.pose.orientation.x",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "UKF estimate",
+          "label": "UKF qx",
           "color": "#4e9bff"
         },
         {
@@ -561,7 +566,7 @@
           "value": "/nautilus/ukf/odom.pose.pose.orientation.y",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "UKF estimate",
+          "label": "UKF qy",
           "color": "#4e9bff"
         },
         {
@@ -590,7 +595,7 @@
           "value": "/nautilus/ukf/odom.pose.pose.orientation.z",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "label": "UKF estimate",
+          "label": "UKF qz",
           "color": "#4e9bff"
         },
         {
@@ -610,6 +615,43 @@
       "xAxisVal": "timestamp",
       "sidebarDimension": 240,
       "minYValue": null,
+      "maxYValue": null
+    },
+    "Plot!nis_magnetometer": {
+      "title": "UKF NIS: magnetometer update, 3 dof (95% band: 0.22 to 9.35)",
+      "paths": [
+        {
+          "value": "/nautilus/ukf/nis_magnetometer.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "UKF magnetometer NIS"
+        },
+        {
+          "value": "/nautilus/ukf/bounds/chi2_95_lower_dof3.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "95% lower bound (dof 3)",
+          "color": "#9aa0a6",
+          "lineSize": 1
+        },
+        {
+          "value": "/nautilus/ukf/bounds/chi2_95_upper_dof3.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "95% upper bound (dof 3)",
+          "color": "#9aa0a6",
+          "lineSize": 1
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "minYValue": 0,
       "maxYValue": null
     }
   },

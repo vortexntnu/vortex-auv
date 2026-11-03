@@ -33,6 +33,7 @@
           measurement_noise_std_diag: [1.5e-7, 1.5e-7, 1.5e-7] # [T] datasheet noise is 50 nT, kept larger for the vehicle
           # local earth field in the navigation frame (NED), set for the test site
           reference_field: [1.4e-5, 0.0, 4.9e-5] # [T]
+          hard_iron: [0.0, 0.0, 0.0] # [T]
 
         pressure: # MS5837 blue robotics pressure sensor
           use_tf_transform: true
