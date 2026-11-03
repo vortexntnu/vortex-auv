@@ -123,7 +123,7 @@ tmux new-session -d -s "$SESSION" -n "sim"
 PANE_SIM=$(tmux list-panes -t "$SESSION:sim" -F '#{pane_id}')
 
 # Stonefish simulation (top-left)
-tmux send-keys -t "$PANE_SIM" "clear && $S && ros2 launch stonefish_sim vortex_sim_launch.py scenario:=$SCENARIO drone:=nautilus $SIM_ARGS" Enter
+tmux send-keys -t "$PANE_SIM" "clear && $S && ros2 launch stonefish_sim simulation.launch.py scenario:=$SCENARIO drone:=nautilus $SIM_ARGS" Enter
 
 # Split right -> Keyboard joy (top-right)
 PANE_JOY=$(tmux split-window -h -t "$PANE_SIM" -P -F '#{pane_id}')
