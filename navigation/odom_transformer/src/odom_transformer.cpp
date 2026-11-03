@@ -80,6 +80,17 @@ void OdomTransformer::complete_initialization() {
             this->get_parameter("topics.twist").as_string(), qos);
     }
 
+    reset_origin_srv_ = this->create_service<std_srvs::srv::Trigger>(
+        "reset_odom_origin",
+        [this](const std_srvs::srv::Trigger::Request::SharedPtr,
+               std_srvs::srv::Trigger::Response::SharedPtr response) {
+            origin_set_ = false;
+            response->success = true;
+            response->message =
+                "Odom origin reset; next message sets new origin.";
+            RCLCPP_INFO(get_logger(), "Odom origin reset requested.");
+        });
+
     RCLCPP_INFO(get_logger(), "Odom transformer: %s -> %s", input_topic.c_str(),
                 output_topic.c_str());
 }
@@ -112,12 +123,17 @@ void OdomTransformer::odom_callback(
 
     // Capture the first base_link pose as the odom frame origin
     if (!origin_set_) {
-        R_origin_ = R_odom_base;
+        double yaw0 = std::atan2(R_odom_base(1, 0), R_odom_base(0, 0));
+
+        R_origin_ = Eigen::AngleAxisd(yaw0, Eigen::Vector3d::UnitZ())
+                        .toRotationMatrix();
+
         p_origin_ = p_base;
         origin_set_ = true;
     }
 
-    // Express pose relative to origin so t=0 is identity
+    // Express pose relative to initial position and yaw, preserving odometry
+    // roll/pitch
     Eigen::Matrix3d R_out = R_origin_.transpose() * R_odom_base;
     Eigen::Vector3d p_out = R_origin_.transpose() * (p_base - p_origin_);
     Eigen::Quaterniond q_out(R_out);

@@ -1,0 +1,59 @@
+/**:
+  eskf_node:
+    ros__parameters:
+      # Continuous noise density std: accel, gyro, gyro-bias RW, accel-bias RW.
+      diag_Q_std: [0.01, 0.01, 0.01, 0.005, 0.005, 0.005, 0.001, 0.001, 0.001, 0.0001, 0.0001, 0.0001]
+      # Variances: position, velocity, local rotation, gyro bias, accel bias.
+      diag_p_init: [1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+      sensors:
+        imu:
+          use_tf_transform: true
+          transform:
+            r: [ -1.0,  0.0,  0.0,
+                  0.0,  1.0,  0.0,
+                  0.0,  0.0, -1.0 ]
+            t: [ 0.0, 0.0, 0.0 ]
+
+        dvl:
+          use_tf_transform: true
+          use_msg_noise: true
+          measurement_noise_std_diag: [0.1, 0.1, 0.1] # [m/s]
+          transform:
+            r: [ 0.0, -1.0,  0.0,
+                  1.0,  0.0,  0.0,
+                  0.0,  0.0,  1.0 ]
+            t: [ 0.4, 0.0, 0.2 ]
+
+        magnetometer:
+          use_tf_transform: true
+          measurement_noise_std_diag: [5.0e-8, 5.0e-8, 5.0e-8] # [T]
+          reference_field: [1.427e-5, 8.7e-7, 4.96e-5] # [T]
+          hard_iron: [-3.0e-7, 2.0e-7, 1.0e-7] # [T]
+
+        pressure:
+          use_tf_transform: false
+          use_msg_noise: true # Stonefish provides variance from its noise model
+          measurement_noise: 40000.0 # [Pa^2] pressure variance
+          transform:
+            t: [ -0.035, -0.115, -0.095 ]
+
+      atmosphere:
+        pressure: 101300.0 # [Pa]
+      water:
+        density: 1031.0 # [kg/m3]
+      gravity:
+        acceleration: 9.81 # [m/s2]
+
+      publish_tf: true
+      publish_pose: true
+      publish_twist: true
+      publish_rate_ms: 5
+      publish_biases: true
+      publish_nis: true
+      pressure_is_gauge: true # Stonefish publishes gauge pressure
+      max_imu_dt: 0.5 # the sim stalls under load, one late message is not a fault
+      max_estimate_age: 0.25
+      max_aiding_skew: 0.05
+      dvl_nis_threshold: 16.266
+      depth_nis_threshold: 10.828
+      magnetometer_nis_threshold: 16.266
