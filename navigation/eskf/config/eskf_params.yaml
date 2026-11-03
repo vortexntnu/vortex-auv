@@ -31,11 +31,18 @@
           hard_iron: [-3.0e-7, 2.0e-7, 1.0e-7] # [T]
 
         pressure:
-          use_tf_transform: true
+          use_tf_transform: false
           use_msg_noise: true # Stonefish provides variance from its noise model
           measurement_noise: 40000.0 # [Pa^2] pressure variance
           transform:
-            t: [ 0.0, 0.0, 0.0 ]
+            t: [ -0.035, -0.115, -0.095 ]
+
+      atmosphere:
+        pressure: 101300.0 # [Pa]
+      water:
+        density: 1031.0 # [kg/m3]
+      gravity:
+        acceleration: 9.81 # [m/s2]
 
       publish_tf: true
       publish_pose: true
