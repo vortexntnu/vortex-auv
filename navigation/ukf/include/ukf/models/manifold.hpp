@@ -31,7 +31,7 @@ concept Manifold = requires(const T& space,
     { T::dimension } -> std::convertible_to<int>;
     { space.composition_plus(point, delta) } -> std::same_as<typename T::Point>;
     { space.composition_minus(point, point) } -> std::same_as<Tangent<T>>;
-};
+};  // NOLINT(readability/braces): C++20 requires-expression terminator.
 
 /**
  * @brief A Manifold that is also a measurement model, defining the
@@ -44,7 +44,7 @@ concept SensorModel =
     requires(const T& sensor, const State& state, const ImuInput& input) {
         { sensor.h(state, input) } -> std::same_as<typename T::Point>;
         { sensor.R(state, input) } -> std::same_as<Eigen::Matrix<double, T::dimension, T::dimension>>;
-    };
+    };  // NOLINT(readability/braces): C++20 requires-expression terminator.
 
 #endif  // UKF__MODELS__MANIFOLD_HPP_
 // clang-format on

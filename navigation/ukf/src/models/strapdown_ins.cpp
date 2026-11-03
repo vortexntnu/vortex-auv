@@ -28,9 +28,11 @@ Eigen::Matrix15d StrapdownINS3D::Q(const State& state,
     // continuous time error state dynamics, linearised about the state
     Eigen::Matrix15d A = Eigen::Matrix15d::Zero();
     A.block<3, 3>(StateIndex::position, StateIndex::velocity).setIdentity();
-    A.block<3, 3>(StateIndex::velocity, StateIndex::attitude) = -R * get_skew_symmetric_matrix(input.accel - state.accel_bias);
+    A.block<3, 3>(StateIndex::velocity, StateIndex::attitude) =
+        -R * get_skew_symmetric_matrix(input.accel - state.accel_bias);
     A.block<3, 3>(StateIndex::velocity, StateIndex::accel_bias) = -R;
-    A.block<3, 3>(StateIndex::attitude, StateIndex::attitude) = -get_skew_symmetric_matrix(input.gyro - state.gyro_bias);
+    A.block<3, 3>(StateIndex::attitude, StateIndex::attitude) =
+        -get_skew_symmetric_matrix(input.gyro - state.gyro_bias);
     A.block<3, 3>(StateIndex::attitude, StateIndex::gyro_bias) = -Eigen::Matrix3d::Identity();
 
     // how the continuous time noise enters the error state
@@ -79,4 +81,4 @@ Eigen::Vector15d StrapdownINS3D::composition_minus(const State& state_a,
     return delta;
 }
 
-//clang-format on
+// clang-format on

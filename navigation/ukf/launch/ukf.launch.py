@@ -27,11 +27,11 @@ def launch_setup(context, *args, **kwargs):
     drone_params = os.path.join(
         get_package_share_directory('auv_setup'), 'config', 'robots', f'{drone}.yaml'
     )
-    calibrated = (
-        LaunchConfiguration('calibrated').perform(context).lower() == 'true'
-    )
+    calibrated = LaunchConfiguration('calibrated').perform(context).lower() == 'true'
     if calibrated and not use_sim:
-        raise RuntimeError('calibrated:=true only exists for the simulator (use_sim:=true)')
+        raise RuntimeError(
+            'calibrated:=true only exists for the simulator (use_sim:=true)'
+        )
     if not use_sim:
         default_params = 'ukf_params_real_world.yaml'
     elif calibrated:

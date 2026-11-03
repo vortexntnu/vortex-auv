@@ -66,9 +66,7 @@ class WaypointSender(Node):
             return False
 
         mode_request = SetOperationMode.Request()
-        mode_request.requested_operation_mode.operation_mode = (
-            OperationMode.AUTONOMOUS
-        )
+        mode_request.requested_operation_mode.operation_mode = OperationMode.AUTONOMOUS
         future = self._operation_mode_client.call_async(mode_request)
         rclpy.spin_until_future_complete(self, future)
         if not future.result().success:
@@ -94,9 +92,7 @@ class WaypointSender(Node):
         while loops == 0 or loop < loops:
             loop += 1
             for corner, (x, y) in enumerate(corners, start=1):
-                self.get_logger().info(
-                    f'Loop {loop}, corner {corner}/{len(corners)}'
-                )
+                self.get_logger().info(f'Loop {loop}, corner {corner}/{len(corners)}')
                 if not self.send_goal(
                     x, y, depth, 0.0, 0.0, 0.0, threshold=threshold, wait_s=60.0
                 ):
@@ -124,8 +120,18 @@ class WaypointSender(Node):
                     return False
         return True
 
-    def send_goal(self, x, y, z, roll_deg, pitch_deg, yaw_deg,
-                  mode=WaypointMode.FULL_POSE, threshold=0.1, wait_s=5.0):
+    def send_goal(
+        self,
+        x,
+        y,
+        z,
+        roll_deg,
+        pitch_deg,
+        yaw_deg,
+        mode=WaypointMode.FULL_POSE,
+        threshold=0.1,
+        wait_s=5.0,
+    ):
         if not self.wait_for(
             lambda: self._client.server_is_ready(),
             'action server /nautilus/reference_filter',
@@ -156,9 +162,7 @@ class WaypointSender(Node):
             f'mode={mode}, threshold={threshold}'
         )
 
-        future = self._client.send_goal_async(
-            goal, feedback_callback=self.feedback_cb
-        )
+        future = self._client.send_goal_async(goal, feedback_callback=self.feedback_cb)
         rclpy.spin_until_future_complete(self, future)
 
         goal_handle = future.result()
@@ -189,29 +193,58 @@ def parse_args():
     parser.add_argument('x', type=float, nargs='?', help='X position [m]')
     parser.add_argument('y', type=float, nargs='?', help='Y position [m]')
     parser.add_argument('z', type=float, nargs='?', help='Z position [m]')
-    parser.add_argument('roll', type=float, nargs='?', default=0.0, help='Roll [deg] (default: 0)')
-    parser.add_argument('pitch', type=float, nargs='?', default=0.0, help='Pitch [deg] (default: 0)')
-    parser.add_argument('yaw', type=float, nargs='?', default=0.0, help='Yaw [deg] (default: 0)')
-    parser.add_argument('--threshold', type=float, default=0.1, help='Convergence threshold (default: 0.1)')
     parser.add_argument(
-        '--mode', type=int, default=WaypointMode.FULL_POSE,
-        choices=[WaypointMode.FULL_POSE, WaypointMode.ONLY_POSITION,
-                 WaypointMode.FORWARD_HEADING, WaypointMode.ONLY_ORIENTATION],
-        help='Waypoint mode: 0=FULL_POSE, 1=ONLY_POSITION, 2=FORWARD_HEADING, 3=ONLY_ORIENTATION (default: 0)'
+        'roll', type=float, nargs='?', default=0.0, help='Roll [deg] (default: 0)'
     )
     parser.add_argument(
-        '--square', type=float, metavar='SIDE',
-        help='Fly a square with this side length [m] forever, instead of a single waypoint'
+        'pitch', type=float, nargs='?', default=0.0, help='Pitch [deg] (default: 0)'
     )
     parser.add_argument(
-        '--figure8', type=float, metavar='SIZE',
-        help='Fly a figure 8 with this half width [m] forever, instead of a single waypoint'
+        'yaw', type=float, nargs='?', default=0.0, help='Yaw [deg] (default: 0)'
     )
-    parser.add_argument('--depth', type=float, default=2.0, help='Depth of the pattern [m] (default: 2)')
-    parser.add_argument('--loops', type=int, default=0, help='Number of pattern loops, 0 is forever (default: 0)')
     parser.add_argument(
-        '--arm', action='store_true',
-        help='Switch to autonomous mode and turn the killswitch off first (always done for --square and --figure8)'
+        '--threshold',
+        type=float,
+        default=0.1,
+        help='Convergence threshold (default: 0.1)',
+    )
+    parser.add_argument(
+        '--mode',
+        type=int,
+        default=WaypointMode.FULL_POSE,
+        choices=[
+            WaypointMode.FULL_POSE,
+            WaypointMode.ONLY_POSITION,
+            WaypointMode.FORWARD_HEADING,
+            WaypointMode.ONLY_ORIENTATION,
+        ],
+        help='Waypoint mode: 0=FULL_POSE, 1=ONLY_POSITION, 2=FORWARD_HEADING, 3=ONLY_ORIENTATION (default: 0)',
+    )
+    parser.add_argument(
+        '--square',
+        type=float,
+        metavar='SIDE',
+        help='Fly a square with this side length [m] forever, instead of a single waypoint',
+    )
+    parser.add_argument(
+        '--figure8',
+        type=float,
+        metavar='SIZE',
+        help='Fly a figure 8 with this half width [m] forever, instead of a single waypoint',
+    )
+    parser.add_argument(
+        '--depth', type=float, default=2.0, help='Depth of the pattern [m] (default: 2)'
+    )
+    parser.add_argument(
+        '--loops',
+        type=int,
+        default=0,
+        help='Number of pattern loops, 0 is forever (default: 0)',
+    )
+    parser.add_argument(
+        '--arm',
+        action='store_true',
+        help='Switch to autonomous mode and turn the killswitch off first (always done for --square and --figure8)',
     )
     args = parser.parse_args()
     if args.square is not None and args.figure8 is not None:
@@ -241,8 +274,12 @@ def main():
             sender.send_figure_eight(args.figure8, args.depth, args.loops)
         else:
             sender.send_goal(
-                args.x, args.y, args.z,
-                args.roll, args.pitch, args.yaw,
+                args.x,
+                args.y,
+                args.z,
+                args.roll,
+                args.pitch,
+                args.yaw,
                 mode=args.mode,
                 threshold=args.threshold,
             )
