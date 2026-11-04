@@ -1,0 +1,88 @@
+diff --git a/ov_msckf/src/ros/ROS2Visualizer.cpp b/ov_msckf/src/ros/ROS2Visualizer.cpp
+index e91cd74..792f72e 100644
+--- a/ov_msckf/src/ros/ROS2Visualizer.cpp
++++ b/ov_msckf/src/ros/ROS2Visualizer.cpp
+@@ -279,6 +279,14 @@ void ROS2Visualizer::visualize_odometry(double timestamp) {
+   if (!_app->get_propagator()->fast_state_propagate(state, timestamp, state_plus, cov_plus))
+     return;
+ 
++  // Let subclasses change the published pose
++  Eigen::Vector4d q_out = state_plus.block(0, 0, 4, 1);
++  Eigen::Vector3d p_out = state_plus.block(4, 0, 3, 1);
++  if (!transform_output_pose(q_out, p_out))
++    return;
++  state_plus.block(0, 0, 4, 1) = q_out;
++  state_plus.block(4, 0, 3, 1) = p_out;
++
+   // Publish our odometry message if requested
+   if (pub_odomimu->get_subscription_count() != 0) {
+ 
+@@ -311,6 +319,9 @@ void ROS2Visualizer::visualize_odometry(double timestamp) {
+     Phi.block(3, 0, 3, 3).setIdentity();
+     Phi.block(6, 6, 6, 6).setIdentity();
+     cov_plus = Phi * cov_plus * Phi.transpose();
++    Eigen::Matrix<double, 6, 6> cov_posori = cov_plus.block(0, 0, 6, 6);
++    transform_output_cov(cov_posori);
++    cov_plus.block(0, 0, 6, 6) = cov_posori;
+     for (int r = 0; r < 6; r++) {
+       for (int c = 0; c < 6; c++) {
+         odomIinM.pose.covariance[6 * r + c] = cov_plus(r, c);
+@@ -593,6 +604,12 @@ void ROS2Visualizer::publish_state() {
+   // Get the current state
+   std::shared_ptr<State> state = _app->get_state();
+ 
++  // Let subclasses change the published pose
++  Eigen::Vector4d q_out = state->_imu->quat();
++  Eigen::Vector3d p_out = state->_imu->pos();
++  if (!transform_output_pose(q_out, p_out))
++    return;
++
+   // We want to publish in the IMU clock frame
+   // The timestamp in the state will be the last camera time
+   double t_ItoC = state->_calib_dt_CAMtoIMU->value()(0);
+@@ -602,19 +619,20 @@ void ROS2Visualizer::publish_state() {
+   geometry_msgs::msg::PoseWithCovarianceStamped poseIinM;
+   poseIinM.header.stamp = ROSVisualizerHelper::get_time_from_seconds(timestamp_inI);
+   poseIinM.header.frame_id = "global";
+-  poseIinM.pose.pose.orientation.x = state->_imu->quat()(0);
+-  poseIinM.pose.pose.orientation.y = state->_imu->quat()(1);
+-  poseIinM.pose.pose.orientation.z = state->_imu->quat()(2);
+-  poseIinM.pose.pose.orientation.w = state->_imu->quat()(3);
+-  poseIinM.pose.pose.position.x = state->_imu->pos()(0);
+-  poseIinM.pose.pose.position.y = state->_imu->pos()(1);
+-  poseIinM.pose.pose.position.z = state->_imu->pos()(2);
++  poseIinM.pose.pose.orientation.x = q_out(0);
++  poseIinM.pose.pose.orientation.y = q_out(1);
++  poseIinM.pose.pose.orientation.z = q_out(2);
++  poseIinM.pose.pose.orientation.w = q_out(3);
++  poseIinM.pose.pose.position.x = p_out(0);
++  poseIinM.pose.pose.position.y = p_out(1);
++  poseIinM.pose.pose.position.z = p_out(2);
+ 
+   // Finally set the covariance in the message (in the order position then orientation as per ros convention)
+   std::vector<std::shared_ptr<Type>> statevars;
+   statevars.push_back(state->_imu->pose()->p());
+   statevars.push_back(state->_imu->pose()->q());
+   Eigen::Matrix<double, 6, 6> covariance_posori = StateHelper::get_marginal_covariance(_app->get_state(), statevars);
++  transform_output_cov(covariance_posori);
+   for (int r = 0; r < 6; r++) {
+     for (int c = 0; c < 6; c++) {
+       poseIinM.pose.covariance[6 * r + c] = covariance_posori(r, c);
+diff --git a/ov_msckf/src/ros/ROS2Visualizer.h b/ov_msckf/src/ros/ROS2Visualizer.h
+index a737f80..b3c6abc 100644
+--- a/ov_msckf/src/ros/ROS2Visualizer.h
++++ b/ov_msckf/src/ros/ROS2Visualizer.h
+@@ -135,6 +135,13 @@ protected:
+   /// Publish loop-closure information of current pose and active track information
+   void publish_loopclosure_information();
+ 
++  /// Output hook: change the published pose (q_xyzw is JPL GtoI, p is IMU position in global).
++  /// Return false to skip publishing. Upstream leaves the pose as is.
++  virtual bool transform_output_pose(Eigen::Vector4d &q_xyzw, Eigen::Vector3d &p) { return true; }
++
++  /// Output hook: change the published [pos, ori] covariance to match transform_output_pose(). Upstream leaves it as is.
++  virtual void transform_output_cov(Eigen::Matrix<double, 6, 6> &cov_posori) {}
++
+   /// Global node handler
+   std::shared_ptr<rclcpp::Node> _node;
+ 

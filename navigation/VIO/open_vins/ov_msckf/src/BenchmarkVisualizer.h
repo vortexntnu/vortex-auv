@@ -8,13 +8,11 @@
 namespace ov_msckf {
 
 /**
- * @brief Upstream ROS2Visualizer, but published poses are relative to where VIO started.
+ * @brief Upstream ROS2Visualizer, but the published pose starts at the benchmark odometry pose.
  *
  * out = benchmark_start * (vio_start^-1 * pose)
- * If `benchmark_topic` is set in the config, the output starts at that odometry's pose when VIO
- * initializes, so the two can be compared directly. Otherwise the output starts at zero.
- *
- * Needs publish_state() and visualize_odometry() to be virtual in upstream (patched in cmake/ROS2.cmake).
+ * With no `benchmark_topic` in the config, the output simply starts at zero.
+ * Uses the output hooks added by cmake/ros2_visualizer_output_hook.patch.
  */
 class BenchmarkVisualizer : public ROS2Visualizer {
 
@@ -24,42 +22,27 @@ public:
   /// Upstream subscribers plus the optional benchmark odometry
   void setup_subscribers(std::shared_ptr<ov_core::YamlParser> parser);
 
-  void visualize_odometry(double timestamp) override;
-
 protected:
-  void publish_state() override;
+  bool transform_output_pose(Eigen::Vector4d &q_xyzw, Eigen::Vector3d &p) override;
+  void transform_output_cov(Eigen::Matrix<double, 6, 6> &cov_posori) override;
 
-  /// Store the start pose once VIO is initialized. Returns false while still waiting.
-  bool set_start_pose_if_needed();
+private:
+  /// Saves the offset the first time VIO is initialized and the benchmark pose is known
+  bool set_offset_if_needed();
 
-  /// Map a pose from the OpenVINS global frame to the output frame.
-  /// q_xyzw is JPL GtoI (= Hamilton ItoG), p is position in global.
-  void to_output_frame(Eigen::Vector4d &q_xyzw, Eigen::Vector3d &p) const;
-
-  /// Rotate a [pos, ori] covariance into the output frame (orientation error is local, so only position changes)
-  template <typename Mat> void cov_to_output_frame(Mat &cov) const {
-    Eigen::Matrix<double, 6, 6> T = Eigen::Matrix<double, 6, 6>::Identity();
-    T.block(0, 0, 3, 3) = R_bench_start_ * R_start_.transpose();
-    cov.block(0, 0, 6, 6) = T * cov.block(0, 0, 6, 6) * T.transpose();
-  }
-
-  /// Benchmark odometry callback (only keeps the latest pose)
-  void callback_benchmark(const nav_msgs::msg::Odometry::SharedPtr msg);
-
-  /// VIO pose (IMU in global) at start
-  bool have_start_pose_ = false;
-  Eigen::Matrix3d R_start_ = Eigen::Matrix3d::Identity();
-  Eigen::Vector3d p_start_ = Eigen::Vector3d::Zero();
-
-  /// Benchmark odometry (empty topic = start at zero)
   std::string benchmark_topic_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr sub_benchmark_;
-  bool have_bench_latest_ = false;
-  Eigen::Matrix3d R_bench_latest_ = Eigen::Matrix3d::Identity();
-  Eigen::Vector3d p_bench_latest_ = Eigen::Vector3d::Zero();
-  Eigen::Matrix3d R_bench_start_ = Eigen::Matrix3d::Identity();
-  Eigen::Vector3d p_bench_start_ = Eigen::Vector3d::Zero();
-  std::mutex start_pose_mtx_;
+  std::mutex mtx_;
+
+  /// Latest benchmark pose
+  bool have_bench_ = false;
+  Eigen::Matrix3d R_bench_ = Eigen::Matrix3d::Identity();
+  Eigen::Vector3d p_bench_ = Eigen::Vector3d::Zero();
+
+  /// Offset from the OpenVINS global frame to the output frame
+  bool have_offset_ = false;
+  Eigen::Matrix3d R_off_ = Eigen::Matrix3d::Identity();
+  Eigen::Vector3d p_off_ = Eigen::Vector3d::Zero();
 };
 
 } // namespace ov_msckf
