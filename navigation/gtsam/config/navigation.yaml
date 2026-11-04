@@ -1,0 +1,27 @@
+/**:
+  ros__parameters:
+    imu_profile: stim300_10g_provisional
+    imu_topic: imu/data_raw
+    dvl_topic: dvl/twist
+    odom_topic: gtsam/odom
+    status_topic: gtsam/status
+    gravity: 9.81
+    lag_seconds: 5.0
+    keyframe_interval: 0.1
+    reorder_delay: 0.25
+    max_imu_gap: 0.1
+    initialization_duration: 2.0
+    stationary_accel_std: 0.15
+    stationary_gyro_std: 0.005
+    stationary_gyro_norm: 0.05
+    stationary_gravity_tolerance: 0.3
+    # Continuous bias random-walk densities; modeling assumptions, not Allan minima.
+    accel_bias_random_walk: 0.00001
+    gyro_bias_random_walk: 0.0000001
+    integration_sigma: 0.00001
+    dvl_gate_squared: 16.27
+    max_buffer_samples: 20000
+    publish_rate: 125.0
+    publish_tf: false
+    imu_timeout: 0.2
+    dvl_timeout: 1.0
