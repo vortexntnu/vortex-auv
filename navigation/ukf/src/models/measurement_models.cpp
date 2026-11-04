@@ -3,13 +3,14 @@
 DVLMeasurementModel::DVLMeasurementModel(const DVLConfig& config)
     : velocity_noise_(config.velocity_noise) {}
 
-DVLMeasurementModel::Point DVLMeasurementModel::h(const State& state,
-                                                  const ImuInput& input) const {
+DVLMeasurementModel::Point DVLMeasurementModel::h(
+    const State& state,
+    const ImuInput& /*input*/) const {
     return state.quat.conjugate() * state.vel;
 }
 
-Eigen::Matrix3d DVLMeasurementModel::R(const State& state,
-                                       const ImuInput& input) const {
+Eigen::Matrix3d DVLMeasurementModel::R(const State& /*state*/,
+                                       const ImuInput& /*input*/) const {
     return velocity_noise_;
 }
 
@@ -32,12 +33,13 @@ MagnetometerMeasurementModel::MagnetometerMeasurementModel(
 
 MagnetometerMeasurementModel::Point MagnetometerMeasurementModel::h(
     const State& state,
-    const ImuInput& input) const {
+    const ImuInput& /*input*/) const {
     return state.quat.conjugate() * reference_field_;
 }
 
-Eigen::Matrix3d MagnetometerMeasurementModel::R(const State& state,
-                                                const ImuInput& input) const {
+Eigen::Matrix3d MagnetometerMeasurementModel::R(
+    const State& /*state*/,
+    const ImuInput& /*input*/) const {
     return field_noise_;
 }
 
@@ -60,13 +62,13 @@ DepthMeasurementModel::DepthMeasurementModel(const DepthConfig& config)
 
 DepthMeasurementModel::Point DepthMeasurementModel::h(
     const State& state,
-    const ImuInput& input) const {
+    const ImuInput& /*input*/) const {
     return Point::Constant(state.pos.z() + (state.quat * lever_arm_).z());
 }
 
 Eigen::Matrix<double, 1, 1> DepthMeasurementModel::R(
-    const State& state,
-    const ImuInput& input) const {
+    const State& /*state*/,
+    const ImuInput& /*input*/) const {
     return Eigen::Matrix<double, 1, 1>::Constant(depth_noise_variance_);
 }
 
