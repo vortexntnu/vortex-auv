@@ -50,15 +50,14 @@ list(APPEND ament_libraries
 
 # Pinned to the exact upstream commit we tested with (master, 2025-11-30).
 # Offline builds: pass -DFETCHCONTENT_SOURCE_DIR_OPEN_VINS=/path/to/open_vins to use a local checkout.
-# The patch makes two ROS2Visualizer methods virtual so BenchmarkVisualizer can override them.
+# The patch adds output hooks to ROS2Visualizer that BenchmarkVisualizer overrides.
+# It resets the file first so re-running the patch step is safe.
 include(FetchContent)
 FetchContent_Declare(open_vins
         GIT_REPOSITORY https://github.com/rpng/open_vins.git
         GIT_TAG 69488123ed9362dd44b6f28e7f4680abbff1442b
-        PATCH_COMMAND sed -i
-            -e "s/^  void visualize_odometry(/  virtual void visualize_odometry(/"
-            -e "s/^  void publish_state(/  virtual void publish_state(/"
-            ov_msckf/src/ros/ROS2Visualizer.h
+        PATCH_COMMAND git checkout -- ov_msckf/src/ros
+              COMMAND git apply ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ros2_visualizer_output_hook.patch
 )
 # Only download the sources; we build the libraries ourselves below
 FetchContent_GetProperties(open_vins)
