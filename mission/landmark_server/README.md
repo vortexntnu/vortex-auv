@@ -97,7 +97,7 @@ the vehicle to the object in `<class>/measured`.
 Every task is the same three steps, with offsets in the tree:
 
 ```xml
-<GoToFrame frame="torpedo_board" offset="-3;0;0;0"/>          <!-- find -->
+<GoToFrame frame="torpedo_board" offset="3;0;0;180"/>         <!-- find -->
 <Measure class_name="torpedo_board" fallback_from="torpedo_board"/>
 <GoToFrame frame="torpedo_board/measured" offset="2;0;0;180"/>  <!-- act -->
 ```
