@@ -89,6 +89,9 @@ struct LandmarkClassConfig {
     double mahalanobis_threshold = 2.5;
     double prob_of_detection = 0.5;
     double clutter_intensity = 0.01;
+
+    // A confirmed track is never deleted, only coasts.
+    bool keep_confirmed = false;
 };
 
 /**

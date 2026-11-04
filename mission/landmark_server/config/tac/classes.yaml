@@ -1,0 +1,8 @@
+# What is on a TAC course: the objects the detector reports.
+/**:
+  ros__parameters:
+    classes:
+      valve_vertical: {type: VALVE, subtype: VALVE_VERTICAL, symmetry_deg: 180.0, has_orientation: true, prior: "valve", prior_radius_m: 3.0, max_instances: 1, group: "valve"}
+      valve_horizontal: {type: VALVE, subtype: VALVE_HORIZONTAL, symmetry_deg: 180.0, has_orientation: true, prior: "valve", prior_radius_m: 3.0, max_instances: 1, group: "valve"}
+      pipeline_start: {type: PIPELINE_START, subtype: PIPELINE_START_CAMERA, symmetry_deg: 360.0, has_orientation: false, prior: "pipeline", prior_radius_m: 5.0, max_instances: 1}
+      docking_station: {type: ARUCO_BOARD, subtype: ARUCO_BOARD_DETECTION, symmetry_deg: 0.0, has_orientation: true, prior: "docking", prior_radius_m: 3.0, max_instances: 1}

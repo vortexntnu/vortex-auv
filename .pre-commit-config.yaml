@@ -12,6 +12,8 @@
 #
 # See https://github.com/pre-commit/pre-commit
 
+exclude: (^|/)(test|tests)/.*
+
 repos:
   # Standard hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -74,6 +76,7 @@ repos:
     hooks:
       - id: clang-format
         args: [--style=file]
+        exclude: \.json$ # .clang-format has no Json style, so Foxglove layouts fail the hook
   - repo: local
     hooks:
       - id: ament_cppcheck

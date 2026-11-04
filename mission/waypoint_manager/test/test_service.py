@@ -141,10 +141,12 @@ class TestWaypointManagerService(unittest.TestCase):
         wp2.pose.position.x = 1.0
         wp2.pose.position.y = 1.0
         wp2.pose.position.z = 1.0
+        for w in (wp1, wp2):
+            w.position_tolerance = 0.3
+            w.orientation_tolerance = 0.3
 
         goal_msg.waypoints = [wp1, wp2]
         goal_msg.persistent = True
-        goal_msg.convergence_threshold = 0.3
 
         send_fut = action_client.send_goal_async(goal_msg)
         rclpy.spin_until_future_complete(self.node, send_fut, timeout_sec=20.0)

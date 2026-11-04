@@ -100,4 +100,13 @@
     <limit lower="0.0" upper="1.57" effort="0" velocity="0"/>
   </joint>
 
+  <!-- Centre of the jaw opening with the arm straight out. On base_link, so it
+       is in TF without joint states. -->
+  <link name="grip_point"/>
+  <joint name="grip_point_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="grip_point"/>
+    <origin xyz="0.6 0.0 0.06" rpy="0.0 0.0 0.0"/>
+  </joint>
+
 </robot>

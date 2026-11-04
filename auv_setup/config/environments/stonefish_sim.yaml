@@ -1,0 +1,12 @@
+# Environmental parameters from the stonefish simulator
+# Verify these match you scenario file
+/**:
+  ros__parameters:
+    atmosphere:
+      pressure: 101300.0
+
+    water:
+      density: 1031.0 # Verify this matches the scenario config
+
+    gravity:
+      acceleration: 9.81

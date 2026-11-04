@@ -20,7 +20,8 @@ set(LIB_NAME "${PROJECT_NAME}_component")
 
 add_library(${LIB_NAME} SHARED
   src/thruster_interface_auv_ros.cpp
-  src/thruster_interface_auv_driver.cpp)
+  src/thruster_interface_auv_driver.cpp
+  src/can_interface.cpp)
 
 ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp

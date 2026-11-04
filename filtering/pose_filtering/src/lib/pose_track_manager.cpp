@@ -237,6 +237,9 @@ void PoseTrackManager::confirm_tracks() {
 void PoseTrackManager::delete_tracks() {
     auto new_end = std::ranges::remove_if(tracks_, [this](const Track& track) {
         const auto& nm = cfg_for(track).nm;
+        if (track.confirmed && cfg_for(track).keep_confirmed) {
+            return false;
+        }
         if (static_cast<int>(track.hit_history.size()) < nm.delete_m) {
             return false;
         }

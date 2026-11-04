@@ -1,0 +1,38 @@
+# What is on a RoboSub course: the objects the detector reports.
+/**:
+  ros__parameters:
+    # Real-size boxes in the debug markers, sizes from the simulator's meshes.
+    # size: [x out of the front, y right, z down], offset: box centre from
+    # the landmark, solid: draw the object itself instead of an outline.
+    markers:
+      boxes:
+        slalom_pipe_white: {size: [0.03, 0.03, 0.938], solid: true, color: [1.0, 1.0, 1.0]}
+        slalom_pipe_red: {size: [0.03, 0.03, 0.938], solid: true, color: [1.0, 0.0, 0.0]}
+        torpedo_board: {size: [0.05, 0.61, 0.61]}
+        bin_structure: {size: [1.40, 1.45, 0.69]}
+        table: {size: [0.61, 1.12, 0.77], offset: [0.0, 0.0, 0.33]}
+        octagon: {size: [2.73, 2.73, 0.44], offset: [0.0, 0.0, 0.20]}
+
+    # type, subtype    vortex_msgs LandmarkType / LandmarkSubtype constants
+    # symmetry_deg     0 none, 90 or 180 yaw known modulo this, 360 no yaw
+    # has_orientation  use the detector's orientation
+    # prior            task label in the prior map, "" for none
+    # prior_radius_m   used when the prior map has no radius for the task
+    # max_instances    landmarks shown, 0 = all
+    # group            classes that can be mistaken for each other
+    classes:
+      gate_search_rescue: {type: GATE, subtype: GATE_SEARCH_RESCUE, symmetry_deg: 0.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
+      gate_survey_repair: {type: GATE, subtype: GATE_SURVEY_REPAIR, symmetry_deg: 0.0, has_orientation: true, prior: "gate", prior_radius_m: 3.0, max_instances: 1}
+      slalom_pipe_white: {type: SLALOM_PIPE, subtype: SLALOM_PIPE_WHITE, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 6, group: "slalom_pipe"}
+      slalom_pipe_red: {type: SLALOM_PIPE, subtype: SLALOM_PIPE_RED, symmetry_deg: 360.0, has_orientation: false, prior: "slalom", prior_radius_m: 4.0, max_instances: 3, group: "slalom_pipe"}
+      torpedo_board: {type: TORPEDO_BOARD, subtype: TORPEDO_BOARD_WHOLE, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_opening_large_left: {type: TORPEDO_BOARD, subtype: TORPEDO_OPENING_LARGE_LEFT, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_opening_large_right: {type: TORPEDO_BOARD, subtype: TORPEDO_OPENING_LARGE_RIGHT, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_opening_small_top: {type: TORPEDO_BOARD, subtype: TORPEDO_OPENING_SMALL_TOP, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      torpedo_opening_small_bottom: {type: TORPEDO_BOARD, subtype: TORPEDO_OPENING_SMALL_BOTTOM, symmetry_deg: 0.0, has_orientation: true, prior: "torpedo", prior_radius_m: 3.0, max_instances: 1}
+      bin_search_rescue: {type: BIN, subtype: BIN_SEARCH_RESCUE, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 2}
+      bin_survey_repair: {type: BIN, subtype: BIN_SURVEY_REPAIR, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 2}
+      bin_structure: {type: BIN, subtype: BIN_STRUCTURE, symmetry_deg: 180.0, has_orientation: true, prior: "bin", prior_radius_m: 3.0, max_instances: 1}
+      path_marker: {type: PATH_MARKER, subtype: PATH_MARKER_WHOLE, symmetry_deg: 0.0, has_orientation: true, prior: "", prior_radius_m: 5.0, max_instances: 0}
+      table: {type: TABLE, subtype: TABLE_WHOLE, symmetry_deg: 180.0, has_orientation: true, prior: "octagon", prior_radius_m: 3.0, max_instances: 1}
+      octagon: {type: OCTAGON, subtype: OCTAGON_WHOLE, symmetry_deg: 360.0, has_orientation: false, prior: "octagon", prior_radius_m: 3.0, max_instances: 1}

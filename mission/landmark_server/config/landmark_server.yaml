@@ -1,0 +1,44 @@
+# How the algorithms run, the same for every course. What is on a course is in
+# <competition>/classes.yaml and course/<course>/premap.yaml.
+# Topics come from auv_setup's robot file, premap_file from the launch file.
+# Write floats with a decimal point.
+/**:
+  ros__parameters:
+    max_range_m: 10.0   # detections farther from the vehicle are dropped
+
+    # Layer 2. Which object is this detection? Hungarian per image on Mahalanobis
+    # distances from the graph. Nothing here knows about tracks: an object stays.
+    association:
+      gate_prob: 0.999          # chi^2 gate, 3 dof
+      ambiguity_d2: 4.6         # no match if a second object is this close
+      candidate_radius_m: 0.5   # under half the spacing of same-group objects
+      confirm_hits: 5           # this many within confirm_window_s is a new object
+      confirm_window_s: 3.0
+      merge_radius_m: 0.5       # same-group objects this close may be one
+
+    # Layer 2. Takes the detections themselves, one factor per object per
+    # keyframe, and only gives map -> odom.
+    graph:
+      keyframe_dist_m: 0.5
+      keyframe_time_s: 1.0
+      sigma_trans_per_m: 0.03   # too small and a re-seen object can not pull the map
+      sigma_yaw_per_m: 0.03
+      min_sigma_trans: 0.01
+      min_sigma_yaw: 0.002
+      sigma_roll_pitch: 0.01
+      sigma_z: 0.02
+      attitude_sigma: 0.02      # IMU roll/pitch
+      depth_sigma: 0.05         # pressure sensor
+      bearing_sigma: 0.03
+      range_sigma_a: 0.1        # sigma_range = a + b * range
+      range_sigma_b: 0.05
+      dcs_phi: 1.0              # robust kernel, smaller = stricter
+
+    # Defaults for the measure action, when the goal gives 0. Only hits that
+    # arrive during the action and within max_range_m of the vehicle count.
+    measure:
+      cluster_radius_m: 0.5   # under half the spacing of same-group objects
+      duration_s: 5.0
+      max_range_m: 4.0
+      min_hits: 5
+      max_spread_m: 0.3

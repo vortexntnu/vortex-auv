@@ -73,8 +73,7 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
     void pwm_callback();
 
    private:
-    std::string serial_device_;
-    unsigned int baud_rate_;
+    std::string can_interface_;
 
     std::string subscriber_topic_name_;
     std::string publisher_topic_name_;
@@ -88,7 +87,7 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
     bool debug_flag_{false};
 
     std::unique_ptr<ThrusterInterfaceAUVDriver>
-        thruster_driver_;  ///<-- UART/USART thruster driver
+        thruster_driver_;  ///<-- CAN FD thruster driver
 
     rclcpp::Subscription<vortex_msgs::msg::ThrusterForces>::SharedPtr
         thruster_forces_subscriber_;  ///<-- thruster forces subscriber
@@ -112,6 +111,7 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
     rclcpp::Time last_msg_time_;
     rclcpp::Duration watchdog_timeout_ = rclcpp::Duration::from_seconds(1.0);
     bool watchdog_triggered_ = false;
+
     /**
      * @brief Manages parameter events for the node.
      *

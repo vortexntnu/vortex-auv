@@ -1,17 +1,16 @@
 #ifndef THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
 #define THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
 
+#include "can_interface.hpp"
+
 #include <array>
-// Need to include utility before asio
-// clang-format off
-#include <utility>
-#include <asio.hpp>
-// clang-format on
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
-#include <thread>
 #include <vector>
+
+#include <linux/can.h>
 
 /**
  * @brief struct to hold the parameters for a single thruster
@@ -42,7 +41,7 @@ using CurrentMeasurementsCallback =
 /**
  * @brief class instantiated by ThrusterInterfaceAUVNode to control the
  * thrusters, takes the thruster forces and converts them to PWM signals to be
- * sent via UART to the ESC controller.
+ * sent via CAN FD to the ESC controller.
  *
  * @details Based on the datasheets found in /resources, approximate the map
  * with a piecewise (>0 and <0) third order polynomial.
@@ -53,8 +52,8 @@ using CurrentMeasurementsCallback =
  * re-implemented in the future for more flexibility if we ever need it to
  * operate at different voltages in different situations.
  *
- * @note Over UART, the PWM values are packed into a framed packet:
- * [magic][id][length][payload][checksum], where the payload is 8 uint16_t.
+ * @note Over CAN FD, the PWM values are packed into one CAN FD frame payload,
+ * where the payload is 8 uint16_t.
  */
 class ThrusterInterfaceAUVDriver {
    public:
@@ -64,10 +63,8 @@ class ThrusterInterfaceAUVDriver {
      * @brief called from ThrusterInterfaceAUVNode .cpp when instantiating the
      * object, initializes all the params.
      *
-     * @param serial_device         serial device used to communicate
-     *                              (for example /dev/ttyUSB0)
-     * @param baud_rate             UART baud rate
-     * @param packet_id             packet ID sent in the UART frame
+     * @param can_interface_name    CAN interface used to communicate
+     *                              (for example can0 or vcan0)
      * @param thruster_parameters   describe mapping, direction, min and max pwm
      *                              value for each thruster
      * @param right_coeffs          RIGHT(>0) third order polynomial
@@ -75,22 +72,21 @@ class ThrusterInterfaceAUVDriver {
      * @param left_coeffs           LEFT(<0) third order polynomial coefficients
      */
     ThrusterInterfaceAUVDriver(
-        const std::string& serial_device,
-        unsigned int baud_rate,
+        const std::string& can_interface_name,
         const std::vector<ThrusterParameters>& thruster_parameters,
         const std::vector<double>& right_coeffs,
         const std::vector<double>& left_coeffs);
 
     /**
-     * @brief initializes UART
+     * @brief initializes CAN FD
      * @return 0 on success, negative number on failure
      */
-    int init_uart();
+    int init_can();
 
     /**
      * @brief calls both 1) interpolate_forces_to_pwm() to
      * convert the thruster forces to PWM values and 2) send_data_to_escs() to
-     * send them over UART
+     * send them over CAN FD
      *
      * @param thruster_forces_array vector of forces for each thruster
      *
@@ -113,6 +109,8 @@ class ThrusterInterfaceAUVDriver {
     void set_killswitch_event_callback(KillswitchEventCallback callback);
     void set_current_measurements_callback(
         CurrentMeasurementsCallback callback);
+    int disable_thrusters();
+    int enable_thrusters();
 
    private:
     /**
@@ -148,101 +146,24 @@ class ThrusterInterfaceAUVDriver {
 
     /**
      * @brief only takes the pwm values computed and sends them
-     * over UART as a framed packet
+     * over CAN FD
      *
      * @param thruster_pwm_array vector of pwm values to send
      * @return 0 on success, -1 on failure
      */
     int send_data_to_escs(const std::vector<std::uint16_t>& thruster_pwm_array);
+    void handle_can_frame(const struct canfd_frame& frame, can_status status);
 
-    /**
-     * @brief create UART packet with format:
-     * [magic][id][length][payload][checksum]
-     *
-     * @param id packet ID
-     * @param thruster_pwm_array vector of 8 pwm values to send as payload
-     *
-     * @return std::vector<uint8_t> serialized packet bytes
-     */
-    std::vector<std::uint8_t> create_packet(
-        std::uint8_t id,
-        const std::vector<std::uint16_t>& thruster_pwm_array) const;
-
-    /**
-     * @brief convert Newtons to Kg
-     *
-     * @param force Newtons
-     *
-     * @return double Kg
-     */
     static constexpr double to_kg(double force) { return force / 9.80665; }
 
-    /**
-     * @brief start the asynchronous UART receive loop
-     */
-    void start_receive();
-
-    /**
-     * @brief issue one asynchronous read on the UART port
-     */
-    void do_receive();
-
-    /**
-     * @brief process the accumulated receive buffer and extract valid frames
-     */
-    void process_receive_buffer();
-
-    /**
-     * @brief handle one decoded UART frame
-     *
-     * @param frame_bytes complete frame bytes including header and checksum
-     */
-    void handle_received_frame(const std::vector<std::uint8_t>& frame_bytes);
-
-    /**
-     * @brief compute checksum for framed UART packets
-     *
-     * @param msg_id message id
-     * @param length payload length
-     * @param payload pointer to payload bytes
-     *
-     * @return checksum byte
-     */
-    static std::uint8_t compute_checksum(std::uint8_t msg_id,
-                                         std::uint8_t length,
-                                         const std::uint8_t* payload);
-
    private:
-    static constexpr std::uint8_t UART_START_BYTE = 0xAA;
-    static constexpr std::size_t MAX_PAYLOAD_SIZE = 64;
-    static constexpr std::size_t READ_CHUNK_SIZE = 256;
-
-    // Outgoing
-    static constexpr std::uint8_t MSG_TURN_THRUSTERS_OFF = 0x01U;
-    static constexpr std::uint8_t MSG_TURN_LIGHTS_OFF = 0x02U;
-    static constexpr std::uint8_t MSG_RESET = 0x03;
-    static constexpr std::uint8_t MSG_SET_THRUSTER_PWM = 0x04;
-    static constexpr std::uint8_t MSG_SET_LIGHT_PWM = 0x05;
-    // Incoming
-    static constexpr std::uint8_t MSG_FLT_EVENT = 0x10;
-    static constexpr std::uint8_t MSG_PGOOD_EVENT = 0x11;
-    static constexpr std::uint8_t MSG_KILLSWITCH_EVENT = 0x12;
-    static constexpr std::uint8_t MSG_CURRENT_MEASUREMENTS = 0x13;
-
-    std::string serial_device_;
-    unsigned int baud_rate_;
-
-    asio::io_context io_;
-    asio::serial_port serial_{io_};
-    std::thread io_thread_;
+    std::string can_interface_name_;
+    can_interface can_;
 
     std::vector<ThrusterParameters> thruster_parameters_;
     std::vector<double> right_coeffs_;
     std::vector<double> left_coeffs_;
     std::uint16_t idle_pwm_value_{1500};
-
-    std::array<std::uint8_t, READ_CHUNK_SIZE> read_buf_{};
-    std::vector<std::uint8_t> receive_buffer_;
 
     FaultEventCallback fault_event_callback_;
     PGoodEventCallback pgood_event_callback_;

@@ -9,6 +9,7 @@ from launch_ros.descriptions import ComposableNode
 from auv_setup.launch_arg_common import (
     declare_config_type_arg,
     declare_drone_and_namespace_args,
+    drone_params,
     resolve_config_type,
     resolve_drone_and_namespace,
 )
@@ -21,15 +22,12 @@ def launch_setup(context, *args, **kwargs):
     filter_config = os.path.join(
         get_package_share_directory("reference_filter_dp_quat"),
         "config",
-        "reference_filter_params.yaml",
+        "reference_filter_params_sim.yaml"
+        if config_type == "sim"
+        else "reference_filter_params.yaml",
     )
 
-    drone_params = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config",
-        "robots",
-        f"{drone}.yaml",
-    )
+    robot = drone_params(get_package_share_directory("auv_setup"), drone, config_type)
 
     adapt_params = os.path.join(
         get_package_share_directory("dp_adapt_backs_controller_quat"),
@@ -48,7 +46,7 @@ def launch_setup(context, *args, **kwargs):
                 plugin="ReferenceFilterNode",
                 name="reference_filter_node",
                 namespace=namespace,
-                parameters=[filter_config, drone_params],
+                parameters=[filter_config, *robot],
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
             ComposableNode(
@@ -56,7 +54,7 @@ def launch_setup(context, *args, **kwargs):
                 plugin="DPAdaptBacksControllerNode",
                 name="dp_adapt_backs_controller_node",
                 namespace=namespace,
-                parameters=[adapt_params, drone_params],
+                parameters=[adapt_params, *robot],
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
         ],
