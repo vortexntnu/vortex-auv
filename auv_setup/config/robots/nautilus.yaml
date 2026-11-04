@@ -118,6 +118,7 @@
         dp_quat: "guidance/dp_quat"
       dvl_twist: "dvl/twist"
       dvl_altitude: "dvl/altitude"
+      magnetometer: "nucleus/mag"
       imu: "imu/data_raw"
       sonar_info: "fls/sonar_info"
       pressure_sensor: "pressure_sensor"

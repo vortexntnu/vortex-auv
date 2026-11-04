@@ -1,0 +1,137 @@
+import os
+
+import yaml
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
+
+
+def launch_setup(context, *args, **kwargs):
+    drone, namespace = resolve_drone_and_namespace(context)
+    debug_output = (
+        LaunchConfiguration('debug_output').perform(context).lower() == 'true'
+    )
+    use_sim = LaunchConfiguration('use_sim').perform(context).lower() == 'true'
+    environment = LaunchConfiguration('environment').perform(context)
+
+    drone_params = os.path.join(
+        get_package_share_directory('auv_setup'), 'config', 'robots', f'{drone}.yaml'
+    )
+    calibrated = LaunchConfiguration('calibrated').perform(context).lower() == 'true'
+    if calibrated and not use_sim:
+        raise RuntimeError(
+            'calibrated:=true only exists for the simulator (use_sim:=true)'
+        )
+    if not use_sim:
+        default_params = 'ukf_params_real_world.yaml'
+    elif calibrated:
+        default_params = 'ukf_params_calibrated_sim.yaml'
+    else:
+        default_params = 'ukf_params.yaml'
+    ukf_params = LaunchConfiguration('params_file').perform(context) or os.path.join(
+        get_package_share_directory('ukf'), 'config', default_params
+    )
+    env_params = {}
+    if not use_sim:
+        env_file = os.path.join(
+            get_package_share_directory('auv_setup'),
+            'config',
+            'environments',
+            f'{environment}.yaml',
+        )
+        with open(env_file) as f:
+            env_params = {
+                group: {name: float(value) for name, value in values.items()}
+                for group, values in yaml.safe_load(f).items()
+            }
+    overrides = {
+        'frame_prefix': namespace,
+        'publish_debug': debug_output,
+        # stonefish does not publish /clock, it stamps messages with the wall clock,
+        # so a node on sim time would never get a time and drop every message
+        'use_sim_time': False,
+    }
+    defaults = {
+        'imu_topic': f'/{namespace}/imu/data_raw' if use_sim else '',
+        'pressure_topic': f'/{namespace}/pressure_sensor' if use_sim else '',
+        'dvl_topic': '',
+        'magnetometer_topic': '',
+    }
+    for argument, parameter in [
+        ('imu_topic', 'topics.imu'),
+        ('pressure_topic', 'topics.pressure_sensor'),
+        ('dvl_topic', 'topics.dvl_twist'),
+        ('magnetometer_topic', 'topics.magnetometer'),
+    ]:
+        topic = LaunchConfiguration(argument).perform(context) or defaults[argument]
+        if topic:
+            overrides[parameter] = topic
+    nodes = [
+        Node(
+            package='ukf',
+            executable='ukf_node',
+            name='ukf_node',
+            namespace=namespace,
+            parameters=[
+                ukf_params,
+                env_params,
+                drone_params,
+                overrides,
+            ],
+            output='screen',
+        ),
+    ]
+
+    return nodes
+
+
+def generate_launch_description():
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument('imu_topic', default_value=''),
+            DeclareLaunchArgument('dvl_topic', default_value=''),
+            DeclareLaunchArgument('pressure_topic', default_value=''),
+            DeclareLaunchArgument('magnetometer_topic', default_value=''),
+            DeclareLaunchArgument(
+                'calibrated',
+                default_value='false',
+                description='With use_sim:=true, load the params that exactly match the '
+                'simulator noise instead of the tuned ones.',
+            ),
+            DeclareLaunchArgument(
+                'params_file',
+                default_value='',
+                description='Absolute path of a UKF params file, replaces the use_sim default.',
+            ),
+            DeclareLaunchArgument(
+                'use_sim',
+                default_value='false',
+                description='Set to "false" to load real-world hardware parameters.',
+            ),
+            DeclareLaunchArgument(
+                'environment',
+                default_value='trondheim_freshwater',
+                description='Environment config to load from auv_setup/config/environments/.',
+                choices=[
+                    'longbeach',
+                    'stonefish_sim',
+                    'trondheim_freshwater',
+                    'trondheim_saltwater',
+                ],
+            ),
+            DeclareLaunchArgument(
+                'debug_output',
+                default_value='true',
+                description='If true, publish UKF outputs on debug/private topics and disable TF publishing.',
+            ),
+        ]
+        + declare_drone_and_namespace_args()
+        + [OpaqueFunction(function=launch_setup)]
+    )
