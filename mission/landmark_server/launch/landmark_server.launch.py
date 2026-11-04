@@ -25,7 +25,7 @@ def launch_setup(context, *args, **kwargs):
     competition = LaunchConfiguration("competition").perform(context)
     course = LaunchConfiguration("course").perform(context)
     premap_file = LaunchConfiguration("premap_file").perform(context) or os.path.join(
-        CONFIG_DIR, "course", course, "premap.yaml"
+        CONFIG_DIR, competition, "courses", course, "premap.yaml"
     )
     odom_topic = LaunchConfiguration("odom_topic").perform(context)
     landmarks_topic = LaunchConfiguration("landmarks_topic").perform(context)
@@ -68,7 +68,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "course",
                 default_value="pool",
-                description="config/course/<course>/premap.yaml: where it is",
+                description="config/<competition>/courses/<course>/premap.yaml: where it is",
             ),
             DeclareLaunchArgument(
                 "premap_file",

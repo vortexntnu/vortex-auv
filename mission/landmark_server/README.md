@@ -41,24 +41,25 @@ home and searching stay right while `odom` drifts.
 |---|---|---|
 | How the algorithms run | `config/landmark_server.yaml` | Rarely |
 | What is on the course | `config/<competition>/classes.yaml` | Per competition |
-| Where it is | `config/course/<course>/premap.yaml` | Per pool |
+| Where it is | `config/<competition>/courses/<course>/premap.yaml` | Per pool, `sim` for the simulator |
 | What the mission does | Tree, in `vortex-cv` | Per competition |
 
 ```bash
 ros2 launch landmark_server landmark_server.launch.py competition:=robosub course:=pool
-ros2 launch landmark_server landmark_server.launch.py competition:=tac course:=tac_pool
+ros2 launch landmark_server landmark_server.launch.py competition:=tac course:=pool
 ros2 launch landmark_server competition_map_gui.launch.py competition:=tac
 ```
 
 ### A new pool or course
 
-1. `mkdir config/course/<name>` and copy an empty `premap.yaml` from `course/pool`.
+1. `mkdir config/<competition>/courses/<name>` and copy an empty `premap.yaml` from
+   `courses/pool`.
 2. Build once with `--symlink-install`, start with `course:=<name>`.
 3. Make the prior map, see below.
 
 ### A new competition
 
-1. Add `config/<competition>/classes.yaml`, see `config/tac/classes.yaml`.
+1. Add `config/<competition>/classes.yaml` and `courses/`, see `config/tac`.
 2. New landmark type: see [Adding a landmark](#adding-a-landmark).
 3. Write the tree. No change to this package unless it needs a
    new kind of measurement.
