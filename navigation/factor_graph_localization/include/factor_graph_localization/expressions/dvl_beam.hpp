@@ -13,24 +13,18 @@ using ImuBias_ = gtsam::Expression<gtsam::imuBias::ConstantBias>;
 /**
  * @brief DVL beam prediction [m/s] from the IMU graph state.
  *
- * IMU is the navigation sensing frame; WORLD is GTSAM's fixed reference.
+ * IMU is the navigation sensing frame; WORLD is fixed at initialization.
  * WORLD_P_IMU: graph pose mapping IMU into WORLD.
- * vel_WORLD: graph velocity of the IMU origin relative to the stationary
- * bottom, expressed in WORLD axes [m/s].
- * bias_IMU: graph accelerometer/gyro bias in IMU axes; only gyro bias affects
- * this prediction.
+ * vel_WORLD: IMU-origin velocity in WORLD axes [m/s].
  * IMU_P_DVL: fixed DVL -> IMU mounting transform. Its translation points
  * from the IMU origin to the DVL virtual origin, in IMU axes [m].
- * measured_angular_vel_IMU: gyro measurement [rad/s] at the beam timestamp,
- * with the estimated gyro bias still present.
- * beam_direction: outward beam direction in DVL axes, from sensors.yaml.
- * Returns the predicted beam velocity in its measurement space. Inputs and
- * mounting calibration are caller preconditions; no validation is performed.
+ * measured_angular_vel_IMU: gyro measurement [rad/s].
+ * beam_direction: outward beam direction in DVL axes.
  */
 inline gtsam::Expression<double> predict_dvl_beam_vel(
     const gtsam::Pose3_& WORLD_P_IMU,
     const gtsam::Vector3_& vel_WORLD,
-    const ImuBias_& bias_IMU,
+    const ImuBias_& estimated_accel_gyro_bias_IMU,
     const gtsam::Pose3& IMU_P_DVL,
     const gtsam::Vector3& measured_angular_vel_IMU,
     const gtsam::Unit3& beam_direction) {
@@ -42,10 +36,9 @@ inline gtsam::Expression<double> predict_dvl_beam_vel(
     const auto vel_IMU =
         gtsam::unrotate(gtsam::rotation(WORLD_P_IMU), vel_WORLD);
 
-    // Keep bias correction in the graph so changes to gyro bias also change
-    // the rotational velocity predicted at the displaced DVL origin.
     const gtsam::Vector3_ angular_vel_IMU(
-        bias_IMU, &gtsam::imuBias::ConstantBias::correctGyroscope,
+        estimated_accel_gyro_bias_IMU,
+        &gtsam::imuBias::ConstantBias::correctGyroscope,
         gtsam::Vector3_(measured_angular_vel_IMU));
     const auto vel_lever_arm =
         gtsam::cross(angular_vel_IMU, gtsam::Vector3_(r));

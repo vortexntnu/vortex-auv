@@ -18,11 +18,12 @@ gtsam::ExpressionFactor<double> build_dvl_beam_factor(
 
     const gtsam::Pose3_ WORLD_P_IMU(IMU_pose_key);
     const gtsam::Vector3_ vel_WORLD(IMU_origin_vel_WORLD_key);
-    const ImuBias_ bias_IMU(IMU_bias_key);
+    const ImuBias_ estimated_accel_gyro_bias_IMU(IMU_bias_key);
 
     const auto h = predict_dvl_beam_vel(
-        WORLD_P_IMU, vel_WORLD, bias_IMU, beam_geometry.IMU_P_DVL,
-        measured_angular_vel_IMU, beam_geometry.beam_direction);
+        WORLD_P_IMU, vel_WORLD, estimated_accel_gyro_bias_IMU,
+        beam_geometry.IMU_P_DVL, measured_angular_vel_IMU,
+        beam_geometry.beam_direction);
 
     const auto beam_vel_noise_model =
         gtsam::noiseModel::Isotropic::Sigma(1, sigma_b);

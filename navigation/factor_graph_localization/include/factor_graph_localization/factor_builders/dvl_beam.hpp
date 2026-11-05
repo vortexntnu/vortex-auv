@@ -10,12 +10,12 @@ namespace vortex::navigation {
 
 struct DvlBeamMeasurement {
     double vel_mps;
-    /// Positive DVL beam velocity standard deviation [m/s].
+    /// DVL beam standard deviation [m/s].
     double sigma_mps;
 };
 
 struct DvlBeamGeometry {
-    /// Outward beam direction in DVL axes, configured in sensors.yaml.
+    /// Outward beam direction in DVL axes.
     gtsam::Unit3 beam_direction;
     /// DVL -> IMU transform using the DVL measurement reference origin.
     /// Translation: IMU -> DVL origin, in IMU axes [m].
@@ -24,19 +24,9 @@ struct DvlBeamGeometry {
 
 /**
  * IMU_pose_key: Pose3 mapping the IMU sensing frame into fixed WORLD axes.
- * IMU_origin_vel_WORLD_key: velocity of the IMU origin relative to the
- * stationary bottom, expressed in WORLD axes [m/s], as in GTSAM's IMU factor.
+ * IMU_origin_vel_WORLD_key: IMU-origin velocity in WORLD axes [m/s].
  * IMU_bias_key: accelerometer/gyro bias state in IMU axes.
- * All three keys must describe the state at the accepted beam timestamp.
- * beam_measurement: measured beam velocity and effective standard deviation.
- * beam_geometry: fixed mounting transform and beam direction.
- * measured_angular_vel_IMU: corresponding gyro measurement [rad/s], with
- * estimated bias still present. Bias correction happens inside the factor.
- *
- * Returns a Gaussian beam-velocity factor connected to pose, velocity, and
- * bias. The IMU remains the navigation sensing frame and estimated origin.
- * Timestamp association and validity of measurements, noise, and geometry
- * belong to the caller; this builder performs no additional validation.
+ * measured_angular_vel_IMU: gyro measurement [rad/s].
  */
 gtsam::ExpressionFactor<double> build_dvl_beam_factor(
     const gtsam::Key IMU_pose_key,
