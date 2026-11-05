@@ -110,12 +110,13 @@
   </joint>
 
   <!-- Where torpedoes and markers leave the vehicle, +X the way a torpedo goes.
-       Not measured yet, put in the real positions when they are mounted. -->
+       For now the torpedo leaves from the gripper, and the dropper is not measured.
+       Put in the real positions when they are mounted. -->
   <link name="torpedo_tube"/>
   <joint name="torpedo_tube_joint" type="fixed">
-    <parent link="base_link"/>
+    <parent link="shoulder"/>
     <child link="torpedo_tube"/>
-    <origin xyz="0.45 0.0 0.1" rpy="0.0 0.0 0.0"/>
+    <origin xyz="0.2505 0.0 0.0" rpy="0.0 0.0 0.0"/>
   </joint>
 
   <link name="marker_dropper"/>
