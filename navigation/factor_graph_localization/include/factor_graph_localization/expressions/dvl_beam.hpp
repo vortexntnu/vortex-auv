@@ -8,32 +8,42 @@
 namespace vortex::navigation {
 
 /**
- * @brief DVL beam prediction h(v_IMU) [m/s], assuming a stationary bottom.
+ * @brief DVL beam prediction [m/s] from the IMU graph pose and velocity.
  *
- * IMU is the navigation sensing frame; DVL is the measurement reference frame.
- * v_IMU: IMU-origin velocity relative to bottom, in IMU axes [m/s].
- * omega: bias-corrected angular velocity in IMU axes [rad/s].
- * r: IMU -> DVL origin offset in IMU axes [m].
- * IMU_R_DVL: DVL -> IMU rotation.
+ * IMU is the navigation sensing frame; STARTUP is GTSAM's fixed reference.
+ * STARTUP_P_IMU: graph pose mapping IMU into STARTUP.
+ * vel_STARTUP: graph velocity of the IMU origin relative to the stationary
+ * bottom, expressed in STARTUP axes [m/s].
+ * IMU_P_DVL: fixed DVL -> IMU mounting transform. Its translation points
+ * from the IMU origin to the DVL virtual origin, in IMU axes [m].
+ * angular_vel_IMU: bias-corrected gyro [rad/s] at the beam timestamp.
  * beam_direction: outward beam direction in DVL axes, from sensors.yaml.
+ * Returns the predicted beam velocity in its measurement space. Inputs and
+ * mounting calibration are caller preconditions; no validation is performed.
  */
 inline gtsam::Expression<double> predict_dvl_beam_vel(
-    const gtsam::Vector3_& v_IMU,
+    const gtsam::Pose3_& STARTUP_P_IMU,
+    const gtsam::Vector3_& vel_STARTUP,
     const gtsam::Pose3& IMU_P_DVL,
-    const gtsam::Vector3& omega,
+    const gtsam::Vector3& angular_vel_IMU,
     const gtsam::Unit3& beam_direction) {
     const auto& IMU_R_DVL = IMU_P_DVL.rotation();
     const auto& r = IMU_P_DVL.translation();
 
-    const gtsam::Vector3 v_lever_arm = omega.cross(r);
+    // Share the IMU factor's STARTUP velocity key while allowing optimized
+    // attitude changes to update the velocity expressed in IMU axes.
+    const auto vel_IMU =
+        gtsam::unrotate(gtsam::rotation(STARTUP_P_IMU), vel_STARTUP);
 
-    const gtsam::Vector3_ v_DVL_in_IMU = v_IMU + gtsam::Vector3_(v_lever_arm);
+    const gtsam::Vector3 vel_lever_arm = angular_vel_IMU.cross(r);
 
-    const auto v_DVL_in_DVL =
-        gtsam::unrotate(gtsam::Rot3_(IMU_R_DVL), v_DVL_in_IMU);
+    const auto vel_DVL_in_IMU = vel_IMU + gtsam::Vector3_(vel_lever_arm);
+
+    const auto vel_DVL_in_DVL =
+        gtsam::unrotate(gtsam::Rot3_(IMU_R_DVL), vel_DVL_in_IMU);
 
     return gtsam::dot(gtsam::Vector3_(beam_direction.unitVector()),
-                      v_DVL_in_DVL);
+                      vel_DVL_in_DVL);
 }
 
 }  // namespace vortex::navigation
