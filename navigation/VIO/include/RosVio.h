@@ -1,5 +1,5 @@
-#ifndef OV_MSCKF_BENCHMARK_VISUALIZER_H
-#define OV_MSCKF_BENCHMARK_VISUALIZER_H
+#ifndef OV_MSCKF_ROS_VIO_H
+#define OV_MSCKF_ROS_VIO_H
 
 #include <mutex>
 
@@ -14,7 +14,7 @@ namespace ov_msckf {
  * With no `benchmark_topic` in the config, the output simply starts at zero.
  * Uses the output hooks added by cmake/ros2_visualizer_output_hook.patch.
  */
-class BenchmarkVisualizer : public ROS2Visualizer {
+class RosVio : public ROS2Visualizer {
 
 public:
   using ROS2Visualizer::ROS2Visualizer;
@@ -36,15 +36,15 @@ private:
 
   /// Latest benchmark pose
   bool have_bench_ = false;
-  Eigen::Matrix3d R_bench_ = Eigen::Matrix3d::Identity();
-  Eigen::Vector3d p_bench_ = Eigen::Vector3d::Zero();
+  Eigen::Matrix3d rot_bench_ = Eigen::Matrix3d::Identity();
+  Eigen::Vector3d pos_bench_ = Eigen::Vector3d::Zero();
 
   /// Offset from the OpenVINS global frame to the output frame
   bool have_offset_ = false;
-  Eigen::Matrix3d R_off_ = Eigen::Matrix3d::Identity();
-  Eigen::Vector3d p_off_ = Eigen::Vector3d::Zero();
+  Eigen::Matrix3d rot_off_ = Eigen::Matrix3d::Identity();
+  Eigen::Vector3d pos_off_ = Eigen::Vector3d::Zero();
 };
 
 } // namespace ov_msckf
 
-#endif // OV_MSCKF_BENCHMARK_VISUALIZER_H
+#endif // OV_MSCKF_ROS_VIO_H

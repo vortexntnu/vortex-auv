@@ -50,7 +50,7 @@ list(APPEND ament_libraries
 
 # Pinned to the exact upstream commit we tested with (master, 2025-11-30).
 # Offline builds: pass -DFETCHCONTENT_SOURCE_DIR_OPEN_VINS=/path/to/open_vins to use a local checkout.
-# The patch adds output hooks to ROS2Visualizer that BenchmarkVisualizer overrides.
+# The patch adds output hooks to ROS2Visualizer that RosVio overrides.
 # It resets the file first so re-running the patch step is safe.
 include(FetchContent)
 FetchContent_Declare(open_vins
@@ -111,7 +111,7 @@ target_link_libraries(ov_init_lib ov_core_lib ${CERES_LIBRARIES})
 list(APPEND thirdparty_libraries ov_init_lib ov_core_lib)
 
 ##################################################
-# ov_msckf: upstream estimator + our BenchmarkVisualizer
+# ov_msckf: upstream estimator + our RosVio
 ##################################################
 
 add_library(ov_msckf_lib SHARED
@@ -127,7 +127,7 @@ add_library(ov_msckf_lib SHARED
         ${OV_MSCKF_SRC}/update/UpdaterZeroVelocity.cpp
         ${OV_MSCKF_SRC}/ros/ROS2Visualizer.cpp
         ${OV_MSCKF_SRC}/ros/ROSVisualizerHelper.cpp
-        src/BenchmarkVisualizer.cpp
+        src/RosVio.cpp
 )
 ament_target_dependencies(ov_msckf_lib ${ament_libraries})
 target_link_libraries(ov_msckf_lib ${thirdparty_libraries})
@@ -155,7 +155,7 @@ install(TARGETS run_subscribe_msckf DESTINATION lib/${PROJECT_NAME})
 
 # Install launch and config directories
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)
-install(DIRECTORY ../../config/ DESTINATION share/${PROJECT_NAME}/config/)
+install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config/)
 
 # finally define this as the package
 ament_package()

@@ -1,4 +1,4 @@
-#include "BenchmarkVisualizer.h"
+#include "../include/RosVio.h"
 
 #include "core/VioManager.h"
 #include "state/State.h"
@@ -11,7 +11,7 @@ namespace {
 Eigen::Matrix3d rot_from_xyzw(const Eigen::Vector4d &q) { return Eigen::Quaterniond(q(3), q(0), q(1), q(2)).normalized().toRotationMatrix(); }
 } // namespace
 
-void BenchmarkVisualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> parser) {
+void RosVio::setup_subscribers(std::shared_ptr<ov_core::YamlParser> parser) {
   ROS2Visualizer::setup_subscribers(parser);
 
   parser->parse_config("benchmark_topic", benchmark_topic_, false);
@@ -20,16 +20,16 @@ void BenchmarkVisualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser>
   sub_benchmark_ = _node->create_subscription<nav_msgs::msg::Odometry>(
       benchmark_topic_, rclcpp::QoS(10), [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
         const auto &o = msg->pose.pose.orientation;
-        const auto &t = msg->pose.pose.position;
+        const auto &p = msg->pose.pose.position;
         std::lock_guard<std::mutex> lck(mtx_);
-        R_bench_ = Eigen::Quaterniond(o.w, o.x, o.y, o.z).normalized().toRotationMatrix();
-        p_bench_ << t.x, t.y, t.z;
+        rot_bench_ = Eigen::Quaterniond(o.w, o.x, o.y, o.z).normalized().toRotationMatrix();
+        pos_bench_ << p.x, p.y, p.z;
         have_bench_ = true;
       });
   PRINT_INFO("subscribing to benchmark odometry: %s\n", benchmark_topic_.c_str());
 }
 
-bool BenchmarkVisualizer::set_offset_if_needed() {
+bool RosVio::set_offset_if_needed() {
   std::lock_guard<std::mutex> lck(mtx_);
   if (have_offset_)
     return true;
@@ -47,27 +47,27 @@ bool BenchmarkVisualizer::set_offset_if_needed() {
 
   // offset = benchmark_start * vio_start^-1
   std::shared_ptr<State> state = _app->get_state();
-  Eigen::Matrix3d R_start = rot_from_xyzw(state->_imu->quat());
-  R_off_ = R_bench_ * R_start.transpose();
-  p_off_ = p_bench_ - R_off_ * state->_imu->pos();
+  Eigen::Matrix3d rot_start = rot_from_xyzw(state->_imu->quat());
+  rot_off_ = rot_bench_ * rot_start.transpose();
+  pos_off_ = pos_bench_ - rot_off_ * state->_imu->pos();
   have_offset_ = true;
-  PRINT_INFO("Output starts at benchmark pose: p = %.3f %.3f %.3f\n", p_bench_(0), p_bench_(1), p_bench_(2));
+  PRINT_INFO("Output starts at benchmark pose: p = %.3f %.3f %.3f\n", pos_bench_(0), pos_bench_(1), pos_bench_(2));
   return true;
 }
 
-bool BenchmarkVisualizer::transform_output_pose(Eigen::Vector4d &q_xyzw, Eigen::Vector3d &p) {
+bool RosVio::transform_output_pose(Eigen::Vector4d &q_xyzw, Eigen::Vector3d &p) {
   if (!set_offset_if_needed())
     return false;
-  Eigen::Quaterniond q_out(R_off_ * rot_from_xyzw(q_xyzw));
+  Eigen::Quaterniond q_out(rot_off_ * rot_from_xyzw(q_xyzw));
   q_out.normalize();
   q_xyzw << q_out.x(), q_out.y(), q_out.z(), q_out.w();
-  p = R_off_ * p + p_off_;
+  p = rot_off_ * p + pos_off_;
   return true;
 }
 
-void BenchmarkVisualizer::transform_output_cov(Eigen::Matrix<double, 6, 6> &cov_posori) {
+void RosVio::transform_output_cov(Eigen::Matrix<double, 6, 6> &cov_posori) {
   // Orientation error is in the local frame, so only the position block rotates
   Eigen::Matrix<double, 6, 6> T = Eigen::Matrix<double, 6, 6>::Identity();
-  T.block(0, 0, 3, 3) = R_off_;
+  T.block(0, 0, 3, 3) = rot_off_;
   cov_posori = T * cov_posori * T.transpose();
 }

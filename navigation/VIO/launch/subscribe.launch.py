@@ -13,9 +13,6 @@ launch_args = [
         name="ov_enable", default_value="true", description="enable OpenVINS node"
     ),
     DeclareLaunchArgument(
-        name="rviz_enable", default_value="false", description="enable rviz node"
-    ),
-    DeclareLaunchArgument(
         name="config",
         default_value="euroc_mav",
         description="euroc_mav, tum_vi, rpng_aruco...",
@@ -89,22 +86,8 @@ def launch_setup(context):
         ],
     )
 
-    node2 = Node(
-        package="rviz2",
-        executable="rviz2",
-        condition=IfCondition(LaunchConfiguration("rviz_enable")),
-        arguments=[
-            "-d"
-            + os.path.join(
-                get_package_share_directory("ov_msckf"), "launch", "display_ros2.rviz"
-            ),
-            "--ros-args",
-            "--log-level",
-            "warn",
-            ],
-    )
 
-    return [node1, node2]
+    return [node1]
 
 
 def generate_launch_description():
