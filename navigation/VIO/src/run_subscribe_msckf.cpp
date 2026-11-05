@@ -23,15 +23,14 @@
 
 #include "core/VioManager.h"
 #include "core/VioManagerOptions.h"
-#include "utils/dataset_reader.h"
 
-#include "BenchmarkVisualizer.h"
+#include "../include/RosVio.h"
 #include <rclcpp/rclcpp.hpp>
 
 using namespace ov_msckf;
 
 std::shared_ptr<VioManager> sys;
-std::shared_ptr<BenchmarkVisualizer> viz;
+std::shared_ptr<RosVio> viz;
 
 // Main function
 int main(int argc, char **argv) {
@@ -64,7 +63,7 @@ int main(int argc, char **argv) {
   params.print_and_load(parser);
   params.use_multi_threading_subs = true;
   sys = std::make_shared<VioManager>(params);
-  viz = std::make_shared<BenchmarkVisualizer>(node, sys);
+  viz = std::make_shared<RosVio>(node, sys);
   viz->setup_subscribers(parser);
 
   // Ensure we read in all parameters required

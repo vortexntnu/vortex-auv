@@ -6,7 +6,7 @@ index e91cd74..792f72e 100644
    if (!_app->get_propagator()->fast_state_propagate(state, timestamp, state_plus, cov_plus))
      return;
  
-+  // Let subclasses change the published pose
++  // Let subclasses change the published pose to match the pose of the rest of the drone
 +  Eigen::Vector4d q_out = state_plus.block(0, 0, 4, 1);
 +  Eigen::Vector3d p_out = state_plus.block(4, 0, 3, 1);
 +  if (!transform_output_pose(q_out, p_out))
