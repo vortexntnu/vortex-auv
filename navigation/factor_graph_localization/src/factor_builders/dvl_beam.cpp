@@ -9,18 +9,20 @@ namespace vortex::navigation {
 gtsam::ExpressionFactor<double> build_dvl_beam_factor(
     const gtsam::Key IMU_pose_key,
     const gtsam::Key IMU_origin_vel_STARTUP_key,
+    const gtsam::Key IMU_bias_key,
     const DvlBeamMeasurement& beam_measurement,
     const DvlBeamGeometry& beam_geometry,
-    const gtsam::Vector3& angular_vel_IMU) {
+    const gtsam::Vector3& measured_angular_vel_IMU) {
     const auto& measured_beam_vel_mps = beam_measurement.vel_mps;
     const auto& sigma_b = beam_measurement.sigma_mps;
 
     const gtsam::Pose3_ STARTUP_P_IMU(IMU_pose_key);
     const gtsam::Vector3_ vel_STARTUP(IMU_origin_vel_STARTUP_key);
+    const gtsam::Expression<gtsam::imuBias::ConstantBias> bias_IMU(IMU_bias_key);
 
     const auto h = predict_dvl_beam_vel(
-        STARTUP_P_IMU, vel_STARTUP, beam_geometry.IMU_P_DVL,
-        angular_vel_IMU, beam_geometry.beam_direction);
+        STARTUP_P_IMU, vel_STARTUP, bias_IMU, beam_geometry.IMU_P_DVL,
+        measured_angular_vel_IMU, beam_geometry.beam_direction);
 
     const auto beam_vel_noise_model =
         gtsam::noiseModel::Isotropic::Sigma(1, sigma_b);
