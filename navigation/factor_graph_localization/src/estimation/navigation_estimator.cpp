@@ -1,4 +1,4 @@
-// TODO: Select the IMU pose, STARTUP-expressed IMU-origin velocity, and IMU bias
+// TODO: Select the IMU pose, WORLD-expressed IMU-origin velocity, and IMU bias
 // keys at each accepted beam's timestamp. Pass the corresponding gyro sample
 // with estimated bias still present to build_dvl_beam_factor, then insert it.
 

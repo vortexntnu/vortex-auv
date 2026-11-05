@@ -23,9 +23,9 @@ struct DvlBeamGeometry {
 };
 
 /**
- * IMU_pose_key: Pose3 mapping the IMU sensing frame into fixed STARTUP axes.
- * IMU_origin_vel_STARTUP_key: velocity of the IMU origin relative to the
- * stationary bottom, expressed in STARTUP axes [m/s], as in GTSAM's IMU factor.
+ * IMU_pose_key: Pose3 mapping the IMU sensing frame into fixed WORLD axes.
+ * IMU_origin_vel_WORLD_key: velocity of the IMU origin relative to the
+ * stationary bottom, expressed in WORLD axes [m/s], as in GTSAM's IMU factor.
  * IMU_bias_key: accelerometer/gyro bias state in IMU axes.
  * All three keys must describe the state at the accepted beam timestamp.
  * beam_measurement: measured beam velocity and effective standard deviation.
@@ -40,7 +40,7 @@ struct DvlBeamGeometry {
  */
 gtsam::ExpressionFactor<double> build_dvl_beam_factor(
     const gtsam::Key IMU_pose_key,
-    const gtsam::Key IMU_origin_vel_STARTUP_key,
+    const gtsam::Key IMU_origin_vel_WORLD_key,
     const gtsam::Key IMU_bias_key,
     const DvlBeamMeasurement& beam_measurement,
     const DvlBeamGeometry& beam_geometry,

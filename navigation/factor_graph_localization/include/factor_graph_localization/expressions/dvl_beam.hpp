@@ -8,13 +8,15 @@
 
 namespace vortex::navigation {
 
+using ImuBias_ = gtsam::Expression<gtsam::imuBias::ConstantBias>;
+
 /**
  * @brief DVL beam prediction [m/s] from the IMU graph state.
  *
- * IMU is the navigation sensing frame; STARTUP is GTSAM's fixed reference.
- * STARTUP_P_IMU: graph pose mapping IMU into STARTUP.
- * vel_STARTUP: graph velocity of the IMU origin relative to the stationary
- * bottom, expressed in STARTUP axes [m/s].
+ * IMU is the navigation sensing frame; WORLD is GTSAM's fixed reference.
+ * WORLD_P_IMU: graph pose mapping IMU into WORLD.
+ * vel_WORLD: graph velocity of the IMU origin relative to the stationary
+ * bottom, expressed in WORLD axes [m/s].
  * bias_IMU: graph accelerometer/gyro bias in IMU axes; only gyro bias affects
  * this prediction.
  * IMU_P_DVL: fixed DVL -> IMU mounting transform. Its translation points
@@ -26,19 +28,19 @@ namespace vortex::navigation {
  * mounting calibration are caller preconditions; no validation is performed.
  */
 inline gtsam::Expression<double> predict_dvl_beam_vel(
-    const gtsam::Pose3_& STARTUP_P_IMU,
-    const gtsam::Vector3_& vel_STARTUP,
-    const gtsam::Expression<gtsam::imuBias::ConstantBias>& bias_IMU,
+    const gtsam::Pose3_& WORLD_P_IMU,
+    const gtsam::Vector3_& vel_WORLD,
+    const ImuBias_& bias_IMU,
     const gtsam::Pose3& IMU_P_DVL,
     const gtsam::Vector3& measured_angular_vel_IMU,
     const gtsam::Unit3& beam_direction) {
     const auto& IMU_R_DVL = IMU_P_DVL.rotation();
     const auto& r = IMU_P_DVL.translation();
 
-    // Share the IMU factor's STARTUP velocity key while allowing optimized
+    // Share the IMU factor's WORLD velocity key while allowing optimized
     // attitude changes to update the velocity expressed in IMU axes.
     const auto vel_IMU =
-        gtsam::unrotate(gtsam::rotation(STARTUP_P_IMU), vel_STARTUP);
+        gtsam::unrotate(gtsam::rotation(WORLD_P_IMU), vel_WORLD);
 
     // Keep bias correction in the graph so changes to gyro bias also change
     // the rotational velocity predicted at the displaced DVL origin.
