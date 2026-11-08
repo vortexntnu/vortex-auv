@@ -1,0 +1,31 @@
+%YAML:1.0
+
+
+cam0:
+  T_imu_cam: #rotation from camera to IMU R_CtoI, position of camera in IMU p_CinI
+    - [0.0, -1.0, 0.0, 0.397865]
+    - [1.0, 0.0, 0.0, -0.157]
+    - [0.0, 0.0, 1.0, 0.076036]
+    - [0.0, 0.0, 0.0, 1.0]
+  cam_overlaps: [0]
+  camera_model: pinhole
+  distortion_coeffs: [0.0,0.0,0.0,0.0]
+  distortion_model: radtan
+  intrinsics: [360, 360, 360, 270] #fu, fv, cu, cv
+  resolution: [720, 540]
+  rostopic: /nautilus/down_camera/image_color
+
+#cam1:
+#  T_imu_cam:
+#    - [0.0, 0.0, 1.0, 0.47477]
+#    - [1.0, 0.0, 0.0, 0.0125]
+#    - [0.0, 1.0, 0.0, -0.122895]
+#    - [0.0, 0.0, 0.0, 1.0]
+#  cam_overlaps: []
+#  camera_model: pinhole
+#  distortion_coeffs: [0,0,0,0]
+#  distortion_model: radtan
+#  intrinsics: [1396.8, 1396.8, 960.0, 540.0] #fu, fv, cu, cv
+#  resolution: [1920, 1080]
+#  rostopic: /nautilus/front_camera
+  

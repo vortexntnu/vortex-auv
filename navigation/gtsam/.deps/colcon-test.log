@@ -1,0 +1,166 @@
+Starting >>> gtsam_navigation
+UpdateCTestConfiguration  from :/home/vortex/ros2_ws/build/gtsam_navigation/CTestConfiguration.ini
+[Processing: gtsam_navigation]
+Parse Config file:/home/vortex/ros2_ws/build/gtsam_navigation/CTestConfiguration.ini
+   Site: vortex
+   Build name: (empty)
+ Add coverage exclude regular expressions.
+Create new tag: 20260927-1532 - Experimental
+UpdateCTestConfiguration  from :/home/vortex/ros2_ws/build/gtsam_navigation/CTestConfiguration.ini
+Parse Config file:/home/vortex/ros2_ws/build/gtsam_navigation/CTestConfiguration.ini
+Test project /home/vortex/ros2_ws/build/gtsam_navigation
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 1
+    Start 1: estimator_tests
+
+1: Test command: /usr/bin/python3 "-u" "/opt/ros/humble/share/ament_cmake_test/cmake/run_test.py" "/home/vortex/ros2_ws/build/gtsam_navigation/test_results/gtsam_navigation/estimator_tests.gtest.xml" "--package-name" "gtsam_navigation" "--output-file" "/home/vortex/ros2_ws/build/gtsam_navigation/ament_cmake_gtest/estimator_tests.txt" "--command" "/home/vortex/ros2_ws/build/gtsam_navigation/estimator_tests" "--gtest_output=xml:/home/vortex/ros2_ws/build/gtsam_navigation/test_results/gtsam_navigation/estimator_tests.gtest.xml"
+1: Test timeout computed to be: 180
+1: -- run_test.py: invoking following command in '/home/vortex/ros2_ws/build/gtsam_navigation':
+1:  - /home/vortex/ros2_ws/build/gtsam_navigation/estimator_tests --gtest_output=xml:/home/vortex/ros2_ws/build/gtsam_navigation/test_results/gtsam_navigation/estimator_tests.gtest.xml
+1: Running main() from /opt/ros/humble/src/gtest_vendor/src/gtest_main.cc
+1: [==========] Running 11 tests from 5 test suites.
+1: [----------] Global test environment set-up.
+1: [----------] 1 test from DvlFactor
+1: [ RUN      ] DvlFactor.JacobiansIncludeRotationAndGyroBiasLeverArm
+1: [       OK ] DvlFactor.JacobiansIncludeRotationAndGyroBiasLeverArm (0 ms)
+1: [----------] 1 test from DvlFactor (0 ms total)
+1: 
+1: [----------] 1 test from Initialization
+1: [ RUN      ] Initialization.StationaryTiltBiasAndMovingWindow
+1: [       OK ] Initialization.StationaryTiltBiasAndMovingWindow (2 ms)
+1: [----------] 1 test from Initialization (2 ms total)
+1: 
+1: [----------] 6 tests from Estimator
+1: [ RUN      ] Estimator.StationaryAndBoundedHistory
+1: [       OK ] Estimator.StationaryAndBoundedHistory (1012 ms)
+1: [ RUN      ] Estimator.InvalidDataAndGapFailClosed
+1: [       OK ] Estimator.InvalidDataAndGapFailClosed (1 ms)
+1: [ RUN      ] Estimator.ReorderingAndExactDvlBoundaries
+1: [       OK ] Estimator.ReorderingAndExactDvlBoundaries (93 ms)
+1: [ RUN      ] Estimator.AccelerationTurningAndDvlDropoutRecovery
+1: [       OK ] Estimator.AccelerationTurningAndDvlDropoutRecovery (36 ms)
+1: [ RUN      ] Estimator.DvlOutlierRejectedWithoutCorruptingState
+1: [       OK ] Estimator.DvlOutlierRejectedWithoutCorruptingState (3 ms)
+1: [ RUN      ] Estimator.SeededStim300ProfilesWithInternalBiasAndDropout
+1: STIM300 density=0.00116667: position RMSE=0.0170838 m, velocity RMSE=0.00529183 m/s, final attitude error=0.0013947 rad, accel bias error=0.00411493 m/s^2, gyro bias error=5.28483e-05 rad/s
+1: STIM300 density=0.0035: position RMSE=0.0176328 m, velocity RMSE=0.00724792 m/s, final attitude error=0.00135823 rad, accel bias error=0.00290188 m/s^2, gyro bias error=4.62803e-05 rad/s
+1: [       OK ] Estimator.SeededStim300ProfilesWithInternalBiasAndDropout (589 ms)
+1: [----------] 6 tests from Estimator (1734 ms total)
+1: 
+1: [----------] 2 tests from Covariance
+1: [ RUN      ] Covariance.GrowsWithoutDvlAndShrinksAfterRecovery
+1: [       OK ] Covariance.GrowsWithoutDvlAndShrinksAfterRecovery (29 ms)
+1: [ RUN      ] Covariance.RosMappingsMatchNumericalJacobians
+1: [       OK ] Covariance.RosMappingsMatchNumericalJacobians (0 ms)
+1: [----------] 2 tests from Covariance (29 ms total)
+1: 
+1: [----------] 1 test from Smoother
+1: [ RUN      ] Smoother.MarginalizationMatchesShortBatchReference
+1: [       OK ] Smoother.MarginalizationMatchesShortBatchReference (1 ms)
+1: [----------] 1 test from Smoother (1 ms total)
+1: 
+1: [----------] Global test environment tear-down
+1: [==========] 11 tests from 5 test suites ran. (1766 ms total)
+1: [  PASSED  ] 11 tests.
+1: -- run_test.py: return code 0
+1: -- run_test.py: inject classname prefix into gtest result file '/home/vortex/ros2_ws/build/gtsam_navigation/test_results/gtsam_navigation/estimator_tests.gtest.xml'
+1: -- run_test.py: verify result file '/home/vortex/ros2_ws/build/gtsam_navigation/test_results/gtsam_navigation/estimator_tests.gtest.xml'
+1/3 Test #1: estimator_tests ..................   Passed    1.83 sec
+test 2
+    Start 2: sensor_model_tests
+
+2: Test command: /usr/bin/python3 "-u" "/opt/ros/humble/share/ament_cmake_test/cmake/run_test.py" "/home/vortex/ros2_ws/build/gtsam_navigation/test_results/gtsam_navigation/sensor_model_tests.xunit.xml" "--package-name" "gtsam_navigation" "--output-file" "/home/vortex/ros2_ws/build/gtsam_navigation/ament_cmake_pytest/sensor_model_tests.txt" "--command" "/usr/bin/python3" "-u" "-m" "pytest" "/home/vortex/ros2_ws/src/vortex-auv/navigation/gtsam/test/test_sensor_model.py" "-o" "cache_dir=/home/vortex/ros2_ws/build/gtsam_navigation/ament_cmake_pytest/sensor_model_tests/.cache" "--junit-xml=/home/vortex/ros2_ws/build/gtsam_navigation/test_results/gtsam_navigation/sensor_model_tests.xunit.xml" "--junit-prefix=gtsam_navigation"
+2: Test timeout computed to be: 60
+2: -- run_test.py: invoking following command in '/home/vortex/ros2_ws/build/gtsam_navigation':
+2:  - /usr/bin/python3 -u -m pytest /home/vortex/ros2_ws/src/vortex-auv/navigation/gtsam/test/test_sensor_model.py -o cache_dir=/home/vortex/ros2_ws/build/gtsam_navigation/ament_cmake_pytest/sensor_model_tests/.cache --junit-xml=/home/vortex/ros2_ws/build/gtsam_navigation/test_results/gtsam_navigation/sensor_model_tests.xunit.xml --junit-prefix=gtsam_navigation
+2: ============================= test session starts ==============================
+2: platform linux -- Python 3.10.12, pytest-6.2.5, py-1.10.0, pluggy-0.13.0
+2: cachedir: build/gtsam_navigation/ament_cmake_pytest/sensor_model_tests/.cache
+2: rootdir: /home/vortex/ros2_ws
+2: plugins: ament-flake8-0.12.15, ament-lint-0.12.15, launch-testing-ros-0.19.14, launch-testing-1.0.14, ament-copyright-0.12.15, ament-xmllint-0.12.15, ament-pep257-0.12.15, cov-3.0.0, repeat-0.9.1, rerunfailures-10.2, colcon-core-0.21.0, timeout-2.1.0, mock-3.6.1
+2: collected 4 items
+2: 
+2: ../../src/vortex-auv/navigation/gtsam/test/test_sensor_model.py ....     [100%]
+2: 
+2: - generated xml file: /home/vortex/ros2_ws/build/gtsam_navigation/test_results/gtsam_navigation/sensor_model_tests.xunit.xml -
+2: ============================== 4 passed in 0.23s ===============================
+2: -- run_test.py: return code 0
+2: -- run_test.py: verify result file '/home/vortex/ros2_ws/build/gtsam_navigation/test_results/gtsam_navigation/sensor_model_tests.xunit.xml'
+2/3 Test #2: sensor_model_tests ...............   Passed    0.54 sec
+test 3
+    Start 3: test_test_navigation_launch.py
+
+3: Test command: /usr/bin/python3 "-u" "/opt/ros/humble/share/ament_cmake_test/cmake/run_test.py" "/home/vortex/ros2_ws/build/gtsam_navigation/test_results/gtsam_navigation/test_test_navigation_launch.py.xunit.xml" "--package-name" "gtsam_navigation" "--output-file" "/home/vortex/ros2_ws/build/gtsam_navigation/launch_test/test_test_navigation_launch.py.txt" "--env" "ROS_LOCALHOST_ONLY=1" "ROS_DOMAIN_ID=167" "ROS_LOG_DIR=/home/vortex/ros2_ws/build/gtsam_navigation/ros_logs" "--command" "/usr/bin/python3" "-m" "launch_testing.launch_test" "/home/vortex/ros2_ws/src/vortex-auv/navigation/gtsam/test/test_navigation_launch.py" "--junit-xml=/home/vortex/ros2_ws/build/gtsam_navigation/test_results/gtsam_navigation/test_test_navigation_launch.py.xunit.xml" "--package-name=gtsam_navigation"
+3: Test timeout computed to be: 60
+3: -- run_test.py: extra environment variables:
+3:  - ROS_DOMAIN_ID=167
+3:  - ROS_LOCALHOST_ONLY=1
+3:  - ROS_LOG_DIR=/home/vortex/ros2_ws/build/gtsam_navigation/ros_logs
+3: -- run_test.py: invoking following command in '/home/vortex/ros2_ws/build/gtsam_navigation':
+3:  - /usr/bin/python3 -m launch_testing.launch_test /home/vortex/ros2_ws/src/vortex-auv/navigation/gtsam/test/test_navigation_launch.py --junit-xml=/home/vortex/ros2_ws/build/gtsam_navigation/test_results/gtsam_navigation/test_test_navigation_launch.py.xunit.xml --package-name=gtsam_navigation
+3: [INFO] [launch]: All log files can be found below /home/vortex/ros2_ws/build/gtsam_navigation/ros_logs/2026-09-27-17-32-47-674791-vortex-46
+3: [INFO] [launch]: Default logging verbosity is set to INFO
+3: test_imu_frame_odometry_and_no_bias_topics (gtsam_navigation.TestNavigationTopics) ... [INFO] [gtsam_navigation_node-1]: process started with pid [50]
+3: [INFO] [simulate_sensors.py-2]: process started with pid [52]
+3: [gtsam_navigation_node-1] getifaddrs: Operation not permitted
+3: [gtsam_navigation_node-1] getifaddrs: Operation not permitted
+3: [gtsam_navigation_node-1] getifaddrs: Operation not permitted
+3: [gtsam_navigation_node-1] getifaddrs: Operation not permitted
+3: [gtsam_navigation_node-1] [37;1m2026-09-27 17:32:47.703 [31;1m[[37;1mTRANSPORT[31;1m Error] [37mAll whitelist interfaces were filtered out[34;1m -> Function [36mUDPv4Transport[m
+3: [gtsam_navigation_node-1] [37;1m2026-09-27 17:32:47.703 [31;1m[[37;1mTRANSPORT_UDP[31;1m Error] [37mError creating socket: Operation not permitted[34;1m -> Function [36minit[m
+3: [gtsam_navigation_node-1] [37;1m2026-09-27 17:32:47.703 [31;1m[[37;1mRTPS_PARTICIPANT[31;1m Error] [37mUser transport failed to register.[34;1m -> Function [36mRTPSParticipantImpl[m
+3: [gtsam_navigation_node-1] [INFO] [1790523167.711414645] [nautilus.gtsam_navigation]: Waiting for fixed Nautilus sensor transforms; bias states remain internal
+3: getifaddrs: Operation not permitted
+3: getifaddrs: Operation not permitted
+3: getifaddrs: Operation not permitted
+3: getifaddrs: Operation not permitted
+3: [37;1m2026-09-27 17:32:47.759 [31;1m[[37;1mTRANSPORT[31;1m Error] [37mAll whitelist interfaces were filtered out[34;1m -> Function [36mUDPv4Transport[m
+3: [37;1m2026-09-27 17:32:47.759 [31;1m[[37;1mTRANSPORT_UDP[31;1m Error] [37mError creating socket: Operation not permitted[34;1m -> Function [36minit[m
+3: [37;1m2026-09-27 17:32:47.759 [31;1m[[37;1mRTPS_PARTICIPANT[31;1m Error] [37mUser transport failed to register.[34;1m -> Function [36mRTPSParticipantImpl[m
+3: [simulate_sensors.py-2] getifaddrs: Operation not permitted
+3: [simulate_sensors.py-2] getifaddrs: Operation not permitted
+3: [simulate_sensors.py-2] getifaddrs: Operation not permitted
+3: [simulate_sensors.py-2] getifaddrs: Operation not permitted
+3: [simulate_sensors.py-2] [37;1m2026-09-27 17:32:47.965 [31;1m[[37;1mTRANSPORT[31;1m Error] [37mAll whitelist interfaces were filtered out[34;1m -> Function [36mUDPv4Transport[m
+3: [simulate_sensors.py-2] [37;1m2026-09-27 17:32:47.965 [31;1m[[37;1mTRANSPORT_UDP[31;1m Error] [37mError creating socket: Operation not permitted[34;1m -> Function [36minit[m
+3: [simulate_sensors.py-2] [37;1m2026-09-27 17:32:47.965 [31;1m[[37;1mRTPS_PARTICIPANT[31;1m Error] [37mUser transport failed to register.[34;1m -> Function [36mRTPSParticipantImpl[m
+3: [gtsam_navigation_node-1] [INFO] [1790523168.111669814] [nautilus.gtsam_navigation]: Fixed sensor transforms loaded; collecting stationary IMU samples
+3: ok
+3: 
+3: ----------------------------------------------------------------------
+3: Ran 1 test in 1.379s
+3: 
+3: OK
+3: [simulate_sensors.py-2] [INFO] [1790523176.021872979] [nautilus.gtsam_sensor_simulator]: RMSE: position=0.000000 m, IMU velocity=0.000000 m/s, yaw=0.000000 deg; 714 estimates
+3: [INFO] [simulate_sensors.py-2]: sending signal 'SIGINT' to process[simulate_sensors.py-2]
+3: [INFO] [gtsam_navigation_node-1]: sending signal 'SIGINT' to process[gtsam_navigation_node-1]
+3: [gtsam_navigation_node-1] [INFO] [1790523176.023516525] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+3: [INFO] [gtsam_navigation_node-1]: process has finished cleanly [pid 50]
+3: [ERROR] [simulate_sensors.py-2]: process[simulate_sensors.py-2] failed to terminate '5' seconds after receiving 'SIGINT', escalating to 'SIGTERM'
+3: [INFO] [simulate_sensors.py-2]: process has finished cleanly [pid 52]
+3: test_processes_exit_cleanly (gtsam_navigation.TestCleanShutdown) ... ok
+3: 
+3: ----------------------------------------------------------------------
+3: Ran 1 test in 0.000s
+3: 
+3: OK
+3: -- run_test.py: return code 0
+3: -- run_test.py: verify result file '/home/vortex/ros2_ws/build/gtsam_navigation/test_results/gtsam_navigation/test_test_navigation_launch.py.xunit.xml'
+3/3 Test #3: test_test_navigation_launch.py ...   Passed   13.70 sec
+
+100% tests passed, 0 tests failed out of 3
+
+Label Time Summary:
+gtest          =   1.83 sec*proc (1 test)
+launch_test    =  13.70 sec*proc (1 test)
+pytest         =   0.54 sec*proc (1 test)
+
+Total Test time (real) =  16.06 sec
+Finished <<< gtsam_navigation [46.1s]
+
+Summary: 1 package finished [46.4s]

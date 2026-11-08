@@ -1,0 +1,13 @@
+Consolidate compiler generated dependencies of target cephes-gtsam
+Consolidate compiler generated dependencies of target CppUnitLite
+[  0%] Built target CppUnitLite
+[  0%] Linking C shared library libcephes-gtsam.so
+Consolidate compiler generated dependencies of target metis-gtsam
+[  0%] Linking C shared library libmetis-gtsam.so
+[  1%] Built target cephes-gtsam
+[ 21%] Built target metis-gtsam
+Consolidate compiler generated dependencies of target gtsam
+[ 21%] Linking CXX shared library libgtsam.so
+[ 98%] Built target gtsam
+Consolidate compiler generated dependencies of target gtsam_timing_utils
+[100%] Built target gtsam_timing_utils

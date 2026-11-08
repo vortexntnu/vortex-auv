@@ -1,0 +1,92 @@
+-- GTSAM_POSE3_EXPMAP=ON, enabling GTSAM_ROT3_EXPMAP as well
+-- Found Eigen version: 3.4.0
+-- Using bundled CCOLAMD and SuiteSparse_config
+-- CHOLMOD not found; CHOLMOD linear solver disabled
+-- checking for thread-local storage - found
+-- Could NOT find MKL (missing: MKL_INCLUDE_DIR MKL_LIBRARIES) 
+-- Building 3rdparty
+-- Building base
+-- Building basis
+-- Building constrained
+-- Building certifiable
+-- Building geometry
+-- Building inference
+-- Building symbolic
+-- Building discrete
+-- Building hybrid
+-- Building linear
+-- Building nonlinear
+-- Building sam
+-- Building sfm
+-- Building slam
+-- Building navigation
+-- GTSAM Version: 4.3.0
+-- Install prefix: /home/vortex/ros2_ws/src/vortex-auv/navigation/gtsam/.deps/install
+-- Building GTSAM - as a SHARED library
+-- Ceres not found; Ceres-dependent timing scripts disabled
+-- Wrote /home/vortex/ros2_ws/src/vortex-auv/navigation/gtsam/.deps/build/GTSAMConfig.cmake
+-- ===============================================================
+-- ================  Configuration Options  ======================
+--  CMAKE_CXX_COMPILER_ID type                       : GNU
+--  CMAKE_CXX_COMPILER_VERSION                       : 13.4.0
+--  CMake version                                    : 3.22.1
+--  CMake generator                                  : Unix Makefiles
+--  CMake build tool                                 : /usr/bin/gmake
+-- Build Flags                                               
+--  Build tests                                      : Disabled
+--  Build examples with 'make all'                   : Disabled
+--  Build timing scripts with 'make all'             : Disabled
+--  Build Docs                                       : Enabled
+--  Build shared GTSAM libraries                     : Enabled
+--  Put build type in library name                   : Enabled
+--  Build libgtsam_unstable                          : Disabled
+--  Build GTSAM unstable Python                      : Enabled
+--  Build MATLAB Toolbox for unstable                : Disabled
+--  Build for native architecture                    : Disabled
+--  Build type                                       : Release
+--  C compilation flags                              :  -O3 -DNDEBUG
+--  C++ compilation flags                            :  -O3 -DNDEBUG
+--  Enable Boost serialization                       : ON
+--  GTSAM_COMPILE_FEATURES_PUBLIC                    : cxx_std_17
+--  GTSAM_COMPILE_OPTIONS_PUBLIC                     : 
+--  GTSAM_COMPILE_DEFINITIONS_PUBLIC                 : 
+--  GTSAM_COMPILE_OPTIONS_PUBLIC_RELEASE             : 
+--  GTSAM_COMPILE_DEFINITIONS_PUBLIC_RELEASE         : 
+--  Use System Eigen                                 : ON (Using version: 3.4.0)
+--  Use System Spectra                               : OFF
+--  Use System CCOLAMD                               : OFF
+--  Use CHOLMOD                                      : OFF
+--  Use System Metis                                 : OFF
+--  Using Boost version                              : 1.74.0
+--  Use Intel TBB                                    : TBB not found
+--  Eigen will use MKL                               : MKL not found
+--  Eigen will use MKL and OpenMP                    : OpenMP found but GTSAM_WITH_EIGEN_MKL is disabled
+--  Default allocator                                : STL
+--  Cheirality exceptions enabled                    : YES
+--  Build with ccache                                : No
+-- Packaging Flags
+--  CPack Source Generator                           : TGZ
+--  CPack Generator                                  : TGZ
+-- GTSAM Flags                                               
+--  Quaternions as default Rot3                      : Disabled
+--  Runtime consistency checking                     : Disabled
+--  Build with Memory Sanitizer                      : Disabled
+--  Rot3 retract is full ExpMap                      : Enabled
+--  Pose3 retract is full ExpMap                     : Enabled
+--  NavState retract is full ExpMap                  : Disabled
+--  Enable branch merging in DecisionTree            : Enabled
+--  Enable timing machinery                          : Disabled
+--  Allow features deprecated in GTSAM 4.3           : Enabled
+--  Metis-based Nested Dissection                    : Enabled
+--  Use tangent-space preintegration                 : Enabled
+-- MATLAB toolbox flags
+--  Install MATLAB toolbox                           : Disabled
+-- Python toolbox flags                                      
+--  Build Python module with pybind                  : Disabled
+-- Extra test flags
+--  CTEST_EXTRA_ARGS                                 : 
+--  PYTEST_EXTRA_ARGS                                : 
+-- ===============================================================
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/vortex/ros2_ws/src/vortex-auv/navigation/gtsam/.deps/build

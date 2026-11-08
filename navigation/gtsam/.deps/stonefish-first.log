@@ -1,0 +1,173 @@
+[INFO] [launch]: All log files can be found below /home/vortex/.ros/log/2026-09-28-00-06-08-944007-vortex-160611
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [stonefish_simulator_nogpu-1]: process started with pid [160613]
+[INFO] [robot_state_publisher-2]: process started with pid [160615]
+[INFO] [operation_mode_manager_cpp-3]: process started with pid [160617]
+[INFO] [joystick_interface_auv_node.py-4]: process started with pid [160619]
+[INFO] [dp_adapt_backs_controller_quat_node-5]: process started with pid [160621]
+[INFO] [thrust_allocator_auv_node-6]: process started with pid [160623]
+[INFO] [stonefish_sim_interface-7]: process started with pid [160625]
+[INFO] [stonefish_sensors.py-8]: process started with pid [160627]
+[INFO] [gtsam_navigation_node-9]: process started with pid [160629]
+[INFO] [stonefish_control.py-10]: process started with pid [160631]
+[INFO] [stonefish_evaluation.py-11]: process started with pid [160633]
+[operation_mode_manager_cpp-3] [2026-09-28 00:06:09.085] [info] Operation Mode Manager Node started. Initial mode: manual mode, Killswitch: true
+[gtsam_navigation_node-9] [INFO] [1790546769.085498409] [nautilus.gtsam_navigation]: Waiting for fixed Nautilus sensor transforms; bias states remain internal
+[robot_state_publisher-2] [INFO] [1790546769.091028079] [nautilus.robot_state_publisher]: got segment arm
+[robot_state_publisher-2] [INFO] [1790546769.091152091] [nautilus.robot_state_publisher]: got segment base_link
+[robot_state_publisher-2] [INFO] [1790546769.091168866] [nautilus.robot_state_publisher]: got segment downwards_camera_lens
+[robot_state_publisher-2] [INFO] [1790546769.091179893] [nautilus.robot_state_publisher]: got segment downwards_camera_link
+[robot_state_publisher-2] [INFO] [1790546769.091189160] [nautilus.robot_state_publisher]: got segment downwards_camera_optical
+[robot_state_publisher-2] [INFO] [1790546769.091198298] [nautilus.robot_state_publisher]: got segment dvl_link
+[robot_state_publisher-2] [INFO] [1790546769.091207520] [nautilus.robot_state_publisher]: got segment finger1
+[robot_state_publisher-2] [INFO] [1790546769.091216675] [nautilus.robot_state_publisher]: got segment finger2
+[robot_state_publisher-2] [INFO] [1790546769.091225426] [nautilus.robot_state_publisher]: got segment front_camera_color
+[robot_state_publisher-2] [INFO] [1790546769.091234205] [nautilus.robot_state_publisher]: got segment front_camera_color_optical
+[robot_state_publisher-2] [INFO] [1790546769.091243118] [nautilus.robot_state_publisher]: got segment front_camera_depth
+[robot_state_publisher-2] [INFO] [1790546769.091251947] [nautilus.robot_state_publisher]: got segment front_camera_depth_optical
+[robot_state_publisher-2] [INFO] [1790546769.091260891] [nautilus.robot_state_publisher]: got segment front_camera_infra1
+[robot_state_publisher-2] [INFO] [1790546769.091269529] [nautilus.robot_state_publisher]: got segment front_camera_infra1_optical
+[robot_state_publisher-2] [INFO] [1790546769.091278176] [nautilus.robot_state_publisher]: got segment front_camera_infra2
+[robot_state_publisher-2] [INFO] [1790546769.091286763] [nautilus.robot_state_publisher]: got segment front_camera_infra2_optical
+[robot_state_publisher-2] [INFO] [1790546769.091295545] [nautilus.robot_state_publisher]: got segment front_camera_link
+[robot_state_publisher-2] [INFO] [1790546769.091304215] [nautilus.robot_state_publisher]: got segment imu_link
+[robot_state_publisher-2] [INFO] [1790546769.091312795] [nautilus.robot_state_publisher]: got segment pressure_sensor_link
+[robot_state_publisher-2] [INFO] [1790546769.091321427] [nautilus.robot_state_publisher]: got segment shoulder
+[robot_state_publisher-2] [INFO] [1790546769.091329743] [nautilus.robot_state_publisher]: got segment sonar_link
+[thrust_allocator_auv_node-6] [2026-09-28 00:06:09.097] [info] Successfully formulated as QP standardform
+[thrust_allocator_auv_node-6] [2026-09-28 00:06:09.100] [info] Successfully formulated into valid CasADi formulation
+[thrust_allocator_auv_node-6] [2026-09-28 00:06:09.102] [info] 
+[thrust_allocator_auv_node-6]   _____ _                    _        _    _ _                 _
+[thrust_allocator_auv_node-6]  |_   _| |__  _ __ _   _ ___| |_     / \  | | | ___   ___ __ _| |_ ___  _ __
+[thrust_allocator_auv_node-6]    | | | '_ \| '__| | | / __| __|   / _ \ | | |/ _ \ / __/ _` | __/ _ \| '__|
+[thrust_allocator_auv_node-6]    | | | | | | |  | |_| \__ \ |_   / ___ \| | | (_) | (_| (_| | || (_) | |
+[thrust_allocator_auv_node-6]    |_| |_| |_|_|   \__,_|___/\__| /_/   \_\_|_|\___/ \___\__,_|\__\___/|_|
+[thrust_allocator_auv_node-6] 
+[thrust_allocator_auv_node-6] 
+[dp_adapt_backs_controller_quat_node-5] [2026-09-28 00:06:09.133] [info] 
+[dp_adapt_backs_controller_quat_node-5]  ██████╗ ██╗   ██╗ █████╗ ████████╗███████╗██████╗ ███╗   ██╗██╗ ██████╗ ███╗   ██╗    ██████╗ ██████╗
+[dp_adapt_backs_controller_quat_node-5] ██╔═══██╗██║   ██║██╔══██╗╚══██╔══╝██╔════╝██╔══██╗████╗  ██║██║██╔═══██╗████╗  ██║    ██╔══██╗██╔══██╗
+[dp_adapt_backs_controller_quat_node-5] ██║   ██║██║   ██║███████║   ██║   █████╗  ██████╔╝██╔██╗ ██║██║██║   ██║██╔██╗ ██║    ██║  ██║██████╔╝
+[dp_adapt_backs_controller_quat_node-5] ██║▄▄ ██║██║   ██║██╔══██║   ██║   ██╔══╝  ██╔══██╗██║╚██╗██║██║██║   ██║██║╚██╗██║    ██║  ██║██╔═══╝
+[dp_adapt_backs_controller_quat_node-5] ╚██████╔╝╚██████╔╝██║  ██║   ██║   ███████╗██║  ██║██║ ╚████║██║╚██████╔╝██║ ╚████║    ██████╔╝██║
+[dp_adapt_backs_controller_quat_node-5]  ╚══▀▀═╝  ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝ ╚═════╝ ╚═╝  ╚═══╝    ╚═════╝ ╚═╝
+[dp_adapt_backs_controller_quat_node-5] 
+[dp_adapt_backs_controller_quat_node-5] [2026-09-28 00:06:09.134] [info] Initial operation mode: manual mode | Killswitch status: on
+[gtsam_navigation_node-9] [INFO] [1790546769.185600498] [nautilus.gtsam_navigation]: Fixed sensor transforms loaded; collecting stationary IMU samples
+[joystick_interface_auv_node.py-4] [INFO] [1790546769.798467908] [nautilus.joystick_interface_auv]: 
+[joystick_interface_auv_node.py-4]       _                 _   _      _      ___       _             __
+[joystick_interface_auv_node.py-4]      | | ___  _   _ ___| |_(_) ___| | __ |_ _|_ __ | |_ ___ _ __ / _| __ _  ___ ___
+[joystick_interface_auv_node.py-4]   _  | |/ _ \| | | / __| __| |/ __| |/ /  | || '_ \| __/ _ \ '__| |_ / _` |/ __/ _ \
+[joystick_interface_auv_node.py-4]  | |_| | (_) | |_| \__ \ |_| | (__|   <   | || | | | ||  __/ |  |  _| (_| | (_|  __/
+[joystick_interface_auv_node.py-4]   \___/ \___/ \__, |___/\__|_|\___|_|\_\ |___|_| |_|\__\___|_|  |_|  \__,_|\___\___|
+[joystick_interface_auv_node.py-4]               |___/
+[joystick_interface_auv_node.py-4] 
+[joystick_interface_auv_node.py-4] [INFO] [1790546769.799086296] [nautilus.joystick_interface_auv]: Initial operation mode: vortex_msgs.msg.OperationMode(operation_mode=2) | Initial killswitch status: on
+[stonefish_simulator_nogpu-1] [INFO] Welcome to Stonefish 1.5.
+[stonefish_simulator_nogpu-1] [INFO] Initializing simulation:
+[stonefish_simulator_nogpu-1] [INFO] Building scenario...
+[stonefish_simulator_nogpu-1] [INFO] Scenario parser: Loading scenario from '/home/vortex/ros2_ws/install/gtsam_navigation/share/gtsam_navigation/scenarios/nautilus_gtsam.scn'.
+[stonefish_simulator_nogpu-1] [INFO] Scenario parser: Including file '/home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/metadata/materials.scn'
+[stonefish_simulator_nogpu-1] [INFO] Scenario parser: Including file '/home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/metadata/looks.scn'
+[stonefish_simulator_nogpu-1] [INFO] Material Aluminium (0) created.
+[stonefish_simulator_nogpu-1] [INFO] Material Steel (1) created.
+[stonefish_simulator_nogpu-1] [INFO] Material robot_material (2) created.
+[stonefish_simulator_nogpu-1] [INFO] Material ma1_material (3) created.
+[stonefish_simulator_nogpu-1] [INFO] Material Neutral (4) created.
+[stonefish_simulator_nogpu-1] [INFO] Material Rough (5) created.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/nautilus_visual.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 65551 faces in 2099 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/nautilus_collision.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 284 faces in 0 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_shoulder_collision.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 12 faces in 0 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_shoulder_collision.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 12 faces in 0 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_arm_collision.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 236 faces in 0 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_arm_collision.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 236 faces in 0 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_finger_left_collision.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 28 faces in 0 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_finger_left_collision.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 28 faces in 0 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_finger_right_collision.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 28 faces in 0 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/nautilus/gripper_finger_right_collision.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 28 faces in 0 ms.
+[stonefish_simulator_nogpu-1] [INFO] Built multibody link nautilus/Base (mass[kg]: 53.700; inertia[kgm2]: 11.060, 23.110, 26.240; volume[cm3]: 50148.5)
+[stonefish_simulator_nogpu-1] [INFO] Building kinematic tree of robot 'nautilus', consisting of 5 links and 4 joints.
+[stonefish_simulator_nogpu-1] [INFO] Joint 1: nautilus/Base<-->nautilus/shoulder
+[stonefish_simulator_nogpu-1] [INFO] Joint 2: nautilus/shoulder<-->nautilus/arm
+[stonefish_simulator_nogpu-1] [INFO] Joint 3: nautilus/arm<-->nautilus/finger2
+[stonefish_simulator_nogpu-1] [INFO] Joint 4: nautilus/arm<-->nautilus/finger1
+[stonefish_simulator_nogpu-1] [INFO] Built multibody link nautilus/shoulder (mass[kg]: 0.000; inertia[kgm2]: 0.000, 0.000, 0.000; volume[cm3]: 2622.5)
+[stonefish_simulator_nogpu-1] [INFO] Built multibody link nautilus/arm (mass[kg]: 0.000; inertia[kgm2]: 0.000, 0.000, 0.000; volume[cm3]: 274.7)
+[stonefish_simulator_nogpu-1] [INFO] Built multibody link nautilus/finger2 (mass[kg]: 0.000; inertia[kgm2]: 0.000, 0.000, 0.000; volume[cm3]: 85.3)
+[stonefish_simulator_nogpu-1] [INFO] Built multibody link nautilus/finger1 (mass[kg]: 0.000; inertia[kgm2]: 0.000, 0.000, 0.000; volume[cm3]: 85.3)
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 6359 faces in 4 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 6359 faces in 4 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 6359 faces in 4 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 6359 faces in 4 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 6359 faces in 3 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 6359 faces in 3 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 6359 faces in 4 ms.
+[stonefish_simulator_nogpu-1] [INFO] Loading geometry from: /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data/orca/bluerov2_propccw.obj
+[stonefish_simulator_nogpu-1] [INFO] Loaded mesh with 6359 faces in 3 ms.
+[stonefish_simulator_nogpu-1] [INFO] Scenario parser: Log saved to file '/home/vortex/.ros/log/stonefish_ros2_parser.log'.
+[stonefish_simulator_nogpu-1] [INFO] Synchronizing motion states...
+[stonefish_simulator_nogpu-1] [INFO] Simulation initialized -> using Bullet Physics 3.17.
+[stonefish_simulator_nogpu-1] [INFO] Ready for running...
+[stonefish_simulator_nogpu-1] [INFO] IC problem solved with 1 iterations in 0.000090 s.
+[WARNING] [launch]: user interrupted with ctrl-c (SIGINT)
+[WARNING] [launch]: user interrupted with ctrl-c (SIGINT) again, ignoring...
+[INFO] [stonefish_evaluation.py-11]: sending signal 'SIGINT' to process[stonefish_evaluation.py-11]
+[ERROR] [stonefish_simulator_nogpu-1]: process has died [pid 160613, exit code -2, cmd '/home/vortex/ros2_ws/install/stonefish_ros2/lib/stonefish_ros2/stonefish_simulator_nogpu /home/vortex/ros2_ws/install/stonefish_sim/share/stonefish_sim/data /home/vortex/ros2_ws/install/gtsam_navigation/share/gtsam_navigation/scenarios/nautilus_gtsam.scn 1000.0 --ros-args -r __node:=gtsam_stonefish --params-file /tmp/launch_params_s5sh4kb7'].
+[INFO] [stonefish_control.py-10]: sending signal 'SIGINT' to process[stonefish_control.py-10]
+[INFO] [gtsam_navigation_node-9]: sending signal 'SIGINT' to process[gtsam_navigation_node-9]
+[INFO] [stonefish_sensors.py-8]: sending signal 'SIGINT' to process[stonefish_sensors.py-8]
+[INFO] [stonefish_sim_interface-7]: sending signal 'SIGINT' to process[stonefish_sim_interface-7]
+[INFO] [thrust_allocator_auv_node-6]: sending signal 'SIGINT' to process[thrust_allocator_auv_node-6]
+[INFO] [dp_adapt_backs_controller_quat_node-5]: sending signal 'SIGINT' to process[dp_adapt_backs_controller_quat_node-5]
+[INFO] [joystick_interface_auv_node.py-4]: sending signal 'SIGINT' to process[joystick_interface_auv_node.py-4]
+[ERROR] [gtsam_navigation_node-9]: process has died [pid 160629, exit code -2, cmd '/home/vortex/ros2_ws/install/gtsam_navigation/lib/gtsam_navigation/gtsam_navigation_node --ros-args -r __ns:=/nautilus --params-file /home/vortex/ros2_ws/install/auv_setup/share/auv_setup/config/robots/nautilus.yaml --params-file /home/vortex/ros2_ws/install/gtsam_navigation/share/gtsam_navigation/config/navigation.yaml --params-file /tmp/launch_params_c3oc0v4g --params-file /tmp/launch_params_0ld58eem'].
+[ERROR] [stonefish_sim_interface-7]: process has died [pid 160625, exit code -2, cmd '/home/vortex/ros2_ws/install/stonefish_sim_interface/lib/stonefish_sim_interface/stonefish_sim_interface --ros-args -r __ns:=/nautilus --params-file /home/vortex/ros2_ws/install/auv_setup/share/auv_setup/config/robots/nautilus.yaml --params-file /tmp/launch_params_g8xvx_ke --params-file /tmp/launch_params_9ezufn1b -r odom:=stonefish/unused_odom -r pose:=stonefish/unused_pose -r twist:=stonefish/unused_twist -r dvl/twist:=stonefish/unused_dvl'].
+[ERROR] [thrust_allocator_auv_node-6]: process has died [pid 160623, exit code -2, cmd '/home/vortex/ros2_ws/install/thrust_allocator_auv/lib/thrust_allocator_auv/thrust_allocator_auv_node --ros-args -r __ns:=/nautilus --params-file /home/vortex/ros2_ws/install/auv_setup/share/auv_setup/config/robots/nautilus.yaml --params-file /tmp/launch_params_j1k77yrj --params-file /tmp/launch_params_pe66ozt4'].
+[INFO] [operation_mode_manager_cpp-3]: sending signal 'SIGINT' to process[operation_mode_manager_cpp-3]
+[ERROR] [stonefish_evaluation.py-11]: process has died [pid 160633, exit code -2, cmd '/home/vortex/ros2_ws/install/gtsam_navigation/lib/gtsam_navigation/stonefish_evaluation.py --ros-args -r __ns:=/nautilus --params-file /home/vortex/ros2_ws/install/auv_setup/share/auv_setup/config/robots/nautilus.yaml --params-file /tmp/launch_params__42zt0ei'].
+[ERROR] [dp_adapt_backs_controller_quat_node-5]: process has died [pid 160621, exit code -2, cmd '/home/vortex/ros2_ws/install/dp_adapt_backs_controller_quat/lib/dp_adapt_backs_controller_quat/dp_adapt_backs_controller_quat_node --ros-args -r __ns:=/nautilus --params-file /home/vortex/ros2_ws/install/auv_setup/share/auv_setup/config/robots/nautilus.yaml --params-file /home/vortex/ros2_ws/install/dp_adapt_backs_controller_quat/share/dp_adapt_backs_controller_quat/config/adapt_params_nautilus_sim.yaml --params-file /tmp/launch_params_v_wc0u_2 -r wrench_input:=gtsam/command/dp'].
+[ERROR] [stonefish_sensors.py-8]: process has died [pid 160627, exit code -2, cmd '/home/vortex/ros2_ws/install/gtsam_navigation/lib/gtsam_navigation/stonefish_sensors.py --ros-args -r __ns:=/nautilus --params-file /home/vortex/ros2_ws/install/auv_setup/share/auv_setup/config/robots/nautilus.yaml --params-file /tmp/launch_params_uuyths4_'].
+[ERROR] [stonefish_control.py-10]: process has died [pid 160631, exit code -2, cmd '/home/vortex/ros2_ws/install/gtsam_navigation/lib/gtsam_navigation/stonefish_control.py --ros-args -r __ns:=/nautilus --params-file /home/vortex/ros2_ws/install/auv_setup/share/auv_setup/config/robots/nautilus.yaml --params-file /tmp/launch_params_mupuz72a'].
+[INFO] [robot_state_publisher-2]: sending signal 'SIGINT' to process[robot_state_publisher-2]
+[ERROR] [operation_mode_manager_cpp-3]: process has died [pid 160617, exit code -2, cmd '/home/vortex/ros2_ws/install/operation_mode_manager/lib/operation_mode_manager/operation_mode_manager_cpp --ros-args -r __ns:=/nautilus --params-file /home/vortex/ros2_ws/install/auv_setup/share/auv_setup/config/robots/nautilus.yaml --params-file /tmp/launch_params_335yvkhd --params-file /tmp/launch_params_molvz9jy -r wrench_input:=gtsam/command/mode'].
+[gtsam_navigation_node-9] [INFO] [1790546803.788150748] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[ERROR] [joystick_interface_auv_node.py-4]: process has died [pid 160619, exit code -2, cmd '/home/vortex/ros2_ws/install/joystick_interface_auv/lib/joystick_interface_auv/joystick_interface_auv_node.py --ros-args -r __ns:=/nautilus --params-file /home/vortex/ros2_ws/install/auv_setup/share/auv_setup/config/robots/nautilus.yaml --params-file /home/vortex/ros2_ws/install/joystick_interface_auv/share/joystick_interface_auv/config/param_joystick_interface_auv.yaml --params-file /tmp/launch_params_79hft6an --params-file /tmp/launch_params_h2khc0vu -r wrench_input:=gtsam/command/manual'].
+[ERROR] [robot_state_publisher-2]: process has died [pid 160615, exit code -2, cmd '/opt/ros/humble/lib/robot_state_publisher/robot_state_publisher --ros-args -r __node:=robot_state_publisher -r __ns:=/nautilus --params-file /tmp/launch_params_r25ib318 -r joint_states:=servo_state'].
+[robot_state_publisher-2] [INFO] [1790546803.788169935] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[dp_adapt_backs_controller_quat_node-5] [INFO] [1790546803.788161816] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[operation_mode_manager_cpp-3] [INFO] [1790546803.788178826] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[joystick_interface_auv_node.py-4] Traceback (most recent call last):
+[joystick_interface_auv_node.py-4]   File "/home/vortex/ros2_ws/install/joystick_interface_auv/lib/joystick_interface_auv/joystick_interface_auv_node.py", line 580, in <module>
+[joystick_interface_auv_node.py-4]     main()
+[joystick_interface_auv_node.py-4]   File "/home/vortex/ros2_ws/install/joystick_interface_auv/lib/joystick_interface_auv/joystick_interface_auv_node.py", line 574, in main
+[joystick_interface_auv_node.py-4]     rclpy.spin(joystick_interface)
+[joystick_interface_auv_node.py-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 229, in spin
+[joystick_interface_auv_node.py-4]     executor.spin_once()
+[joystick_interface_auv_node.py-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 808, in spin_once
+[joystick_interface_auv_node.py-4]     self._spin_once_impl(timeout_sec)
+[joystick_interface_auv_node.py-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 797, in _spin_once_impl
+[joystick_interface_auv_node.py-4]     handler, entity, node = self.wait_for_ready_callbacks(timeout_sec=timeout_sec)
+[joystick_interface_auv_node.py-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 780, in wait_for_ready_callbacks
+[joystick_interface_auv_node.py-4]     return next(self._cb_iter)
+[joystick_interface_auv_node.py-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 677, in _wait_for_ready_callbacks
+[joystick_interface_auv_node.py-4]     wait_set.wait(timeout_nsec)
+[joystick_interface_auv_node.py-4] KeyboardInterrupt
+[thrust_allocator_auv_node-6] [INFO] [1790546803.788675970] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[stonefish_sim_interface-7] [INFO] [1790546803.789478791] [rclcpp]: signal_handler(SIGINT/SIGTERM)
