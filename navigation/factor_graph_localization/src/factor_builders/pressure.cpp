@@ -13,16 +13,17 @@ gtsam::ExpressionFactor<double> build_pressure_factor(
     const PressureModel& pressure_model) {
     const gtsam::Pose3_ IMU_pose(IMU_pose_key);
 
-    const auto h = predict_pressure(
-        IMU_pose, pressure_geometry.IMU_PORT_OFFSET,
+    const auto predicted_pressure_pa = predict_pressure(
+        IMU_pose, pressure_geometry.pressure_port_offset_IMU_m,
         pressure_model.surface_pressure_pa, pressure_model.water_density_kg_m3,
-        pressure_model.gravity_mps2);
+        pressure_model.gravity_m_s2);
 
     const auto pressure_noise_model =
         gtsam::noiseModel::Isotropic::Sigma(1, pressure_measurement.sigma_pa);
 
     return gtsam::ExpressionFactor<double>(
-        pressure_noise_model, pressure_measurement.pressure_pa, h);
+        pressure_noise_model, pressure_measurement.pressure_pa,
+        predicted_pressure_pa);
 }
 
 }  // namespace vortex::navigation

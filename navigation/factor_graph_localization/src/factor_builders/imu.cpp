@@ -2,17 +2,17 @@
 
 namespace vortex::navigation {
 
-gtsam::CombinedImuFactor build_imu_factor(
-    const gtsam::Key preint_start_pose_key,
-    const gtsam::Key preint_start_velocity_key,
-    const gtsam::Key preint_end_pose_key,
-    const gtsam::Key preint_end_velocity_key,
+gtsam::CombinedImuFactor build_combined_imu_factor(
+    const gtsam::Key preint_start_IMU_pose_key,
+    const gtsam::Key preint_start_WORLD_velocity_key,
+    const gtsam::Key preint_end_IMU_pose_key,
+    const gtsam::Key preint_end_WORLD_velocity_key,
     const gtsam::Key preint_start_IMU_bias_key,
     const gtsam::Key preint_end_IMU_bias_key,
     const gtsam::PreintegratedCombinedMeasurements& preintegrated_measurements) {
     return gtsam::CombinedImuFactor(
-        preint_start_pose_key, preint_start_velocity_key,
-        preint_end_pose_key, preint_end_velocity_key,
+        preint_start_IMU_pose_key, preint_start_WORLD_velocity_key,
+        preint_end_IMU_pose_key, preint_end_WORLD_velocity_key,
         preint_start_IMU_bias_key, preint_end_IMU_bias_key,
         preintegrated_measurements);
 }

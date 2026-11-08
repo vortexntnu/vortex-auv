@@ -16,7 +16,7 @@ struct PressureMeasurement {
 
 struct PressureGeometry {
     /// IMU -> PressureSensor port offset, in IMU axes [m].
-    gtsam::Point3 IMU_PORT_OFFSET;
+    gtsam::Point3 pressure_port_offset_IMU_m;
 };
 
 struct PressureModel {
@@ -25,12 +25,12 @@ struct PressureModel {
     /// Positive, constant water density [kg/m^3].
     double water_density_kg_m3;
     /// Positive gravitational acceleration [m/s^2].
-    double gravity_mps2;
+    double gravity_m_s2;
 };
 
 /**
  * IMU_pose_key: IMU Pose3 graph variable at the measurement timestamp.
- * The graph's fixed reference frame has z down and z = 0 at the water surface.
+ * The fixed WORLD frame has z down and z = 0 at the water surface.
  */
 gtsam::ExpressionFactor<double> build_pressure_factor(
     const gtsam::Key IMU_pose_key,
