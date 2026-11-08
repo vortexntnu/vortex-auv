@@ -38,9 +38,10 @@ ImuPreintegration::ImuPreintegration(
 void ImuPreintegration::integrate_measurement(
     const gtsam::Vector3& specific_force_IMU_m_s2,
     const gtsam::Vector3& angular_velocity_IMU_rad_s,
-    const double dt_s) {
+    const double imu_sample_interval_s) {
     measurements_.integrateMeasurement(specific_force_IMU_m_s2,
-                                       angular_velocity_IMU_rad_s, dt_s);
+                                       angular_velocity_IMU_rad_s,
+                                       imu_sample_interval_s);
 }
 
 void ImuPreintegration::reset_integration(
